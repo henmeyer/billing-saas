@@ -43,8 +43,8 @@ class Subscription < ApplicationRecord
     end
 
     WebhookDispatchJob.perform_later(customer, "plan.changed", {
-      previous_plan: { id: old_plan.id, name: old_plan.name },
-      new_plan:      { id: new_plan.id, name: new_plan.name }
-    })
+                                       previous_plan: { id: old_plan.id, name: old_plan.name },
+                                       new_plan:      { id: new_plan.id, name: new_plan.name }
+                                     })
   end
 end

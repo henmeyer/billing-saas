@@ -1,0 +1,34 @@
+<h1><%= @plan.name %></h1>
+
+<p><strong>Preço:</strong> <%= number_to_currency(@plan.price_in_reais, unit: "R$ ", separator: ",", delimiter: ".") %></p>
+<p><strong>Ciclo:</strong> <%= @plan.billing_cycle %></p>
+<p><strong>Trial:</strong> <%= @plan.trial_days %> dias</p>
+<p><strong>Status:</strong> <%= @plan.active? ? "Ativo" : "Inativo" %></p>
+<% if @plan.description.present? %>
+  <p><strong>Descrição:</strong> <%= @plan.description %></p>
+<% end %>
+
+<h2>Licenças</h2>
+<% if @plan.plan_licenses.any? %>
+  <ul>
+    <% @plan.plan_licenses.includes(:license_type).each do |pl| %>
+      <li><%= pl.license_type.label %>: <%= pl.unlimited? ? "Ilimitado" : pl.quantity %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Nenhuma licença configurada.</p>
+<% end %>
+
+<h2>Créditos</h2>
+<% if @plan.plan_credits.any? %>
+  <ul>
+    <% @plan.plan_credits.includes(:credit_type).each do |pc| %>
+      <li><%= pc.credit_type.label %>: <%= pc.quantity %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Nenhum crédito configurado.</p>
+<% end %>
+
+<%= link_to "Editar", edit_plan_path(@plan) %>
+<%= link_to "Voltar", plans_path %>

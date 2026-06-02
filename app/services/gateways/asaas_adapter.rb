@@ -11,12 +11,12 @@ module Gateways
 
     def create_customer(customer)
       response = post("/customers", {
-        name:              customer.name,
-        email:             customer.email,
-        cpfCnpj:           customer.document,
-        phone:             customer.phone,
-        externalReference: customer.external_id
-      })
+                        name:              customer.name,
+                        email:             customer.email,
+                        cpfCnpj:           customer.document,
+                        phone:             customer.phone,
+                        externalReference: customer.external_id
+                      })
       customer.gateway_data["asaas"] ||= {}
       customer.gateway_data["asaas"]["customer_id"] = response["id"]
       customer.save!
@@ -25,14 +25,14 @@ module Gateways
 
     def create_subscription(customer, plan)
       post("/subscriptions", {
-        customer:          customer.gateway_data.dig("asaas", "customer_id"),
-        billingType:       plan.gateway_data.dig("asaas", "billing_type") || "BOLETO",
-        value:             plan.price_cents / 100.0,
-        nextDueDate:       Date.tomorrow.strftime("%Y-%m-%d"),
-        cycle:             asaas_cycle(plan.billing_cycle),
-        description:       plan.name,
-        externalReference: plan.id.to_s
-      })
+             customer:          customer.gateway_data.dig("asaas", "customer_id"),
+             billingType:       plan.gateway_data.dig("asaas", "billing_type") || "BOLETO",
+             value:             plan.price_cents / 100.0,
+             nextDueDate:       Date.tomorrow.strftime("%Y-%m-%d"),
+             cycle:             asaas_cycle(plan.billing_cycle),
+             description:       plan.name,
+             externalReference: plan.id.to_s
+           })
     end
 
     def cancel_subscription(gateway_sub_id)
@@ -41,14 +41,15 @@ module Gateways
         headers: headers
       )
       raise GatewayError, response.body unless response.success?
+
       response.parsed_response
     end
 
     def update_subscription(gateway_sub_id, new_plan)
       post("/subscriptions/#{gateway_sub_id}", {
-        value: new_plan.price_cents / 100.0,
-        cycle: asaas_cycle(new_plan.billing_cycle)
-      })
+             value: new_plan.price_cents / 100.0,
+             cycle: asaas_cycle(new_plan.billing_cycle)
+           })
     end
 
     private
@@ -64,6 +65,7 @@ module Gateways
         body:    body.to_json
       )
       raise GatewayError, response["errors"].to_s unless response.success?
+
       response.parsed_response
     end
 

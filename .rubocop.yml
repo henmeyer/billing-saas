@@ -1,0 +1,126 @@
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "bin/**/*"
+    - "db/schema.rb"
+    - "db/migrate/**/*"
+    - "node_modules/**/*"
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - "log/**/*"
+    - "storage/**/*"
+    - "config/initializers/devise.rb"
+
+# ---------------------------------------------------------------------------
+# Style
+# ---------------------------------------------------------------------------
+
+# O projeto usa aspas duplas de forma consistente
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# Frozen string literal é opt-in — não obrigar em todos os arquivos
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# Controllers e models Rails não precisam de comentário de documentação
+Style/Documentation:
+  Enabled: false
+
+# Métodos de action vazios são comuns em Rails (def show; end)
+Style/EmptyMethod:
+  Enabled: false
+
+# Permite unless onde faz sentido semanticamente
+Style/NegatedIf:
+  Enabled: false
+
+# Permite rescue inline em jobs e services
+Style/RescueModifier:
+  Enabled: false
+
+# Permite blocos { } em specs (expect { }.to change(...))
+Style/BlockDelimiters:
+  Exclude:
+    - "spec/**/*"
+
+# Projeto mescla os dois estilos válidos:
+# - compact: controllers (Webhooks::AsaasController) — exigido pelo Zeitwerk
+# - nested: gateway services (module Gateways; class AsaasAdapter)
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+# Adapters de gateway definem initialize sem precisar de super —
+# a classe Base não define initialize, então super seria Object#initialize (no-op)
+Lint/MissingSuper:
+  Exclude:
+    - "app/services/gateways/*.rb"
+
+# Symbol array com %i preferido a partir de 4 elementos
+Style/SymbolArray:
+  EnforcedStyle: percent
+  MinSize: 4
+
+# Chains longas de safe navigation são comuns em domains como billing
+Style/SafeNavigationChainLength:
+  Max: 4
+
+# ---------------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------------
+
+# Linha até 120 — padrão confortável para Rails
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - "spec/**/*"
+
+# Specs têm blocos naturalmente longos (describe/context/factory)
+Metrics/BlockLength:
+  Max: 50
+  Exclude:
+    - "spec/**/*"
+    - "config/routes.rb"
+
+# Jobs de processamento de eventos têm múltiplos passos atômicos obrigatórios
+Metrics/MethodLength:
+  Max: 40
+  Exclude:
+    - "spec/**/*"
+
+# ABCs altos são inevitáveis em métodos que orquestram transações de pagamento
+Metrics/AbcSize:
+  Max: 35
+
+# Processamento de eventos com vários branches é inherentemente mais complexo
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+# handle_failure no dispatch job precisa de todos os parâmetros para idempotência
+Metrics/ParameterLists:
+  Max: 7
+
+Metrics/ClassLength:
+  Max: 150
+  Exclude:
+    - "spec/**/*"
+
+# ---------------------------------------------------------------------------
+# Layout
+# ---------------------------------------------------------------------------
+
+# Hash alinhado com a chave mais longa (estilo da Fase 1)
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: table
+  EnforcedColonStyle: table
+
+Layout/EmptyLinesAroundExceptionHandlingKeywords:
+  Enabled: true

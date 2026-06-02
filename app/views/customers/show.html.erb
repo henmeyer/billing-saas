@@ -1,0 +1,63 @@
+<h1><%= @customer.name %></h1>
+
+<p><strong>Email:</strong> <%= @customer.email %></p>
+<p><strong>Documento:</strong> <%= @customer.document.presence || "—" %></p>
+<p><strong>Telefone:</strong> <%= @customer.phone.presence || "—" %></p>
+<p><strong>ID externo:</strong> <%= @customer.external_id.presence || "—" %></p>
+<p><strong>Status:</strong> <%= @customer.status %></p>
+<p><strong>Health score:</strong> <%= @customer.health_score %></p>
+
+<% if @subscription %>
+  <h2>Assinatura ativa</h2>
+  <p><strong>Plano:</strong> <%= @subscription.plan.name %></p>
+  <p><strong>Status:</strong> <%= @subscription.status %></p>
+  <p><strong>Gateway:</strong> <%= @subscription.gateway %></p>
+  <p><strong>Período atual:</strong>
+    <%= @subscription.current_period_start&.strftime("%d/%m/%Y") %> –
+    <%= @subscription.current_period_end&.strftime("%d/%m/%Y") %>
+  </p>
+<% else %>
+  <p>Sem assinatura ativa.</p>
+<% end %>
+
+<% if @snapshots.any? %>
+  <h2>Créditos no período</h2>
+  <table>
+    <thead>
+      <tr><th>Tipo</th><th>Usado</th><th>Limite</th><th>Saldo</th><th>%</th></tr>
+    </thead>
+    <tbody>
+      <% @snapshots.each do |s| %>
+        <tr>
+          <td><%= s.credit_type.label %></td>
+          <td><%= s.used %></td>
+          <td><%= s.limit %></td>
+          <td><%= s.balance %></td>
+          <td><%= s.usage_percent %>%</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<% if @charges.any? %>
+  <h2>Últimas cobranças</h2>
+  <table>
+    <thead>
+      <tr><th>Data</th><th>Valor</th><th>Status</th><th>Gateway</th></tr>
+    </thead>
+    <tbody>
+      <% @charges.each do |c| %>
+        <tr>
+          <td><%= c.created_at.strftime("%d/%m/%Y") %></td>
+          <td><%= number_to_currency(c.amount_cents / 100.0, unit: "R$ ", separator: ",", delimiter: ".") %></td>
+          <td><%= c.status %></td>
+          <td><%= c.gateway %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<%= link_to "Editar", edit_customer_path(@customer) %>
+<%= link_to "Voltar", customers_path %>

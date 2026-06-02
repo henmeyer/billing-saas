@@ -1,0 +1,48 @@
+<%= form_with model: customer do |f| %>
+  <% if customer.errors.any? %>
+    <div class="alert alert-danger">
+      <ul>
+        <% customer.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name, "Nome" %>
+    <%= f.text_field :name %>
+  </div>
+
+  <div class="field">
+    <%= f.label :email, "Email" %>
+    <%= f.email_field :email %>
+  </div>
+
+  <div class="field">
+    <%= f.label :document, "CPF/CNPJ" %>
+    <%= f.text_field :document %>
+  </div>
+
+  <div class="field">
+    <%= f.label :phone, "Telefone" %>
+    <%= f.text_field :phone %>
+  </div>
+
+  <div class="field">
+    <%= f.label :external_id, "ID externo" %>
+    <%= f.text_field :external_id %>
+  </div>
+
+  <div class="field">
+    <%= f.label :status, "Status" %>
+    <%= f.select :status, Customer::STATUSES.map { |s| [s.humanize, s] } %>
+  </div>
+
+  <div class="field">
+    <%= f.label :notes, "Observações" %>
+    <%= f.text_area :notes %>
+  </div>
+
+  <%= f.submit %>
+<% end %>

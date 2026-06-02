@@ -1,17 +1,28 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  url: <%= ENV["DATABASE_URL"] %>
+  pool: <%= ENV.fetch("DB_POOL_SIZE") { 20 } %>
+  host: <%= ENV.fetch('POSTGRES_HOST', 'localhost') %>
+  port: <%= ENV.fetch('POSTGRES_PORT', '5432') %>
+  prepared_statements: false
+  timeout: 5000
+  variables:
+    statement_timeout: <%= ENV["POSTGRES_STATEMENT_TIMEOUT"] || "14s" %>
 
 development:
   <<: *default
-  database: billing_development
+  database: <%= ENV.fetch('POSTGRES_DATABASE', 'billing_development') %>
+  username: <%= ENV.fetch('POSTGRES_USERNAME', 'postgres') %>
+  password: <%= ENV.fetch('POSTGRES_PASSWORD', '') %>
 
 test:
   <<: *default
-  database: billing_test
+  database: <%= ENV.fetch('POSTGRES_DATABASE', 'billing_test') %>
+  username: <%= ENV.fetch('POSTGRES_USERNAME', 'postgres') %>
+  password: <%= ENV.fetch('POSTGRES_PASSWORD', '') %>
 
 production:
   <<: *default
-  url: <%= ENV["DATABASE_URL"] %>
+  database: <%= ENV["POSTGRES_DATABASE"] %>
+  username: <%= ENV["POSTGRES_USERNAME"] %>
+  password: <%= ENV["POSTGRES_PASSWORD"] %>

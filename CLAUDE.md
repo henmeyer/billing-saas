@@ -343,14 +343,37 @@ kamal logs
 
 ## Variáveis de ambiente necessárias
 
+Copiar `.env.example` → `.env` e preencher os valores.
+
+Copiar `.env.example` → `.env` e preencher os valores.
+
 ```
-DATABASE_URL
+# Banco de dados (separadas — database.yml monta a conexão)
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_USERNAME
+POSTGRES_PASSWORD
+POSTGRES_DATABASE
+POSTGRES_STATEMENT_TIMEOUT   # timeout de query (ex: 14s)
+DB_POOL_SIZE                 # tamanho do pool de conexões
+
+# Cache / Jobs
 REDIS_URL
+
+# Rails
 RAILS_MASTER_KEY
-ANTHROPIC_API_KEY
+RAILS_MAX_THREADS
+RAILS_LOG_LEVEL
+
+# Gateways
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
 ASAAS_API_KEY
 ASAAS_WEBHOOK_SECRET
+
+# Webhooks de saída
 OMNICHANNEL_WEBHOOK_SECRET
+
+# IA
+ANTHROPIC_API_KEY
 ```

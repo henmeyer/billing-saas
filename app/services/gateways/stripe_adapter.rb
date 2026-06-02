@@ -46,8 +46,8 @@ module Gateways
       raise GatewayError, "Novo plano não configurado no Stripe" unless price_id
 
       Stripe::Subscription.update(gateway_sub_id, {
-        items: [{ id: sub.items.data[0].id, price: price_id }]
-      })
+                                    items: [{ id: sub.items.data[0].id, price: price_id }]
+                                  })
     rescue Stripe::StripeError => e
       raise GatewayError.new(e.message, code: e.code)
     end

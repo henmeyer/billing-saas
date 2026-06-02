@@ -1,0 +1,29 @@
+<h1>Clientes</h1>
+
+<%= link_to "Novo cliente", new_customer_path, class: "btn btn-primary" %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Email</th>
+      <th>Status</th>
+      <th>Assinatura</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @customers.each do |customer| %>
+      <tr>
+        <td><%= link_to customer.name, customer %></td>
+        <td><%= customer.email %></td>
+        <td><%= customer.status %></td>
+        <td><%= customer.subscriptions.find { |s| %w[active trialing past_due].include?(s.status) }&.then { |s| s.plan&.name } || "—" %></td>
+        <td>
+          <%= link_to "Ver", customer %>
+          <%= link_to "Editar", edit_customer_path(customer) %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

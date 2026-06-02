@@ -3,7 +3,7 @@ class PaymentGateway < ApplicationRecord
 
   PROVIDERS = %w[stripe asaas].freeze
 
-  validates :provider, inclusion: { in: PROVIDERS },
+  validates :provider, inclusion:  { in: PROVIDERS },
                        uniqueness: { scope: :account_id }
   validates :api_key_enc, presence: true
 

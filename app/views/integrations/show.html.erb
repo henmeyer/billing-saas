@@ -1,0 +1,34 @@
+<h1><%= @integration.name %></h1>
+
+<p><strong>URL:</strong> <%= @integration.url %></p>
+<p><strong>Status:</strong> <%= @integration.active? ? "Ativa" : "Inativa" %></p>
+<p><strong>Retentativas:</strong> <%= @integration.retry_count %></p>
+<% if @integration.last_error_at %>
+  <p><strong>Último erro:</strong> <%= @integration.last_error_at.strftime("%d/%m/%Y %H:%M") %></p>
+<% end %>
+
+<h2>Secret para verificação de assinatura</h2>
+<p>
+  <strong>Algoritmo:</strong> HMAC-SHA256<br>
+  <strong>Header:</strong> <code>X-Billing-Signature: sha256=...</code><br>
+  <% if @integration.persisted? && flash[:notice]&.include?("criada") %>
+    <strong>Secret:</strong> <code><%= @integration.secret %></code>
+    <em>(guarde agora — não será exibido novamente)</em>
+  <% else %>
+    <strong>Secret:</strong> <em>Oculto por segurança.</em>
+  <% end %>
+</p>
+
+<h2>Eventos configurados</h2>
+<% if @integration.events.any? %>
+  <ul>
+    <% @integration.events.each do |e| %>
+      <li><code><%= e %></code></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Nenhum evento configurado.</p>
+<% end %>
+
+<%= link_to "Editar", edit_integration_path(@integration) %>
+<%= link_to "Voltar", integrations_path %>

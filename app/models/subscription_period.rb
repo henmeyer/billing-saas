@@ -2,7 +2,7 @@ class SubscriptionPeriod < ApplicationRecord
   belongs_to :subscription
   has_many :credit_snapshots, dependent: :destroy
 
-  scope :current, -> {
+  scope :current, lambda {
     where("period_start <= ? AND period_end >= ?", Time.current, Time.current)
   }
 

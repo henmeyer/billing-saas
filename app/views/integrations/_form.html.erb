@@ -1,0 +1,40 @@
+<%= form_with model: integration do |f| %>
+  <% if integration.errors.any? %>
+    <div class="alert alert-danger">
+      <ul>
+        <% integration.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name, "Nome" %>
+    <%= f.text_field :name %>
+  </div>
+
+  <div class="field">
+    <%= f.label :url, "URL de destino" %>
+    <%= f.url_field :url %>
+  </div>
+
+  <div class="field">
+    <label>Eventos</label>
+    <% @events.each do |event| %>
+      <div>
+        <%= check_box_tag "integration[events][]", event,
+            integration.events.include?(event),
+            id: "event_#{event.parameterize}" %>
+        <%= label_tag "event_#{event.parameterize}", event %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="field">
+    <%= f.label :active, "Ativa" %>
+    <%= f.check_box :active %>
+  </div>
+
+  <%= f.submit %>
+<% end %>

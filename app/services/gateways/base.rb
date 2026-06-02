@@ -1,15 +1,17 @@
 module Gateways
   class Base
     class NotImplementedError < StandardError; end
+
     class GatewayError < StandardError
       attr_reader :code
+
       def initialize(msg, code: nil)
         super(msg)
         @code = code
       end
     end
 
-    def create_customer(customer)              = raise NotImplementedError
+    def create_customer(customer) = raise NotImplementedError
     def create_subscription(customer, plan)   = raise NotImplementedError
     def cancel_subscription(sub_id)           = raise NotImplementedError
     def update_subscription(sub_id, new_plan) = raise NotImplementedError

@@ -1,0 +1,30 @@
+<h1>Integrações</h1>
+
+<%= link_to "Nova integração", new_integration_path, class: "btn btn-primary" %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>URL</th>
+      <th>Status</th>
+      <th>Eventos</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @integrations.each do |integration| %>
+      <tr>
+        <td><%= link_to integration.name, integration %></td>
+        <td><%= integration.url %></td>
+        <td><%= integration.active? ? "Ativa" : "Inativa" %></td>
+        <td><%= integration.events.count %> evento(s)</td>
+        <td>
+          <%= link_to "Editar", edit_integration_path(integration) %>
+          <%= button_to "Desativar", integration_path(integration), method: :delete,
+              data: { confirm: "Desativar esta integração?" } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

@@ -14,7 +14,7 @@ class Integration < ApplicationRecord
 
   scope :active, -> { where(active: true) }
 
-  before_create :generate_secret
+  before_validation :generate_secret, on: :create
 
   def events_for(event_name)
     events.include?(event_name)

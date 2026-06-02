@@ -8,7 +8,7 @@ class Webhooks::BaseController < ActionController::API
     body      = request.body.read
     request.body.rewind
 
-    expected = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', secret, body)}"
+    expected = "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", secret, body)}"
 
     unless ActiveSupport::SecurityUtils.secure_compare(expected, signature.to_s)
       render json: { error: "Assinatura inválida" }, status: :unauthorized

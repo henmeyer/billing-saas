@@ -1,0 +1,28 @@
+<h1>Planos</h1>
+
+<%= link_to "Novo plano", new_plan_path, class: "btn btn-primary" %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Preço</th>
+      <th>Ciclo</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @plans.each do |plan| %>
+      <tr>
+        <td><%= link_to plan.name, plan %></td>
+        <td><%= number_to_currency(plan.price_in_reais, unit: "R$ ", separator: ",", delimiter: ".") %></td>
+        <td><%= plan.billing_cycle %></td>
+        <td>
+          <%= link_to "Editar", edit_plan_path(plan) %>
+          <%= button_to "Arquivar", plan_path(plan), method: :delete,
+              data: { confirm: "Confirma arquivamento?" } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

@@ -12,6 +12,6 @@ class CreditSnapshot < ApplicationRecord
 
   def calculate_fields
     self.balance       = [limit - used, 0].max
-    self.usage_percent = limit > 0 ? (used.to_f / limit * 100).round(1) : 0.0
+    self.usage_percent = limit.positive? ? (used.to_f / limit * 100).round(1) : 0.0
   end
 end

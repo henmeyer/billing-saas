@@ -12,11 +12,11 @@ class ApiKey < ApplicationRecord
 
     key = ActsAsTenant.with_tenant(account) do
       create!(
-        name: name,
+        name:         name,
         token_digest: Digest::SHA256.hexdigest(token_raw),
-        last_four: token_raw.last(4),
-        expires_at: expires_at,
-        active: true
+        last_four:    token_raw.last(4),
+        expires_at:   expires_at,
+        active:       true
       )
     end
 

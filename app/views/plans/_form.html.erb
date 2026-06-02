@@ -1,0 +1,43 @@
+<%= form_with model: plan do |f| %>
+  <% if plan.errors.any? %>
+    <div class="alert alert-danger">
+      <ul>
+        <% plan.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name, "Nome" %>
+    <%= f.text_field :name %>
+  </div>
+
+  <div class="field">
+    <%= f.label :description, "Descrição" %>
+    <%= f.text_area :description %>
+  </div>
+
+  <div class="field">
+    <%= f.label :price_cents, "Preço (em centavos)" %>
+    <%= f.number_field :price_cents, min: 0 %>
+  </div>
+
+  <div class="field">
+    <%= f.label :billing_cycle, "Ciclo de cobrança" %>
+    <%= f.select :billing_cycle, Plan::BILLING_CYCLES.map { |c| [c.humanize, c] } %>
+  </div>
+
+  <div class="field">
+    <%= f.label :trial_days, "Dias de trial" %>
+    <%= f.number_field :trial_days, min: 0 %>
+  </div>
+
+  <div class="field">
+    <%= f.label :active, "Ativo" %>
+    <%= f.check_box :active %>
+  </div>
+
+  <%= f.submit %>
+<% end %>

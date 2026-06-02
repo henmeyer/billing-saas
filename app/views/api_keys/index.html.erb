@@ -1,0 +1,48 @@
+<h1>API Keys</h1>
+
+<% if flash[:token] %>
+  <div class="alert alert-success">
+    <strong>Token gerado (copie agora — não será exibido novamente):</strong><br>
+    <code><%= flash[:token] %></code>
+  </div>
+<% end %>
+
+<%= form_with url: api_keys_path, method: :post do |f| %>
+  <div class="field">
+    <%= f.label :name, "Nome da chave" %>
+    <%= f.text_field :name %>
+  </div>
+  <div class="field">
+    <%= f.label :expires_at, "Expira em (opcional)" %>
+    <%= f.date_field :expires_at %>
+  </div>
+  <%= f.submit "Gerar nova chave" %>
+<% end %>
+
+<hr>
+
+<table>
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Últimos 4</th>
+      <th>Último uso</th>
+      <th>Expira em</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @api_keys.each do |key| %>
+      <tr>
+        <td><%= key.name %></td>
+        <td><code>....<%= key.last_four %></code></td>
+        <td><%= key.last_used_at&.strftime("%d/%m/%Y %H:%M") || "Nunca" %></td>
+        <td><%= key.expires_at&.strftime("%d/%m/%Y") || "Nunca" %></td>
+        <td>
+          <%= button_to "Revogar", api_key_path(key), method: :delete,
+              data: { confirm: "Revogar esta chave?" } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
