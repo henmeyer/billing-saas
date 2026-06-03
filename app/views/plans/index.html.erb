@@ -1,28 +1,82 @@
-<h1>Planos</h1>
+<%= content_for :page_title, "Planos" %>
 
-<%= link_to "Novo plano", new_plan_path, class: "btn btn-primary" %>
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Planos</h2>
+    <p class="text-sm text-gray-500 mt-0.5">Gerencie os planos de assinatura</p>
+  </div>
+  <%= link_to "Novo plano", new_plan_path, class: "btn-primary" %>
+</div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Nome</th>
-      <th>Preço</th>
-      <th>Ciclo</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
+<% if @plans.empty? %>
+  <div class="card">
+    <div class="card-body text-center py-12">
+      <p class="text-gray-400 text-sm">Nenhum plano criado ainda.</p>
+      <%= link_to "Criar primeiro plano", new_plan_path, class: "btn-primary mt-4 inline-flex" %>
+    </div>
+  </div>
+<% else %>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
     <% @plans.each do |plan| %>
-      <tr>
-        <td><%= link_to plan.name, plan %></td>
-        <td><%= number_to_currency(plan.price_in_reais, unit: "R$ ", separator: ",", delimiter: ".") %></td>
-        <td><%= plan.billing_cycle %></td>
-        <td>
-          <%= link_to "Editar", edit_plan_path(plan) %>
-          <%= button_to "Arquivar", plan_path(plan), method: :delete,
-              data: { confirm: "Confirma arquivamento?" } %>
-        </td>
-      </tr>
+      <div class="card hover:border-brand-300 transition-colors">
+        <div class="card-body">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-gray-900"><%= plan.name %></h3>
+              <p class="text-2xl font-bold text-gray-900 mt-1">
+                <%= number_to_currency(plan.price_in_reais, unit: "R$ ", separator: ",", delimiter: ".") %>
+                <span class="text-sm font-normal text-gray-400">/mês</span>
+              </p>
+            </div>
+            <span class="<%= plan.active? ? 'badge-green' : 'badge-gray' %>">
+              <%= plan.active? ? 'Ativo' : 'Inativo' %>
+            </span>
+          </div>
+
+          <% if plan.description.present? %>
+            <p class="text-sm text-gray-500 mb-3"><%= plan.description %></p>
+          <% end %>
+
+          <% if plan.plan_licenses.any? %>
+            <div class="mb-3">
+              <p class="text-xs font-medium text-gray-500 mb-1.5">Licenças</p>
+              <div class="space-y-1">
+                <% plan.plan_licenses.each do |pl| %>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600"><%= pl.license_type.label %></span>
+                    <span class="font-medium text-gray-900">
+                      <%= pl.quantity == 0 ? '∞' : pl.quantity %> <%= pl.license_type.unit %>
+                    </span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <% if plan.plan_credits.any? %>
+            <div class="mb-4">
+              <p class="text-xs font-medium text-gray-500 mb-1.5">Créditos</p>
+              <div class="space-y-1">
+                <% plan.plan_credits.each do |pc| %>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600"><%= pc.credit_type.label %></span>
+                    <span class="font-medium text-gray-900">
+                      <%= number_with_delimiter(pc.quantity, delimiter: ".") %> <%= pc.credit_type.unit %>
+                    </span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <div class="flex gap-2 pt-3 border-t border-gray-100">
+            <%= link_to "Editar", edit_plan_path(plan), class: "btn-secondary btn-sm flex-1 justify-center" %>
+            <%= button_to "Arquivar", plan_path(plan), method: :delete,
+                  class: "btn-danger btn-sm flex-1 justify-center",
+                  data: { confirm: "Arquivar o plano #{plan.name}?" } %>
+          </div>
+        </div>
+      </div>
     <% end %>
-  </tbody>
-</table>
+  </div>
+<% end %>

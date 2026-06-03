@@ -1,5 +1,4 @@
-<h1>Editar Integração</h1>
-
-<%= render "form", integration: @integration %>
-
-<%= link_to "Voltar", integration_path(@integration) %>
+<%= content_for :page_title, "Editar integração" %>
+<div class="max-w-2xl">
+  <%= render 'form', integration: @integration %>
+</div>

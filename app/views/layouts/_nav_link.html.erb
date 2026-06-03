@@ -1,0 +1,10 @@
+<%
+  active = request.path == path || request.path.start_with?(path + '/')
+  classes = active \
+    ? "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-800 text-white" \
+    : "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+%>
+<%= link_to path, class: classes do %>
+  <span class="text-base leading-none"><%= icon %></span>
+  <span><%= label %></span>
+<% end %>

@@ -32,6 +32,9 @@ gem "stripe"
 # IA
 gem "anthropic"
 
+# Paginação
+gem "kaminari"
+
 # Segurança
 gem "rack-attack"
 

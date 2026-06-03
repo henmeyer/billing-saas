@@ -1,63 +1,174 @@
-<h1><%= @customer.name %></h1>
+<%= content_for :page_title, @customer.name %>
 
-<p><strong>Email:</strong> <%= @customer.email %></p>
-<p><strong>Documento:</strong> <%= @customer.document.presence || "—" %></p>
-<p><strong>Telefone:</strong> <%= @customer.phone.presence || "—" %></p>
-<p><strong>ID externo:</strong> <%= @customer.external_id.presence || "—" %></p>
-<p><strong>Status:</strong> <%= @customer.status %></p>
-<p><strong>Health score:</strong> <%= @customer.health_score %></p>
+<div class="page-header">
+  <div class="flex items-center gap-3">
+    <%= link_to "← Clientes", customers_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+    <h2 class="page-title"><%= @customer.name %></h2>
+    <%
+      status_class = { 'active' => 'badge-green', 'churned' => 'badge-gray',
+                       'suspended' => 'badge-red' }[@customer.status] || 'badge-yellow'
+    %>
+    <span class="<%= status_class %>"><%= @customer.status %></span>
+  </div>
+  <%= link_to "Editar", edit_customer_path(@customer), class: "btn-secondary" %>
+</div>
 
-<% if @subscription %>
-  <h2>Assinatura ativa</h2>
-  <p><strong>Plano:</strong> <%= @subscription.plan.name %></p>
-  <p><strong>Status:</strong> <%= @subscription.status %></p>
-  <p><strong>Gateway:</strong> <%= @subscription.gateway %></p>
-  <p><strong>Período atual:</strong>
-    <%= @subscription.current_period_start&.strftime("%d/%m/%Y") %> –
-    <%= @subscription.current_period_end&.strftime("%d/%m/%Y") %>
-  </p>
-<% else %>
-  <p>Sem assinatura ativa.</p>
-<% end %>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-<% if @snapshots.any? %>
-  <h2>Créditos no período</h2>
-  <table>
-    <thead>
-      <tr><th>Tipo</th><th>Usado</th><th>Limite</th><th>Saldo</th><th>%</th></tr>
-    </thead>
-    <tbody>
-      <% @snapshots.each do |s| %>
-        <tr>
-          <td><%= s.credit_type.label %></td>
-          <td><%= s.used %></td>
-          <td><%= s.limit %></td>
-          <td><%= s.balance %></td>
-          <td><%= s.usage_percent %>%</td>
-        </tr>
+  <div class="space-y-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="text-sm font-medium text-gray-900">Informações</h3>
+      </div>
+      <div class="card-body space-y-3">
+        <div>
+          <p class="text-xs text-gray-500">E-mail</p>
+          <p class="text-sm text-gray-900"><%= @customer.email %></p>
+        </div>
+        <% if @customer.document.present? %>
+          <div>
+            <p class="text-xs text-gray-500">CPF/CNPJ</p>
+            <p class="text-sm text-gray-900"><%= @customer.document %></p>
+          </div>
+        <% end %>
+        <% if @customer.external_id.present? %>
+          <div>
+            <p class="text-xs text-gray-500">ID externo</p>
+            <p class="text-sm font-mono text-gray-700"><%= @customer.external_id %></p>
+          </div>
+        <% end %>
+        <div>
+          <p class="text-xs text-gray-500">Health score</p>
+          <%
+            score       = @customer.health_score
+            score_class = score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600'
+          %>
+          <p class="text-xl font-semibold <%= score_class %>"><%= score %>%</p>
+        </div>
+      </div>
+    </div>
+
+    <% if @subscription %>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Assinatura</h3>
+        </div>
+        <div class="card-body space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-gray-900"><%= @subscription.plan.name %></p>
+            <%
+              sub_class = {
+                'active'   => 'badge-green', 'past_due' => 'badge-red',
+                'trialing' => 'badge-blue',  'cancelled' => 'badge-gray'
+              }[@subscription.status] || 'badge-yellow'
+            %>
+            <span class="<%= sub_class %>"><%= @subscription.status %></span>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500">Gateway</p>
+            <p class="text-sm text-gray-700"><%= @subscription.gateway %></p>
+          </div>
+          <% if @subscription.current_period_end %>
+            <div>
+              <p class="text-xs text-gray-500">Próxima renovação</p>
+              <p class="text-sm text-gray-700">
+                <%= l(@subscription.current_period_end.to_date, format: :long) %>
+              </p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="lg:col-span-2 space-y-4">
+
+    <% if @snapshots.any? %>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Créditos — período atual</h3>
+        </div>
+        <div class="card-body space-y-4">
+          <% @snapshots.each do |snapshot| %>
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span class="font-medium text-gray-700">
+                  <%= snapshot.credit_type.label %>
+                </span>
+                <span class="text-gray-500">
+                  <%= number_with_delimiter(snapshot.used, delimiter: ".") %> /
+                  <%= number_with_delimiter(snapshot.limit, delimiter: ".") %>
+                  <%= snapshot.credit_type.unit %>s
+                </span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <%
+                  pct       = snapshot.usage_percent
+                  bar_class = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-yellow-500' : 'bg-brand-500'
+                %>
+                <div class="<%= bar_class %> h-2 rounded-full transition-all"
+                     style="width: <%= [pct, 100].min %>%">
+                </div>
+              </div>
+              <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+                <span><%= pct %>% utilizado</span>
+                <span><%= number_with_delimiter(snapshot.balance, delimiter: ".") %> restantes</span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="text-sm font-medium text-gray-900">Últimas cobranças</h3>
+      </div>
+      <% if @charges.empty? %>
+        <div class="card-body text-center text-sm text-gray-400 py-6">
+          Nenhuma cobrança ainda
+        </div>
+      <% else %>
+        <div class="table-wrapper border-0 rounded-none">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Valor</th>
+                <th>Gateway</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @charges.each do |charge| %>
+                <tr>
+                  <td class="text-gray-500">
+                    <%= charge.due_date&.strftime("%d/%m/%Y") || "—" %>
+                  </td>
+                  <td class="font-medium">
+                    <%= number_to_currency(charge.amount_cents / 100.0,
+                          unit: "R$ ", separator: ",", delimiter: ".") %>
+                  </td>
+                  <td>
+                    <span class="badge-gray"><%= charge.gateway %></span>
+                  </td>
+                  <td>
+                    <%
+                      c = { 'paid' => 'badge-green', 'failed' => 'badge-red',
+                            'pending' => 'badge-yellow', 'refunded' => 'badge-gray' }
+                    %>
+                    <span class="<%= c[charge.status] || 'badge-gray' %>">
+                      <%= { 'paid' => 'Pago', 'failed' => 'Falhou',
+                            'pending' => 'Pendente', 'refunded' => 'Reembolsado'
+                          }[charge.status] || charge.status %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
       <% end %>
-    </tbody>
-  </table>
-<% end %>
-
-<% if @charges.any? %>
-  <h2>Últimas cobranças</h2>
-  <table>
-    <thead>
-      <tr><th>Data</th><th>Valor</th><th>Status</th><th>Gateway</th></tr>
-    </thead>
-    <tbody>
-      <% @charges.each do |c| %>
-        <tr>
-          <td><%= c.created_at.strftime("%d/%m/%Y") %></td>
-          <td><%= number_to_currency(c.amount_cents / 100.0, unit: "R$ ", separator: ",", delimiter: ".") %></td>
-          <td><%= c.status %></td>
-          <td><%= c.gateway %></td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% end %>
-
-<%= link_to "Editar", edit_customer_path(@customer) %>
-<%= link_to "Voltar", customers_path %>
+    </div>
+  </div>
+</div>

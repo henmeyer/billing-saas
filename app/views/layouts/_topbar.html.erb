@@ -1,0 +1,15 @@
+<header class="h-14 bg-white border-b border-gray-200 flex items-center px-6 flex-shrink-0">
+  <div class="flex-1">
+    <h1 class="text-sm font-medium text-gray-900">
+      <%= content_for?(:page_title) ? yield(:page_title) : '' %>
+    </h1>
+  </div>
+  <div class="flex items-center gap-3 text-xs text-gray-500">
+    <span class="badge-gray"><%= current_user.account.name %></span>
+    <% if current_user.admin? %>
+      <%= link_to '/sidekiq', target: '_blank', class: "text-gray-400 hover:text-gray-600" do %>
+        Jobs
+      <% end %>
+    <% end %>
+  </div>
+</header>

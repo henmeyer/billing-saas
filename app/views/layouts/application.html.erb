@@ -1,27 +1,48 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>BillingSaas</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <%= csrf_meta_tags %>
-    <%= csp_meta_tag %>
+<html lang="pt-BR" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= content_for?(:title) ? yield(:title) : "Billing" %> — Billing SaaS</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= vite_client_tag %>
+  <%= vite_javascript_tag 'application' %>
+</head>
+<body class="h-full">
 
-    <%= stylesheet_link_tag "application" %>
-    <%= vite_client_tag %>
-    <%= vite_javascript_tag 'application' %>
-    <!--
-      If using a TypeScript entrypoint file:
-        vite_typescript_tag 'application'
+<% if user_signed_in? %>
+  <div class="flex h-full">
+    <%= render 'layouts/sidebar' %>
 
-      If using a .jsx or .tsx entrypoint, add the extension:
-        vite_javascript_tag 'application.jsx'
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <%= render 'layouts/topbar' %>
 
-      Visit the guide for more information: https://vite-ruby.netlify.app/guide/rails
-    -->
+      <% if notice %>
+        <div class="px-6 pt-4">
+          <div class="alert-success">
+            <span>✓</span> <%= notice %>
+          </div>
+        </div>
+      <% end %>
+      <% if alert %>
+        <div class="px-6 pt-4">
+          <div class="alert-danger">
+            <span>✕</span> <%= alert %>
+          </div>
+        </div>
+      <% end %>
 
-  </head>
-
-  <body>
+      <main class="flex-1 overflow-y-auto px-6 py-6">
+        <%= yield %>
+      </main>
+    </div>
+  </div>
+<% else %>
+  <main class="min-h-full flex items-center justify-center py-12 px-4">
     <%= yield %>
-  </body>
+  </main>
+<% end %>
+
+</body>
 </html>

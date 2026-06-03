@@ -1,7 +1,110 @@
-<div class="dashboard">
-  <h1>Dashboard</h1>
+<%= content_for :page_title, "Dashboard" %>
 
-  <div id="dashboard-stats"
-       data-stats="<%= @stats.to_json %>">
+<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">MRR</div>
+    <div class="stat-value"><%= number_to_currency(@stats[:mrr], unit: "R$ ", separator: ",", delimiter: ".") %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">ARR</div>
+    <div class="stat-value"><%= number_to_currency(@stats[:arr], unit: "R$ ", separator: ",", delimiter: ".") %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Clientes ativos</div>
+    <div class="stat-value"><%= @stats[:active_customers] %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Receita no mês</div>
+    <div class="stat-value"><%= number_to_currency(@stats[:revenue_this_month], unit: "R$ ", separator: ",", delimiter: ".") %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Cancelamentos</div>
+    <div class="stat-value"><%= @stats[:churned_this_month] %></div>
+    <div class="stat-sub">este mês</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Inadimplentes</div>
+    <div class="stat-value <%= @stats[:past_due] > 0 ? 'text-red-600' : '' %>">
+      <%= @stats[:past_due] %>
+    </div>
+  </div>
+</div>
+
+<% if @stats[:past_due] > 0 || @stats[:at_risk] > 0 || @stats[:credits_depleted] > 0 %>
+  <div class="space-y-2 mb-6">
+    <% if @stats[:past_due] > 0 %>
+      <div class="alert-warning">
+        <span>⚠</span>
+        <span>
+          <strong><%= @stats[:past_due] %> assinatura(s)</strong> com pagamento em atraso.
+          <%= link_to "Ver clientes →", customers_path(status: 'past_due'),
+                class: "underline font-medium" %>
+        </span>
+      </div>
+    <% end %>
+    <% if @stats[:at_risk] > 0 %>
+      <div class="alert-warning">
+        <span>⚠</span>
+        <span>
+          <strong><%= @stats[:at_risk] %> cliente(s)</strong> com health score baixo (risco de churn).
+        </span>
+      </div>
+    <% end %>
+    <% if @stats[:credits_depleted] > 0 %>
+      <div class="alert-danger">
+        <span>✕</span>
+        <span>
+          <strong><%= @stats[:credits_depleted] %> cliente(s)</strong> com créditos esgotados este mês.
+        </span>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+  <div class="lg:col-span-2 card">
+    <div class="card-header">
+      <h2 class="text-sm font-medium text-gray-900">MRR por plano</h2>
+    </div>
+    <div class="card-body">
+      <div data-vue="mrr-chart"
+           data-props="<%= { mrr_by_plan: @stats[:mrr_by_plan] }.to_json %>">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header flex items-center justify-between">
+      <h2 class="text-sm font-medium text-gray-900">Últimas cobranças</h2>
+      <%= link_to "Ver todas", customers_path, class: "text-xs text-brand-600 hover:text-brand-700" %>
+    </div>
+    <div class="divide-y divide-gray-100">
+      <% if @stats[:recent_charges].empty? %>
+        <div class="px-6 py-8 text-center text-sm text-gray-400">
+          Nenhuma cobrança ainda
+        </div>
+      <% else %>
+        <% @stats[:recent_charges].each do |charge| %>
+          <div class="px-6 py-3 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-900 truncate max-w-[120px]">
+                <%= charge[:customer_name] %>
+              </p>
+              <p class="text-xs text-gray-400">
+                <%= time_ago_in_words(Time.parse(charge[:created_at].to_s)) %> atrás
+              </p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-medium text-gray-900">
+                <%= number_to_currency(charge[:amount], unit: "R$ ", separator: ",", delimiter: ".") %>
+              </p>
+              <span class="<%= charge[:status] == 'paid' ? 'badge-green' : 'badge-yellow' %>">
+                <%= charge[:status] == 'paid' ? 'Pago' : charge[:status] %>
+              </span>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
   </div>
 </div>

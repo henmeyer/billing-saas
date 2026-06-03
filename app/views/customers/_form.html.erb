@@ -1,48 +1,70 @@
-<%= form_with model: customer do |f| %>
+<%= form_with model: customer, class: "space-y-6" do |f| %>
   <% if customer.errors.any? %>
-    <div class="alert alert-danger">
-      <ul>
+    <div class="alert-danger">
+      <div>
         <% customer.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
+          <p><%= msg %></p>
         <% end %>
-      </ul>
+      </div>
     </div>
   <% end %>
 
-  <div class="field">
-    <%= f.label :name, "Nome" %>
-    <%= f.text_field :name %>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="text-sm font-medium text-gray-900">Dados do cliente</h3>
+    </div>
+    <div class="card-body space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <%= f.label :name, "Nome", class: "form-label" %>
+          <%= f.text_field :name, placeholder: "Nome completo ou razão social",
+                class: "form-input" %>
+        </div>
+        <div>
+          <%= f.label :email, "E-mail", class: "form-label" %>
+          <%= f.email_field :email, placeholder: "cliente@empresa.com",
+                class: "form-input" %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <%= f.label :document, "CPF/CNPJ", class: "form-label" %>
+          <%= f.text_field :document, placeholder: "000.000.000-00",
+                class: "form-input" %>
+        </div>
+        <div>
+          <%= f.label :phone, "Telefone", class: "form-label" %>
+          <%= f.text_field :phone, placeholder: "(11) 99999-9999",
+                class: "form-input" %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <%= f.label :external_id, "ID externo", class: "form-label" %>
+          <%= f.text_field :external_id, placeholder: "ID no seu sistema",
+                class: "form-input" %>
+          <p class="form-hint">Usado na API de integração</p>
+        </div>
+        <div>
+          <%= f.label :status, "Status", class: "form-label" %>
+          <%= f.select :status, [["Ativo", "active"], ["Trial", "trial"],
+                ["Suspenso", "suspended"], ["Cancelado", "churned"]],
+                {}, class: "form-select" %>
+        </div>
+      </div>
+
+      <div>
+        <%= f.label :notes, "Observações", class: "form-label" %>
+        <%= f.text_area :notes, rows: 3, class: "form-input" %>
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= f.label :email, "Email" %>
-    <%= f.email_field :email %>
+  <div class="flex gap-3 justify-end">
+    <%= link_to "Cancelar", customers_path, class: "btn-secondary" %>
+    <%= f.submit customer.new_record? ? "Criar cliente" : "Salvar alterações",
+          class: "btn-primary" %>
   </div>
-
-  <div class="field">
-    <%= f.label :document, "CPF/CNPJ" %>
-    <%= f.text_field :document %>
-  </div>
-
-  <div class="field">
-    <%= f.label :phone, "Telefone" %>
-    <%= f.text_field :phone %>
-  </div>
-
-  <div class="field">
-    <%= f.label :external_id, "ID externo" %>
-    <%= f.text_field :external_id %>
-  </div>
-
-  <div class="field">
-    <%= f.label :status, "Status" %>
-    <%= f.select :status, Customer::STATUSES.map { |s| [s.humanize, s] } %>
-  </div>
-
-  <div class="field">
-    <%= f.label :notes, "Observações" %>
-    <%= f.text_area :notes %>
-  </div>
-
-  <%= f.submit %>
 <% end %>

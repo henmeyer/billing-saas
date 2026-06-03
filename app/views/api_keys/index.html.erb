@@ -1,48 +1,97 @@
-<h1>API Keys</h1>
+<%= content_for :page_title, "API Keys" %>
+
+<div class="page-header">
+  <div>
+    <h2 class="page-title">API Keys</h2>
+    <p class="text-sm text-gray-500 mt-0.5">Para integrar seu software com a plataforma</p>
+  </div>
+</div>
 
 <% if flash[:token] %>
-  <div class="alert alert-success">
-    <strong>Token gerado (copie agora — não será exibido novamente):</strong><br>
-    <code><%= flash[:token] %></code>
+  <div class="alert-success mb-6">
+    <div class="flex-1">
+      <p class="font-medium mb-1">Chave criada! Copie agora — não será exibida novamente.</p>
+      <div class="flex items-center gap-2 mt-2">
+        <code class="bg-green-100 text-green-900 px-3 py-1.5 rounded text-sm font-mono break-all flex-1">
+          <%= flash[:token] %>
+        </code>
+      </div>
+    </div>
   </div>
 <% end %>
 
-<%= form_with url: api_keys_path, method: :post do |f| %>
-  <div class="field">
-    <%= f.label :name, "Nome da chave" %>
-    <%= f.text_field :name %>
+<div class="card mb-6 max-w-md">
+  <div class="card-header">
+    <h3 class="text-sm font-medium text-gray-900">Nova chave</h3>
   </div>
-  <div class="field">
-    <%= f.label :expires_at, "Expira em (opcional)" %>
-    <%= f.date_field :expires_at %>
-  </div>
-  <%= f.submit "Gerar nova chave" %>
-<% end %>
-
-<hr>
-
-<table>
-  <thead>
-    <tr>
-      <th>Nome</th>
-      <th>Últimos 4</th>
-      <th>Último uso</th>
-      <th>Expira em</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @api_keys.each do |key| %>
-      <tr>
-        <td><%= key.name %></td>
-        <td><code>....<%= key.last_four %></code></td>
-        <td><%= key.last_used_at&.strftime("%d/%m/%Y %H:%M") || "Nunca" %></td>
-        <td><%= key.expires_at&.strftime("%d/%m/%Y") || "Nunca" %></td>
-        <td>
-          <%= button_to "Revogar", api_key_path(key), method: :delete,
-              data: { confirm: "Revogar esta chave?" } %>
-        </td>
-      </tr>
+  <div class="card-body">
+    <%= form_tag api_keys_path, method: :post, class: "flex gap-3" do %>
+      <%= text_field_tag :name, nil,
+            placeholder: "Nome da chave (ex: Produção)",
+            class: "form-input flex-1" %>
+      <%= submit_tag "Gerar", class: "btn-primary" %>
     <% end %>
-  </tbody>
-</table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Últimos 4 chars</th>
+          <th>Último uso</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @api_keys.empty? %>
+          <tr>
+            <td colspan="5" class="text-center text-gray-400 py-8">
+              Nenhuma chave criada ainda
+            </td>
+          </tr>
+        <% else %>
+          <% @api_keys.each do |key| %>
+            <tr>
+              <td class="font-medium"><%= key.name %></td>
+              <td>
+                <code class="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                  ···<%= key.last_four %>
+                </code>
+              </td>
+              <td class="text-gray-500 text-sm">
+                <%= key.last_used_at ? time_ago_in_words(key.last_used_at) + " atrás" : "Nunca" %>
+              </td>
+              <td>
+                <span class="<%= key.active? ? 'badge-green' : 'badge-gray' %>">
+                  <%= key.active? ? 'Ativa' : 'Revogada' %>
+                </span>
+              </td>
+              <td class="text-right">
+                <% if key.active? %>
+                  <%= button_to "Revogar", api_key_path(key), method: :delete,
+                        class: "btn-danger btn-sm",
+                        data: { confirm: "Revogar a chave #{key.name}? Integrações que usam ela vão parar de funcionar." } %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-6 max-w-2xl">
+  <div class="card-header">
+    <h3 class="text-sm font-medium text-gray-900">Como usar</h3>
+  </div>
+  <div class="card-body space-y-3">
+    <p class="text-sm text-gray-600">Inclua o token no header de cada requisição:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 text-xs overflow-x-auto"><code>curl -H "Authorization: Bearer billing_seu_token" \
+     <%= root_url %>api/v1/customers/EXT123/credits</code></pre>
+  </div>
+</div>

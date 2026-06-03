@@ -7,6 +7,9 @@ class Plan < ApplicationRecord
   has_many :credit_types,  through: :plan_credits
   has_many :subscriptions
 
+  accepts_nested_attributes_for :plan_licenses, allow_destroy: true
+  accepts_nested_attributes_for :plan_credits,  allow_destroy: true
+
   BILLING_CYCLES = %w[monthly yearly custom].freeze
 
   validates :name,          presence: true

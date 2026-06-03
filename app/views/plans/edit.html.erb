@@ -1,5 +1,4 @@
-<h1>Editar Plano</h1>
-
-<%= render "form", plan: @plan %>
-
-<%= link_to "Voltar", plans_path %>
+<%= content_for :page_title, "Editar plano" %>
+<div class="max-w-2xl">
+  <%= render 'form', plan: @plan %>
+</div>

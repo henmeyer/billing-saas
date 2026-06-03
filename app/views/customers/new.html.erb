@@ -1,5 +1,4 @@
-<h1>Novo Cliente</h1>
-
-<%= render "form", customer: @customer %>
-
-<%= link_to "Voltar", customers_path %>
+<%= content_for :page_title, "Novo cliente" %>
+<div class="max-w-2xl">
+  <%= render 'form', customer: @customer %>
+</div>

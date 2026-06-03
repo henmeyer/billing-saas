@@ -1,30 +1,53 @@
-<h1>Integrações</h1>
+<%= content_for :page_title, "Integrações" %>
 
-<%= link_to "Nova integração", new_integration_path, class: "btn btn-primary" %>
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Integrações</h2>
+    <p class="text-sm text-gray-500 mt-0.5">Webhooks de saída para sistemas externos</p>
+  </div>
+  <%= link_to "Nova integração", new_integration_path, class: "btn-primary" %>
+</div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Nome</th>
-      <th>URL</th>
-      <th>Status</th>
-      <th>Eventos</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
+<% if @integrations.empty? %>
+  <div class="card">
+    <div class="card-body text-center py-12">
+      <p class="text-gray-400 text-sm mb-4">Nenhuma integração configurada.</p>
+      <p class="text-gray-500 text-xs max-w-sm mx-auto mb-4">
+        Integrações recebem webhooks quando eventos ocorrem (pagamento, mudança de plano, créditos esgotados).
+      </p>
+      <%= link_to "Criar integração", new_integration_path, class: "btn-primary inline-flex" %>
+    </div>
+  </div>
+<% else %>
+  <div class="space-y-3">
     <% @integrations.each do |integration| %>
-      <tr>
-        <td><%= link_to integration.name, integration %></td>
-        <td><%= integration.url %></td>
-        <td><%= integration.active? ? "Ativa" : "Inativa" %></td>
-        <td><%= integration.events.count %> evento(s)</td>
-        <td>
-          <%= link_to "Editar", edit_integration_path(integration) %>
-          <%= button_to "Desativar", integration_path(integration), method: :delete,
-              data: { confirm: "Desativar esta integração?" } %>
-        </td>
-      </tr>
+      <div class="card">
+        <div class="card-body">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-1">
+                <h3 class="font-medium text-gray-900"><%= integration.name %></h3>
+                <span class="<%= integration.active? ? 'badge-green' : 'badge-gray' %>">
+                  <%= integration.active? ? 'Ativa' : 'Inativa' %>
+                </span>
+              </div>
+              <p class="text-sm text-gray-500 font-mono"><%= integration.url %></p>
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                <% integration.events.each do |event| %>
+                  <span class="badge-blue text-xs"><%= event %></span>
+                <% end %>
+              </div>
+            </div>
+            <div class="flex gap-2 ml-4">
+              <%= link_to "Editar", edit_integration_path(integration),
+                    class: "btn-secondary btn-sm" %>
+              <%= button_to "Desativar", integration_path(integration), method: :delete,
+                    class: "btn-danger btn-sm",
+                    data: { confirm: "Desativar a integração #{integration.name}?" } %>
+            </div>
+          </div>
+        </div>
+      </div>
     <% end %>
-  </tbody>
-</table>
+  </div>
+<% end %>

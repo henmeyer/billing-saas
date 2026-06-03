@@ -4,6 +4,8 @@ class CustomersController < ApplicationController
   def index
     @customers = Customer.includes(:subscriptions)
                          .order(name: :asc)
+                         .page(params[:page])
+                         .per(25)
   end
 
   def show

@@ -1,43 +1,96 @@
-<%= form_with model: plan do |f| %>
+<%= form_with model: plan, class: "space-y-6" do |f| %>
   <% if plan.errors.any? %>
-    <div class="alert alert-danger">
-      <ul>
+    <div class="alert-danger">
+      <div>
         <% plan.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
+          <p><%= msg %></p>
         <% end %>
-      </ul>
+      </div>
     </div>
   <% end %>
 
-  <div class="field">
-    <%= f.label :name, "Nome" %>
-    <%= f.text_field :name %>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="text-sm font-medium text-gray-900">Informações básicas</h3>
+    </div>
+    <div class="card-body space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <%= f.label :name, "Nome do plano", class: "form-label" %>
+          <%= f.text_field :name, placeholder: "Ex: Starter, Pro, Business",
+                class: "form-input" %>
+        </div>
+        <div>
+          <%= f.label :billing_cycle, "Ciclo", class: "form-label" %>
+          <%= f.select :billing_cycle,
+                [["Mensal", "monthly"], ["Anual", "yearly"]],
+                {}, class: "form-select" %>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <%= f.label :price_cents, "Preço (em centavos)", class: "form-label" %>
+          <%= f.number_field :price_cents, min: 0, step: 1,
+                placeholder: "Ex: 19700 = R$ 197,00",
+                class: "form-input" %>
+          <p class="form-hint">Digite em centavos. Ex: R$ 197,00 = 19700</p>
+        </div>
+        <div>
+          <%= f.label :trial_days, "Dias de trial", class: "form-label" %>
+          <%= f.number_field :trial_days, min: 0, class: "form-input" %>
+          <p class="form-hint">0 = sem trial</p>
+        </div>
+      </div>
+
+      <div>
+        <%= f.label :description, "Descrição (opcional)", class: "form-label" %>
+        <%= f.text_area :description, rows: 2,
+              placeholder: "Descrição exibida para o cliente",
+              class: "form-input" %>
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= f.label :description, "Descrição" %>
-    <%= f.text_area :description %>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="text-sm font-medium text-gray-900">Licenças incluídas</h3>
+      <p class="text-xs text-gray-500 mt-0.5">Defina quantas licenças de cada tipo o plano inclui. 0 = ilimitado.</p>
+    </div>
+    <div class="card-body">
+      <div data-vue="plan-licenses"
+           data-props="<%= {
+             license_types: current_account.license_types.map { |lt|
+               existing = plan.plan_licenses.find { |pl| pl.license_type_id == lt.id }
+               { id: lt.id, key: lt.key, label: lt.label, unit: lt.unit,
+                 quantity: existing&.quantity || 0 }
+             }
+           }.to_json %>">
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= f.label :price_cents, "Preço (em centavos)" %>
-    <%= f.number_field :price_cents, min: 0 %>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="text-sm font-medium text-gray-900">Créditos incluídos por ciclo</h3>
+    </div>
+    <div class="card-body">
+      <div data-vue="plan-credits"
+           data-props="<%= {
+             credit_types: current_account.credit_types.map { |ct|
+               existing = plan.plan_credits.find { |pc| pc.credit_type_id == ct.id }
+               { id: ct.id, key: ct.key, label: ct.label, unit: ct.unit,
+                 quantity: existing&.quantity || 0,
+                 rollover: existing&.rollover || false }
+             }
+           }.to_json %>">
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= f.label :billing_cycle, "Ciclo de cobrança" %>
-    <%= f.select :billing_cycle, Plan::BILLING_CYCLES.map { |c| [c.humanize, c] } %>
+  <div class="flex gap-3 justify-end">
+    <%= link_to "Cancelar", plans_path, class: "btn-secondary" %>
+    <%= f.submit plan.new_record? ? "Criar plano" : "Salvar alterações",
+          class: "btn-primary" %>
   </div>
-
-  <div class="field">
-    <%= f.label :trial_days, "Dias de trial" %>
-    <%= f.number_field :trial_days, min: 0 %>
-  </div>
-
-  <div class="field">
-    <%= f.label :active, "Ativo" %>
-    <%= f.check_box :active %>
-  </div>
-
-  <%= f.submit %>
 <% end %>

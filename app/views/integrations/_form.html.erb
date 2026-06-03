@@ -1,40 +1,58 @@
-<%= form_with model: integration do |f| %>
+<%= form_with model: integration, class: "space-y-6" do |f| %>
   <% if integration.errors.any? %>
-    <div class="alert alert-danger">
-      <ul>
+    <div class="alert-danger">
+      <div>
         <% integration.errors.full_messages.each do |msg| %>
-          <li><%= msg %></li>
+          <p><%= msg %></p>
         <% end %>
-      </ul>
+      </div>
     </div>
   <% end %>
 
-  <div class="field">
-    <%= f.label :name, "Nome" %>
-    <%= f.text_field :name %>
-  </div>
-
-  <div class="field">
-    <%= f.label :url, "URL de destino" %>
-    <%= f.url_field :url %>
-  </div>
-
-  <div class="field">
-    <label>Eventos</label>
-    <% @events.each do |event| %>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="text-sm font-medium text-gray-900">Configuração</h3>
+    </div>
+    <div class="card-body space-y-4">
       <div>
-        <%= check_box_tag "integration[events][]", event,
-            integration.events.include?(event),
-            id: "event_#{event.parameterize}" %>
-        <%= label_tag "event_#{event.parameterize}", event %>
+        <%= f.label :name, "Nome", class: "form-label" %>
+        <%= f.text_field :name, placeholder: "Ex: Meu Omnichannel, ERP Interno",
+              class: "form-input" %>
       </div>
-    <% end %>
+      <div>
+        <%= f.label :url, "URL do webhook", class: "form-label" %>
+        <%= f.url_field :url, placeholder: "https://meuapp.com/webhooks/billing",
+              class: "form-input" %>
+      </div>
+      <div>
+        <%= f.label :retry_count, "Máximo de tentativas", class: "form-label" %>
+        <%= f.number_field :retry_count, min: 1, max: 10, class: "form-input w-24" %>
+      </div>
+    </div>
   </div>
 
-  <div class="field">
-    <%= f.label :active, "Ativa" %>
-    <%= f.check_box :active %>
+  <div class="card">
+    <div class="card-header">
+      <h3 class="text-sm font-medium text-gray-900">Eventos</h3>
+      <p class="text-xs text-gray-500 mt-0.5">Selecione quais eventos esta integração deve receber</p>
+    </div>
+    <div class="card-body">
+      <div class="grid grid-cols-2 gap-2">
+        <% @events.each do |event| %>
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= check_box_tag "integration[events][]", event,
+                  integration.events.include?(event),
+                  class: "rounded border-gray-300 text-brand-600 focus:ring-brand-500" %>
+            <span class="font-mono text-xs"><%= event %></span>
+          </label>
+        <% end %>
+      </div>
+    </div>
   </div>
 
-  <%= f.submit %>
+  <div class="flex gap-3 justify-end">
+    <%= link_to "Cancelar", integrations_path, class: "btn-secondary" %>
+    <%= f.submit integration.new_record? ? "Criar integração" : "Salvar",
+          class: "btn-primary" %>
+  </div>
 <% end %>

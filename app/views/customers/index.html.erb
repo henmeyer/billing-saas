@@ -1,29 +1,104 @@
-<h1>Clientes</h1>
+<%= content_for :page_title, "Clientes" %>
 
-<%= link_to "Novo cliente", new_customer_path, class: "btn btn-primary" %>
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Clientes</h2>
+    <p class="text-sm text-gray-500 mt-0.5"><%= @customers.total_count %> clientes</p>
+  </div>
+  <%= link_to "Novo cliente", new_customer_path, class: "btn-primary" %>
+</div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Nome</th>
-      <th>Email</th>
-      <th>Status</th>
-      <th>Assinatura</th>
-      <th>Ações</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @customers.each do |customer| %>
-      <tr>
-        <td><%= link_to customer.name, customer %></td>
-        <td><%= customer.email %></td>
-        <td><%= customer.status %></td>
-        <td><%= customer.subscriptions.find { |s| %w[active trialing past_due].include?(s.status) }&.then { |s| s.plan&.name } || "—" %></td>
-        <td>
-          <%= link_to "Ver", customer %>
-          <%= link_to "Editar", edit_customer_path(customer) %>
-        </td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<div class="card">
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Plano</th>
+          <th>Status</th>
+          <th>Health</th>
+          <th>Gateway</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @customers.empty? %>
+          <tr>
+            <td colspan="6" class="text-center text-gray-400 py-8">
+              Nenhum cliente cadastrado ainda.
+            </td>
+          </tr>
+        <% else %>
+          <% @customers.each do |customer| %>
+            <% sub = customer.subscriptions.first %>
+            <tr>
+              <td>
+                <div>
+                  <p class="font-medium text-gray-900"><%= customer.name %></p>
+                  <p class="text-xs text-gray-400"><%= customer.email %></p>
+                </div>
+              </td>
+              <td>
+                <% if sub %>
+                  <span class="text-sm text-gray-700"><%= sub.plan.name %></span>
+                <% else %>
+                  <span class="text-sm text-gray-400">—</span>
+                <% end %>
+              </td>
+              <td>
+                <%
+                  status_class = case customer.status
+                    when 'active'    then 'badge-green'
+                    when 'churned'   then 'badge-gray'
+                    when 'suspended' then 'badge-red'
+                    else 'badge-yellow'
+                  end
+                  status_label = {
+                    'active' => 'Ativo', 'churned' => 'Cancelado',
+                    'suspended' => 'Suspenso', 'trial' => 'Trial'
+                  }[customer.status] || customer.status
+                %>
+                <span class="<%= status_class %>"><%= status_label %></span>
+                <% if sub&.status == 'past_due' %>
+                  <span class="badge-red ml-1">Inadimplente</span>
+                <% end %>
+              </td>
+              <td>
+                <%
+                  score       = customer.health_score
+                  score_class = score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                %>
+                <span class="text-sm font-medium <%= score_class %>"><%= score %>%</span>
+              </td>
+              <td>
+                <% if sub %>
+                  <span class="badge-gray"><%= sub.gateway %></span>
+                <% else %>
+                  <span class="text-gray-400 text-sm">—</span>
+                <% end %>
+              </td>
+              <td class="text-right">
+                <%= link_to "Ver", customer_path(customer),
+                      class: "btn-secondary btn-sm" %>
+              </td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if @customers.total_pages > 1 %>
+  <div class="mt-4 flex justify-center gap-1">
+    <%= link_to_if @customers.prev_page, "← Anterior",
+          customers_path(page: @customers.prev_page),
+          class: "btn-secondary btn-sm" %>
+    <span class="px-3 py-1.5 text-xs text-gray-500">
+      Página <%= @customers.current_page %> de <%= @customers.total_pages %>
+    </span>
+    <%= link_to_if @customers.next_page, "Próxima →",
+          customers_path(page: @customers.next_page),
+          class: "btn-secondary btn-sm" %>
+  </div>
+<% end %>
