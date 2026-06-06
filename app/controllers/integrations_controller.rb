@@ -13,6 +13,7 @@ class IntegrationsController < ApplicationController
       available_events: Integration::AVAILABLE_EVENTS,
       license_types:    serialize_license_types,
       credit_types:     serialize_credit_types,
+      feature_types:    serialize_feature_types,
       errors:           {}
     }
   end
@@ -39,6 +40,7 @@ class IntegrationsController < ApplicationController
       available_events: Integration::AVAILABLE_EVENTS,
       license_types:    serialize_license_types,
       credit_types:     serialize_credit_types,
+      feature_types:    serialize_feature_types,
       errors:           {}
     }
   end
@@ -89,6 +91,14 @@ class IntegrationsController < ApplicationController
         field_type:     "credit"
       )
     end
+
+    integration.integration_field_configs.where(field_type: "feature").destroy_all
+    Array(params[:feature_type_ids]).each do |ft_id|
+      integration.integration_field_configs.create!(
+        feature_type_id: ft_id,
+        field_type:      "feature"
+      )
+    end
   end
 
   def serialize_integration(i)
@@ -103,9 +113,12 @@ class IntegrationsController < ApplicationController
       license_type_ids: i.integration_field_configs
                          .where(field_type: "license")
                          .pluck(:license_type_id),
-      credit_type_ids:  i.integration_field_configs
-                         .where(field_type: "credit")
-                         .pluck(:credit_type_id),
+      credit_type_ids:   i.integration_field_configs
+                          .where(field_type: "credit")
+                          .pluck(:credit_type_id),
+      feature_type_ids:  i.integration_field_configs
+                          .where(field_type: "feature")
+                          .pluck(:feature_type_id),
     }
   end
 
@@ -117,7 +130,8 @@ class IntegrationsController < ApplicationController
     CreditType.all.map { |ct| { id: ct.id, key: ct.key, label: ct.label } }
   end
 
-  def require_admin!
-    redirect_to root_path, alert: 'Acesso negado.' unless current_user.admin?
+  def serialize_feature_types
+    FeatureType.all.map { |ft| { id: ft.id, key: ft.key, label: ft.label } }
   end
+
 end

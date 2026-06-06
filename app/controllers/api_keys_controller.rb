@@ -8,12 +8,12 @@ class ApiKeysController < ApplicationController
         name:         k.name,
         last_four:    k.last_four,
         active:       k.active,
-        last_used_at: k.last_used_at ? "#{time_ago_in_words(k.last_used_at)} atrás" : 'Nunca',
-        expires_at:   k.expires_at&.strftime('%d/%m/%Y'),
+        last_used_at: k.last_used_at&.strftime("%d/%m/%Y %H:%M") || "Nunca",
+        expires_at:   k.expires_at&.strftime("%d/%m/%Y")
       }
     end
 
-    render inertia: 'ApiKeys/Index', props: { api_keys: }
+    render inertia: "ApiKeys/Index", props: { api_keys: }
   end
 
   def create
@@ -23,17 +23,11 @@ class ApiKeysController < ApplicationController
       expires_at: params[:expires_at].presence
     )
     flash[:token] = token_raw
-    redirect_to api_keys_path, notice: 'Chave criada.'
+    redirect_to api_keys_path, notice: "Chave criada."
   end
 
   def destroy
     current_account.api_keys.find(params[:id]).revoke!
-    redirect_to api_keys_path, notice: 'Chave revogada.'
-  end
-
-  private
-
-  def require_admin!
-    redirect_to root_path, alert: 'Acesso negado.' unless current_user.admin?
+    redirect_to api_keys_path, notice: "Chave revogada."
   end
 end

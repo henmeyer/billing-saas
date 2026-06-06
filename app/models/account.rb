@@ -1,5 +1,6 @@
 class Account < ApplicationRecord
-  has_many :users
+  has_many :account_users
+  has_many :users, through: :account_users
   has_many :plans
   has_many :customers
   has_many :license_types

@@ -79,6 +79,15 @@ class WebhookDispatchJob < ApplicationJob
   end
 
   def build_payload(event_name, customer, data)
+    subscription = customer.active_subscription
+
+    features = {}
+    if subscription
+      subscription.plan.plan_features.includes(:feature_type).each do |pf|
+        features[pf.feature_type.key] = pf.enabled
+      end
+    end
+
     {
       event:      event_name,
       timestamp:  Time.current.iso8601,
@@ -89,6 +98,7 @@ class WebhookDispatchJob < ApplicationJob
         name:        customer.name,
         email:       customer.email
       },
+      features:   features,
       data:       data
     }
   end

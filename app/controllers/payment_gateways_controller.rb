@@ -1,0 +1,77 @@
+class PaymentGatewaysController < ApplicationController
+  before_action :require_admin!
+  before_action :set_gateway, only: [:edit, :update, :destroy]
+
+  def index
+    render inertia: "PaymentGateways/Index", props: {
+      gateways: PaymentGateway.order(:provider).map { |g| serialize(g) }
+    }
+  end
+
+  def new
+    render inertia: "PaymentGateways/Form", props: {
+      gateway:   {},
+      providers: PaymentGateway::PROVIDERS,
+      errors:    {}
+    }
+  end
+
+  def create
+    gateway = PaymentGateway.new(provider: params[:gateway][:provider],
+                                 active:   true)
+    gateway.api_key = params[:gateway][:api_key] if params[:gateway][:api_key].present?
+
+    if gateway.save
+      redirect_to payment_gateways_path, notice: "Gateway configurado."
+    else
+      render inertia: "PaymentGateways/Form", props: {
+        gateway:   { provider: params[:gateway][:provider] },
+        providers: PaymentGateway::PROVIDERS,
+        errors:    gateway.errors.as_json
+      }
+    end
+  end
+
+  def edit
+    render inertia: "PaymentGateways/Form", props: {
+      gateway:   serialize(@gateway),
+      providers: PaymentGateway::PROVIDERS,
+      errors:    {}
+    }
+  end
+
+  def update
+    @gateway.api_key = params[:gateway][:api_key] if params[:gateway][:api_key].present?
+    @gateway.active = params[:gateway][:active] if params[:gateway].key?(:active)
+
+    if @gateway.save
+      redirect_to payment_gateways_path, notice: "Gateway atualizado."
+    else
+      render inertia: "PaymentGateways/Form", props: {
+        gateway:   serialize(@gateway),
+        providers: PaymentGateway::PROVIDERS,
+        errors:    @gateway.errors.as_json
+      }
+    end
+  end
+
+  def destroy
+    @gateway.update!(active: false)
+    redirect_to payment_gateways_path, notice: "Gateway desativado."
+  end
+
+  private
+
+  def set_gateway
+    @gateway = PaymentGateway.find(params[:id])
+  end
+
+  def serialize(gateway)
+    {
+      id:       gateway.id,
+      provider: gateway.provider,
+      active:   gateway.active,
+      last_four: nil
+    }
+  end
+end

@@ -16,11 +16,25 @@ class CustomersController < ApplicationController
                             &.credit_snapshots
                             &.includes(:credit_type) || []
 
+    available_products = Product.where(active: true, product_type: "credit_pack")
+                                .includes(:credit_type)
+                                .order(name: :asc)
+                                .map { |p|
+      {
+        id:              p.id,
+        name:            p.name,
+        price:           p.price_cents / 100.0,
+        credit_quantity: p.credit_quantity,
+        credit_type:     p.credit_type ? { unit: p.credit_type.unit } : nil
+      }
+    }
+
     render inertia: 'Customers/Show', props: {
-      customer:     serialize_customer(@customer),
-      subscription: subscription ? serialize_subscription(subscription) : nil,
-      charges:      charges.map { |c| serialize_charge(c) },
-      snapshots:    snapshots.map { |s| serialize_snapshot(s) }
+      customer:           serialize_customer(@customer),
+      subscription:       subscription ? serialize_subscription(subscription) : nil,
+      charges:            charges.map { |c| serialize_charge(c) },
+      snapshots:          snapshots.map { |s| serialize_snapshot(s) },
+      available_products: available_products
     }
   end
 

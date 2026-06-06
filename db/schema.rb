@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "account_users", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.string "role", default: "member", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "user_id"], name: "index_account_users_on_account_id_and_user_id", unique: true
+    t.index ["account_id"], name: "index_account_users_on_account_id"
+    t.index ["user_id"], name: "index_account_users_on_user_id"
+  end
 
   create_table "accounts", force: :cascade do |t|
     t.string "name", null: false
@@ -113,6 +124,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
     t.index ["account_id"], name: "index_customers_on_account_id"
   end
 
+  create_table "feature_types", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "key", null: false
+    t.string "label", null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "key"], name: "index_feature_types_on_account_id_and_key", unique: true
+    t.index ["account_id"], name: "index_feature_types_on_account_id"
+  end
+
   create_table "integration_field_configs", force: :cascade do |t|
     t.bigint "integration_id", null: false
     t.bigint "license_type_id"
@@ -120,7 +142,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
     t.string "field_type", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "feature_type_id"
     t.index ["credit_type_id"], name: "index_integration_field_configs_on_credit_type_id"
+    t.index ["feature_type_id"], name: "index_integration_field_configs_on_feature_type_id"
     t.index ["integration_id", "credit_type_id"], name: "idx_integration_field_credit", unique: true, where: "(credit_type_id IS NOT NULL)"
     t.index ["integration_id", "license_type_id"], name: "idx_integration_field_license", unique: true, where: "(license_type_id IS NOT NULL)"
     t.index ["integration_id"], name: "index_integration_field_configs_on_integration_id"
@@ -176,6 +200,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
     t.index ["credit_type_id"], name: "index_plan_credits_on_credit_type_id"
     t.index ["plan_id", "credit_type_id"], name: "index_plan_credits_on_plan_id_and_credit_type_id", unique: true
     t.index ["plan_id"], name: "index_plan_credits_on_plan_id"
+  end
+
+  create_table "plan_features", force: :cascade do |t|
+    t.bigint "plan_id", null: false
+    t.bigint "feature_type_id", null: false
+    t.boolean "enabled", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["feature_type_id"], name: "index_plan_features_on_feature_type_id"
+    t.index ["plan_id", "feature_type_id"], name: "index_plan_features_on_plan_id_and_feature_type_id", unique: true
+    t.index ["plan_id"], name: "index_plan_features_on_plan_id"
   end
 
   create_table "plan_integrations", force: :cascade do |t|
@@ -279,14 +314,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
-    t.bigint "account_id", null: false
+    t.bigint "account_id"
     t.string "name", default: "", null: false
     t.string "role", default: "member", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "type"
     t.index ["account_id"], name: "index_users_on_account_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index ["type"], name: "index_users_on_type"
   end
 
   create_table "webhook_logs", force: :cascade do |t|
@@ -305,6 +342,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
     t.index ["next_retry_at"], name: "index_webhook_logs_on_next_retry_at"
   end
 
+  add_foreign_key "account_users", "accounts"
+  add_foreign_key "account_users", "users"
   add_foreign_key "api_keys", "accounts"
   add_foreign_key "charges", "customers"
   add_foreign_key "charges", "subscriptions"
@@ -314,7 +353,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
   add_foreign_key "credit_snapshots", "subscription_periods"
   add_foreign_key "credit_types", "accounts"
   add_foreign_key "customers", "accounts"
+  add_foreign_key "feature_types", "accounts"
   add_foreign_key "integration_field_configs", "credit_types"
+  add_foreign_key "integration_field_configs", "feature_types"
   add_foreign_key "integration_field_configs", "integrations"
   add_foreign_key "integration_field_configs", "license_types"
   add_foreign_key "integrations", "accounts"
@@ -322,6 +363,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
   add_foreign_key "payment_gateways", "accounts"
   add_foreign_key "plan_credits", "credit_types"
   add_foreign_key "plan_credits", "plans"
+  add_foreign_key "plan_features", "feature_types"
+  add_foreign_key "plan_features", "plans"
   add_foreign_key "plan_integrations", "integrations"
   add_foreign_key "plan_integrations", "plans"
   add_foreign_key "plan_licenses", "license_types"

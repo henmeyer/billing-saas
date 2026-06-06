@@ -1,6 +1,6 @@
 class PlansController < ApplicationController
   before_action :require_admin!
-  before_action :set_plan, only: [:show, :edit, :update, :destroy]
+  before_action :set_plan, only: %i[show edit update destroy]
 
   def index
     plans = Plan.active
@@ -9,14 +9,15 @@ class PlansController < ApplicationController
                 .order(price_cents: :asc)
                 .map { |p| serialize_plan(p) }
 
-    render inertia: 'Plans/Index', props: { plans: }
+    render inertia: "Plans/Index", props: { plans: }
   end
 
   def new
-    render inertia: 'Plans/Form', props: {
+    render inertia: "Plans/Form", props: {
       plan:          serialize_plan(Plan.new),
       license_types: serialize_license_types,
       credit_types:  serialize_credit_types,
+      feature_types: serialize_feature_types,
       integrations:  serialize_integrations,
       errors:        {}
     }
@@ -27,13 +28,15 @@ class PlansController < ApplicationController
 
     if plan.save
       sync_licenses_and_credits(plan)
+      sync_features(plan)
       sync_integrations(plan)
-      redirect_to plans_path, notice: 'Plano criado com sucesso.'
+      redirect_to plans_path, notice: "Plano criado com sucesso."
     else
-      render inertia: 'Plans/Form', props: {
+      render inertia: "Plans/Form", props: {
         plan:          plan_params.merge(id: nil),
         license_types: serialize_license_types,
         credit_types:  serialize_credit_types,
+        feature_types: serialize_feature_types,
         integrations:  serialize_integrations,
         errors:        plan.errors.as_json
       }
@@ -41,10 +44,11 @@ class PlansController < ApplicationController
   end
 
   def edit
-    render inertia: 'Plans/Form', props: {
+    render inertia: "Plans/Form", props: {
       plan:          serialize_plan(@plan),
       license_types: serialize_license_types,
       credit_types:  serialize_credit_types,
+      feature_types: serialize_feature_types,
       integrations:  serialize_integrations,
       errors:        {}
     }
@@ -53,13 +57,15 @@ class PlansController < ApplicationController
   def update
     if @plan.update(plan_params)
       sync_licenses_and_credits(@plan)
+      sync_features(@plan)
       sync_integrations(@plan)
-      redirect_to plans_path, notice: 'Plano atualizado.'
+      redirect_to plans_path, notice: "Plano atualizado."
     else
-      render inertia: 'Plans/Form', props: {
+      render inertia: "Plans/Form", props: {
         plan:          serialize_plan(@plan).merge(plan_params),
         license_types: serialize_license_types,
         credit_types:  serialize_credit_types,
+        feature_types: serialize_feature_types,
         integrations:  serialize_integrations,
         errors:        @plan.errors.as_json
       }
@@ -68,7 +74,7 @@ class PlansController < ApplicationController
 
   def destroy
     @plan.archive!
-    redirect_to plans_path, notice: 'Plano arquivado.'
+    redirect_to plans_path, notice: "Plano arquivado."
   end
 
   private
@@ -94,15 +100,18 @@ class PlansController < ApplicationController
       billing_cycle:   plan.billing_cycle,
       trial_days:      plan.trial_days,
       active:          plan.active,
-      licenses:        plan.plan_licenses.map { |pl|
+      licenses:        plan.plan_licenses.map do |pl|
         { license_type_id: pl.license_type_id, quantity: pl.quantity,
           label: pl.license_type&.label }
-      },
-      credits:         plan.plan_credits.map { |pc|
+      end,
+      credits:         plan.plan_credits.map do |pc|
         { credit_type_id: pc.credit_type_id, quantity: pc.quantity, rollover: pc.rollover,
           label: pc.credit_type&.label }
-      },
-      integration_ids: plan.plan_integrations.pluck(:integration_id),
+      end,
+      features:        plan.plan_features.map do |pf|
+        { feature_type_id: pf.feature_type_id, enabled: pf.enabled }
+      end,
+      integration_ids: plan.plan_integrations.pluck(:integration_id)
     }
   end
 
@@ -112,6 +121,10 @@ class PlansController < ApplicationController
 
   def serialize_credit_types
     CreditType.all.map { |ct| { id: ct.id, key: ct.key, label: ct.label, unit: ct.unit } }
+  end
+
+  def serialize_feature_types
+    FeatureType.all.map { |ft| { id: ft.id, key: ft.key, label: ft.label } }
   end
 
   def serialize_integrations
@@ -126,11 +139,20 @@ class PlansController < ApplicationController
       end
     end
 
-    if params[:credits].present?
-      params[:credits].each do |credit_type_id, data|
-        pc = plan.plan_credits.find_or_initialize_by(credit_type_id:)
-        pc.update!(quantity: data[:quantity].to_i, rollover: data[:rollover] == 'true')
-      end
+    return unless params[:credits].present?
+
+    params[:credits].each do |credit_type_id, data|
+      pc = plan.plan_credits.find_or_initialize_by(credit_type_id:)
+      pc.update!(quantity: data[:quantity].to_i, rollover: data[:rollover] == "true")
+    end
+  end
+
+  def sync_features(plan)
+    return unless params[:features].present?
+
+    params[:features].each do |feature_type_id, enabled|
+      pf = plan.plan_features.find_or_initialize_by(feature_type_id:)
+      pf.update!(enabled: ["true", true].include?(enabled))
     end
   end
 
@@ -141,7 +163,4 @@ class PlansController < ApplicationController
     end
   end
 
-  def require_admin!
-    redirect_to root_path, alert: 'Acesso negado.' unless current_user.admin?
-  end
 end

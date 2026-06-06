@@ -124,6 +124,32 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Features</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Quais features esta integração suporta</p>
+        </div>
+        <div class="card-body">
+          <div v-if="featureTypes.length" class="space-y-2">
+            <label
+              v-for="ft in featureTypes"
+              :key="ft.id"
+              class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                :value="ft.id"
+                v-model="form.feature_type_ids"
+                class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span class="font-medium">{{ ft.label }}</span>
+              <span class="text-gray-400 font-mono text-xs">{{ ft.key }}</span>
+            </label>
+          </div>
+          <p v-else class="text-sm text-gray-400">Nenhuma feature configurada ainda.</p>
+        </div>
+      </div>
+
       <div class="flex gap-3 justify-end">
         <Link href="/integrations" class="btn-secondary">Cancelar</Link>
         <button @click="submit" :disabled="form.processing" class="btn-primary">
@@ -143,12 +169,14 @@ const props = defineProps({
   available_events: Array,
   license_types: Array,
   credit_types: Array,
+  feature_types: Array,
   errors: Object,
 });
 
 const availableEvents = props.available_events || [];
 const licenseTypes = props.license_types || [];
 const creditTypes = props.credit_types || [];
+const featureTypes = props.feature_types || [];
 
 const form = useForm({
   name: props.integration.name || "",
@@ -157,6 +185,7 @@ const form = useForm({
   events: props.integration.events || [],
   license_type_ids: props.integration.license_type_ids || [],
   credit_type_ids: props.integration.credit_type_ids || [],
+  feature_type_ids: props.integration.feature_type_ids || [],
 });
 
 const submit = () => {

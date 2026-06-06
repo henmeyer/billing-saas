@@ -178,6 +178,35 @@
         </div>
       </div>
 
+      <!-- Features -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Features</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Funcionalidades habilitadas neste plano</p>
+        </div>
+        <div class="card-body space-y-2">
+          <div v-if="featureTypes.length">
+            <label
+              v-for="ft in featureTypes"
+              :key="ft.id"
+              class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 cursor-pointer"
+            >
+              <div>
+                <p class="text-sm font-medium text-gray-700">{{ ft.label }}</p>
+                <p class="text-xs text-gray-400 font-mono">{{ ft.key }}</p>
+              </div>
+              <input
+                type="checkbox"
+                :checked="features[ft.id]"
+                @change="features[ft.id] = $event.target.checked"
+                class="rounded border-gray-300 text-brand-600 focus:ring-brand-500 w-4 h-4"
+              />
+            </label>
+          </div>
+          <p v-else class="text-sm text-gray-400">Nenhuma feature configurada ainda.</p>
+        </div>
+      </div>
+
       <!-- Ações -->
       <div class="flex gap-3 justify-end">
         <Link href="/plans" class="btn-secondary">Cancelar</Link>
@@ -198,12 +227,14 @@ const props = defineProps({
   plan: Object,
   license_types: Array,
   credit_types: Array,
+  feature_types: Array,
   integrations: Array,
   errors: Object,
 });
 
 const licenseTypes = props.license_types || [];
 const creditTypes = props.credit_types || [];
+const featureTypes = props.feature_types || [];
 const integrations = props.integrations || [];
 
 const form = useForm({
@@ -233,11 +264,20 @@ const credits = reactive(
   ),
 );
 
+const features = reactive(
+  Object.fromEntries(
+    featureTypes.map((ft) => {
+      const existing = props.plan.features?.find((f) => f.feature_type_id === ft.id);
+      return [ft.id, existing?.enabled ?? false];
+    }),
+  ),
+);
+
 const submit = () => {
   const url = props.plan.id ? `/plans/${props.plan.id}` : "/plans";
   const method = props.plan.id ? "put" : "post";
 
-  form.transform((data) => ({ ...data, licenses, credits }))[method](url);
+  form.transform((data) => ({ ...data, licenses, credits, features }))[method](url);
 };
 
 const fmtCents = (cents) =>

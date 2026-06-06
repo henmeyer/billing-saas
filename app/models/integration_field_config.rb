@@ -2,8 +2,9 @@ class IntegrationFieldConfig < ApplicationRecord
   belongs_to :integration
   belongs_to :license_type, optional: true
   belongs_to :credit_type,  optional: true
+  belongs_to :feature_type, optional: true
 
-  FIELD_TYPES = %w[license credit].freeze
+  FIELD_TYPES = %w[license credit feature].freeze
   validates :field_type, inclusion: { in: FIELD_TYPES }
 
   validate :exactly_one_type_present
@@ -11,11 +12,7 @@ class IntegrationFieldConfig < ApplicationRecord
   private
 
   def exactly_one_type_present
-    if license_type_id.blank? && credit_type_id.blank?
-      errors.add(:base, "Deve ter license_type ou credit_type")
-    end
-    if license_type_id.present? && credit_type_id.present?
-      errors.add(:base, "Deve ter apenas um tipo")
-    end
+    present = [license_type_id, credit_type_id, feature_type_id].compact.count
+    errors.add(:base, "Deve ter exatamente um tipo") unless present == 1
   end
 end

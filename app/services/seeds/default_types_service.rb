@@ -13,6 +13,14 @@ class Seeds::DefaultTypesService
                            { key: "sms",        label: "SMS",       unit: "mensagem", reset_cycle: "billing_cycle" },
                            { key: "executions", label: "Execuções", unit: "execução", reset_cycle: "billing_cycle" }
                          ])
+
+      FeatureType.create!([
+                            { key: "ai_enabled",         label: "IA habilitada" },
+                            { key: "export_reports",     label: "Exportar relatórios" },
+                            { key: "custom_branding",    label: "Marca personalizada" },
+                            { key: "api_access",         label: "Acesso à API" },
+                            { key: "advanced_analytics", label: "Analytics avançado" }
+                          ])
     end
   end
 end

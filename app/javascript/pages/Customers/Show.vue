@@ -38,6 +38,18 @@
           </div>
         </div>
 
+        <div v-if="!subscription" class="card">
+          <div class="card-body text-center py-8">
+            <p class="text-gray-400 text-sm mb-3">Sem assinatura ativa</p>
+            <Link
+              :href="`/customers/${customer.id}/subscriptions/new`"
+              class="btn-primary inline-flex"
+            >
+              Criar assinatura
+            </Link>
+          </div>
+        </div>
+
         <div v-if="subscription" class="card">
           <div class="card-header">
             <h3 class="text-sm font-medium text-gray-900">Assinatura</h3>
@@ -61,6 +73,14 @@
               <p class="text-xs text-gray-500">Próxima renovação</p>
               <p class="text-sm text-gray-700">{{ subscription.current_period_end }}</p>
             </div>
+            <div class="flex gap-2 pt-3 border-t border-gray-100">
+              <Link
+                :href="`/customers/${customer.id}/subscriptions/${subscription.id}/edit`"
+                class="btn-secondary btn-sm flex-1 justify-center"
+              >
+                Editar assinatura
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -82,6 +102,40 @@
               :percent="s.usage_percent"
               :unit="s.credit_type_unit"
             />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header flex items-center justify-between">
+            <h3 class="text-sm font-medium text-gray-900">Créditos avulsos</h3>
+          </div>
+          <div class="card-body">
+            <div v-if="!availableProducts?.length" class="text-sm text-gray-400">
+              Nenhum produto disponível.
+              <Link href="/products/new" class="text-brand-600 hover:underline">Criar produto</Link>
+            </div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="p in availableProducts"
+                :key="p.id"
+                class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+              >
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{{ p.name }}</p>
+                  <p class="text-xs text-gray-400">
+                    {{ fmtNum(p.credit_quantity) }} {{ p.credit_type?.unit }}s —
+                    {{ fmt(p.price) }}
+                  </p>
+                </div>
+                <ConfirmButton
+                  :message="`Adicionar ${p.name} para ${customer.name}?`"
+                  btn-class="btn-secondary btn-sm"
+                  @confirm="addProduct(p.id)"
+                >
+                  Adicionar
+                </ConfirmButton>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -121,20 +175,31 @@
 </template>
 
 <script setup>
-import { Link } from "@inertiajs/vue3";
+import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 import ProgressBar from "@/components/Shared/ProgressBar.vue";
+import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
-defineProps({
+const props = defineProps({
   customer: Object,
   subscription: Object,
   charges: Array,
   snapshots: Array,
+  available_products: Array,
 });
+
+const availableProducts = props.available_products || [];
+
+const addProduct = (productId) => {
+  router.post(`/customers/${props.customer.id}/customer_products`, {
+    product_id: productId,
+  });
+};
 
 const fmt = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
+const fmtNum = (v) => new Intl.NumberFormat("pt-BR").format(v || 0);
 const healthClass = (s) =>
   s >= 70 ? "text-green-600" : s >= 40 ? "text-yellow-600" : "text-red-600";
 const statusVariant = (s) =>

@@ -13,8 +13,9 @@ class Integration < ApplicationRecord
   validates :secret, presence: true
 
   has_many :integration_field_configs, dependent: :destroy
-  has_many :license_types, through: :integration_field_configs
-  has_many :credit_types,  through: :integration_field_configs
+  has_many :license_types,  through: :integration_field_configs
+  has_many :credit_types,   through: :integration_field_configs
+  has_many :feature_types,  through: :integration_field_configs
   has_many :plan_integrations, dependent: :destroy
   has_many :plans, through: :plan_integrations
 
@@ -38,6 +39,13 @@ class Integration < ApplicationRecord
       .where(field_type: "credit")
       .includes(:credit_type)
       .map(&:credit_type)
+  end
+
+  def active_feature_types
+    integration_field_configs
+      .where(field_type: "feature")
+      .includes(:feature_type)
+      .map(&:feature_type)
   end
 
   private

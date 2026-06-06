@@ -24,12 +24,16 @@ Rails.application.routes.draw do
 
   resources :license_types
   resources :credit_types
+  resources :feature_types
+  resources :subscriptions, only: [:index]
   resources :customers do
-    resources :subscriptions, shallow: true
+    resources :subscriptions,    only: [:new, :create, :edit, :update, :destroy]
+    resources :customer_products, only: [:create]
   end
   resources :integrations
   resources :api_keys, only: [:index, :create, :destroy]
   resources :payment_gateways
+  resources :products
 
   # Webhooks de entrada (sem auth de usuário)
   namespace :webhooks do

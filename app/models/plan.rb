@@ -5,6 +5,8 @@ class Plan < ApplicationRecord
   has_many :license_types, through: :plan_licenses
   has_many :plan_credits,  dependent: :destroy
   has_many :credit_types,  through: :plan_credits
+  has_many :plan_features,  dependent: :destroy
+  has_many :feature_types,  through: :plan_features
   has_many :plan_integrations, dependent: :destroy
   has_many :integrations,      through: :plan_integrations
   has_many :subscriptions
