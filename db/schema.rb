@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_02_201150) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_06_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -113,6 +113,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_02_201150) do
     t.index ["account_id"], name: "index_customers_on_account_id"
   end
 
+  create_table "integration_field_configs", force: :cascade do |t|
+    t.bigint "integration_id", null: false
+    t.bigint "license_type_id"
+    t.bigint "credit_type_id"
+    t.string "field_type", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["credit_type_id"], name: "index_integration_field_configs_on_credit_type_id"
+    t.index ["integration_id", "credit_type_id"], name: "idx_integration_field_credit", unique: true, where: "(credit_type_id IS NOT NULL)"
+    t.index ["integration_id", "license_type_id"], name: "idx_integration_field_license", unique: true, where: "(license_type_id IS NOT NULL)"
+    t.index ["integration_id"], name: "index_integration_field_configs_on_integration_id"
+    t.index ["license_type_id"], name: "index_integration_field_configs_on_license_type_id"
+  end
+
   create_table "integrations", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
@@ -162,6 +176,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_02_201150) do
     t.index ["credit_type_id"], name: "index_plan_credits_on_credit_type_id"
     t.index ["plan_id", "credit_type_id"], name: "index_plan_credits_on_plan_id_and_credit_type_id", unique: true
     t.index ["plan_id"], name: "index_plan_credits_on_plan_id"
+  end
+
+  create_table "plan_integrations", force: :cascade do |t|
+    t.bigint "plan_id", null: false
+    t.bigint "integration_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["integration_id"], name: "index_plan_integrations_on_integration_id"
+    t.index ["plan_id", "integration_id"], name: "index_plan_integrations_on_plan_id_and_integration_id", unique: true
+    t.index ["plan_id"], name: "index_plan_integrations_on_plan_id"
   end
 
   create_table "plan_licenses", force: :cascade do |t|
@@ -290,11 +314,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_02_201150) do
   add_foreign_key "credit_snapshots", "subscription_periods"
   add_foreign_key "credit_types", "accounts"
   add_foreign_key "customers", "accounts"
+  add_foreign_key "integration_field_configs", "credit_types"
+  add_foreign_key "integration_field_configs", "integrations"
+  add_foreign_key "integration_field_configs", "license_types"
   add_foreign_key "integrations", "accounts"
   add_foreign_key "license_types", "accounts"
   add_foreign_key "payment_gateways", "accounts"
   add_foreign_key "plan_credits", "credit_types"
   add_foreign_key "plan_credits", "plans"
+  add_foreign_key "plan_integrations", "integrations"
+  add_foreign_key "plan_integrations", "plans"
   add_foreign_key "plan_licenses", "license_types"
   add_foreign_key "plan_licenses", "plans"
   add_foreign_key "plans", "accounts"

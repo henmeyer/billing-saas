@@ -1,45 +1,74 @@
 class PlansController < ApplicationController
   before_action :require_admin!
-  before_action :set_plan, only: %i[show edit update destroy]
+  before_action :set_plan, only: [:show, :edit, :update, :destroy]
 
   def index
-    @plans = Plan.active
-                 .includes(:plan_licenses, :plan_credits,
-                           plan_licenses: :license_type, plan_credits: :credit_type)
-                 .order(price_cents: :asc)
-  end
+    plans = Plan.active
+                .includes(:plan_licenses, :plan_credits,
+                          plan_licenses: :license_type, plan_credits: :credit_type)
+                .order(price_cents: :asc)
+                .map { |p| serialize_plan(p) }
 
-  def show
+    render inertia: 'Plans/Index', props: { plans: }
   end
 
   def new
-    @plan = Plan.new
+    render inertia: 'Plans/Form', props: {
+      plan:          serialize_plan(Plan.new),
+      license_types: serialize_license_types,
+      credit_types:  serialize_credit_types,
+      integrations:  serialize_integrations,
+      errors:        {}
+    }
   end
 
   def create
-    @plan = Plan.new(plan_params)
+    plan = Plan.new(plan_params)
 
-    if @plan.save
-      redirect_to @plan, notice: "Plano criado com sucesso."
+    if plan.save
+      sync_licenses_and_credits(plan)
+      sync_integrations(plan)
+      redirect_to plans_path, notice: 'Plano criado com sucesso.'
     else
-      render :new, status: :unprocessable_entity
+      render inertia: 'Plans/Form', props: {
+        plan:          plan_params.merge(id: nil),
+        license_types: serialize_license_types,
+        credit_types:  serialize_credit_types,
+        integrations:  serialize_integrations,
+        errors:        plan.errors.as_json
+      }
     end
   end
 
   def edit
+    render inertia: 'Plans/Form', props: {
+      plan:          serialize_plan(@plan),
+      license_types: serialize_license_types,
+      credit_types:  serialize_credit_types,
+      integrations:  serialize_integrations,
+      errors:        {}
+    }
   end
 
   def update
     if @plan.update(plan_params)
-      redirect_to @plan, notice: "Plano atualizado."
+      sync_licenses_and_credits(@plan)
+      sync_integrations(@plan)
+      redirect_to plans_path, notice: 'Plano atualizado.'
     else
-      render :edit, status: :unprocessable_entity
+      render inertia: 'Plans/Form', props: {
+        plan:          serialize_plan(@plan).merge(plan_params),
+        license_types: serialize_license_types,
+        credit_types:  serialize_credit_types,
+        integrations:  serialize_integrations,
+        errors:        @plan.errors.as_json
+      }
     end
   end
 
   def destroy
     @plan.archive!
-    redirect_to plans_path, notice: "Plano arquivado."
+    redirect_to plans_path, notice: 'Plano arquivado.'
   end
 
   private
@@ -51,13 +80,68 @@ class PlansController < ApplicationController
   def plan_params
     params.require(:plan).permit(
       :name, :description, :price_cents, :currency,
-      :billing_cycle, :trial_days, :active,
-      plan_licenses_attributes: [:id, :license_type_id, :quantity, :_destroy],
-      plan_credits_attributes:  [:id, :credit_type_id, :quantity, :rollover, :_destroy]
+      :billing_cycle, :trial_days, :active
     )
   end
 
+  def serialize_plan(plan)
+    {
+      id:              plan.id,
+      name:            plan.name,
+      description:     plan.description,
+      price_cents:     plan.price_cents,
+      price:           plan.price_in_reais,
+      billing_cycle:   plan.billing_cycle,
+      trial_days:      plan.trial_days,
+      active:          plan.active,
+      licenses:        plan.plan_licenses.map { |pl|
+        { license_type_id: pl.license_type_id, quantity: pl.quantity,
+          label: pl.license_type&.label }
+      },
+      credits:         plan.plan_credits.map { |pc|
+        { credit_type_id: pc.credit_type_id, quantity: pc.quantity, rollover: pc.rollover,
+          label: pc.credit_type&.label }
+      },
+      integration_ids: plan.plan_integrations.pluck(:integration_id),
+    }
+  end
+
+  def serialize_license_types
+    LicenseType.all.map { |lt| { id: lt.id, key: lt.key, label: lt.label, unit: lt.unit } }
+  end
+
+  def serialize_credit_types
+    CreditType.all.map { |ct| { id: ct.id, key: ct.key, label: ct.label, unit: ct.unit } }
+  end
+
+  def serialize_integrations
+    Integration.active.map { |i| { id: i.id, name: i.name, url: i.url } }
+  end
+
+  def sync_licenses_and_credits(plan)
+    if params[:licenses].present?
+      params[:licenses].each do |license_type_id, quantity|
+        pl = plan.plan_licenses.find_or_initialize_by(license_type_id:)
+        pl.update!(quantity: quantity.to_i)
+      end
+    end
+
+    if params[:credits].present?
+      params[:credits].each do |credit_type_id, data|
+        pc = plan.plan_credits.find_or_initialize_by(credit_type_id:)
+        pc.update!(quantity: data[:quantity].to_i, rollover: data[:rollover] == 'true')
+      end
+    end
+  end
+
+  def sync_integrations(plan)
+    plan.plan_integrations.destroy_all
+    Array(params[:integration_ids]).each do |integration_id|
+      plan.plan_integrations.create!(integration_id:)
+    end
+  end
+
   def require_admin!
-    redirect_to root_path, alert: "Acesso negado." unless current_user.admin?
+    redirect_to root_path, alert: 'Acesso negado.' unless current_user.admin?
   end
 end

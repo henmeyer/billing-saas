@@ -1,6 +1,11 @@
 {
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "foreman start -f ./Procfile.dev",
+    "rails": "rails server",
+    "build": "bin/vite build"
+  },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.11",
     "autoprefixer": "^10.5.0",
@@ -10,6 +15,7 @@
     "vite-plugin-ruby": "^5.2.2"
   },
   "dependencies": {
+    "@inertiajs/vue3": "^3.3.0",
     "@vitejs/plugin-vue": "^6.0.7",
     "vue": "^3.5.35"
   }

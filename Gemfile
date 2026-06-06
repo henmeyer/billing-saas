@@ -18,6 +18,7 @@ gem "devise"
 
 # Frontend
 gem "vite_rails"
+gem "inertia_rails"
 
 # Jobs
 gem "redis", ">= 4.0.1"
