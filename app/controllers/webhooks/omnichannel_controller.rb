@@ -20,7 +20,7 @@ class Webhooks::OmnichannelController < Webhooks::BaseController
 
   def set_account_from_token
     token   = request.headers["X-Account-Token"]
-    api_key = ApiKey.without_tenant { ApiKey.find_by_token(token) }
+    api_key = ActsAsTenant.without_tenant { ApiKey.find_by_token(token) }
 
     unless api_key&.active?
       render json: { error: "Token inválido" }, status: :unauthorized

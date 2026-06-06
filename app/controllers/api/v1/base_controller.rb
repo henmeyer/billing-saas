@@ -13,7 +13,7 @@ class Api::V1::BaseController < ActionController::API
       return
     end
 
-    @current_api_key = ApiKey.without_tenant { ApiKey.find_by_token(raw_token) }
+    @current_api_key = ActsAsTenant.without_tenant { ApiKey.find_by_token(raw_token) }
 
     unless @current_api_key&.active? && !@current_api_key.expired?
       render json: { error: "Token inválido ou expirado" }, status: :unauthorized
