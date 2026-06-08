@@ -5,6 +5,8 @@ class Account < ApplicationRecord
   has_many :customers
   has_many :license_types
   has_many :credit_types
+  has_many :feature_types
+  has_many :currencies
   has_many :integrations
   has_many :api_keys
   has_many :payment_gateways

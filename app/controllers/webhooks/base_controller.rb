@@ -1,6 +1,4 @@
 class Webhooks::BaseController < ActionController::API
-  skip_before_action :verify_authenticity_token
-
   private
 
   def verify_hmac_signature(secret, header_name: "X-Webhook-Signature")

@@ -15,13 +15,14 @@ class Accounts::CreateService
         name: @params[:company_name]
       )
 
-      user = account.users.create!(
+      user = User.create!(
         name:                  @params[:name],
         email:                 @params[:email],
         password:              @params[:password],
-        password_confirmation: @params[:password_confirmation],
-        role:                  "owner"
+        password_confirmation: @params[:password_confirmation]
       )
+
+      AccountUser.create!(account: account, user: user, role: "owner")
 
       Seeds::DefaultTypesService.call(account)
 

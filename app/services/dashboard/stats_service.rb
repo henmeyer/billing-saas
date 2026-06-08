@@ -26,21 +26,26 @@ class Dashboard::StatsService
 
   private
 
+  def account_subscriptions
+    Subscription.joins(:customer).merge(Customer.all)
+  end
+
   def calculate_mrr
-    Subscription.active
-                .includes(:currency, plan: :plan_prices)
-                .sum(&:price_in_currency) / 100.0
+    account_subscriptions
+      .active
+      .includes(:currency, plan: :plan_prices)
+      .sum(&:price_in_currency) / 100.0
   end
 
   def churned_this_month
-    Subscription.where(
+    account_subscriptions.where(
       status:       "cancelled",
       cancelled_at: Time.current.beginning_of_month..
     ).count
   end
 
   def past_due_count
-    Subscription.where(status: "past_due").count
+    account_subscriptions.where(status: "past_due").count
   end
 
   def revenue_this_month
@@ -50,10 +55,11 @@ class Dashboard::StatsService
   end
 
   def mrr_by_plan
-    Subscription.active
-                .includes(:currency, plan: :plan_prices)
-                .group_by { |s| s.plan.name }
-                .transform_values { |subs| subs.sum(&:price_in_currency) / 100.0 }
+    account_subscriptions
+      .active
+      .includes(:currency, plan: :plan_prices)
+      .group_by { |s| s.plan.name }
+      .transform_values { |subs| subs.sum(&:price_in_currency) / 100.0 }
   end
 
   def recent_charges
