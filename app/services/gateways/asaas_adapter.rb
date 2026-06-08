@@ -1,12 +1,14 @@
 module Gateways
   class AsaasAdapter < Base
-    BASE_URL = "https://api.asaas.com/v3".freeze
+    SANDBOX_URL    = "https://sandbox.asaas.com/api/v3".freeze
+    PRODUCTION_URL = "https://api.asaas.com/v3".freeze
 
     def initialize
-      gateway = ActsAsTenant.current_tenant
-                            .payment_gateways
-                            .find_by!(provider: "asaas")
-      @api_key = gateway.api_key
+      gateway  = ActsAsTenant.current_tenant
+                             .payment_gateways
+                             .find_by!(provider: "asaas")
+      @api_key  = gateway.api_key
+      @base_url = gateway.gateway_data.fetch("sandbox", true) ? SANDBOX_URL : PRODUCTION_URL
     end
 
     def create_customer(customer)
@@ -38,7 +40,7 @@ module Gateways
 
     def cancel_subscription(gateway_sub_id)
       response = HTTParty.delete(
-        "#{BASE_URL}/subscriptions/#{gateway_sub_id}",
+        "#{@base_url}/subscriptions/#{gateway_sub_id}",
         headers: headers
       )
       raise GatewayError, response.body unless response.success?
@@ -61,7 +63,7 @@ module Gateways
 
     def post(path, body)
       response = HTTParty.post(
-        "#{BASE_URL}#{path}",
+        "#{@base_url}#{path}",
         headers: headers,
         body:    body.to_json
       )

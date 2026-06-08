@@ -21,6 +21,7 @@ module Gateways
       case provider.to_s
       when "stripe" then Gateways::StripeAdapter.new
       when "asaas"  then Gateways::AsaasAdapter.new
+      when "dlocal" then Gateways::DlocalAdapter.new
       else raise ArgumentError, "Gateway '#{provider}' não suportado"
       end
     end

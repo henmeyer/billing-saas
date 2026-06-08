@@ -41,6 +41,7 @@ Rails.application.routes.draw do
     post "/asaas",       to: "asaas#receive"
     post "/stripe",      to: "stripe#receive"
     post "/omnichannel", to: "omnichannel#receive"
+    post "/dlocal",      to: "dlocal#receive"
   end
 
   # API externa (auth por API key)

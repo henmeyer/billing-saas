@@ -31,7 +31,7 @@
 
           <div>
             <label class="form-label">
-              API Key
+              API Key (X-Login)
               <span v-if="gateway.id" class="text-gray-400 font-normal">
                 (deixe em branco para manter a atual)
               </span>
@@ -45,6 +45,47 @@
             />
             <p class="form-hint">Armazenada criptografada. Nunca exibida novamente.</p>
           </div>
+
+          <div>
+            <label class="form-label">Ambiente</label>
+            <select v-model="form.sandbox" class="form-input">
+              <option value="true">Sandbox (testes)</option>
+              <option value="false">Produção</option>
+            </select>
+          </div>
+
+          <template v-if="form.provider === 'dlocal'">
+            <div>
+              <label class="form-label">
+                Secret Key (X-Secret-Key)
+                <span v-if="gateway.id" class="text-gray-400 font-normal">
+                  (deixe em branco para manter a atual)
+                </span>
+              </label>
+              <input
+                v-model="form.secret_key"
+                type="password"
+                class="form-input font-mono"
+                autocomplete="new-password"
+                placeholder="••••••••••••••••"
+              />
+              <p class="form-hint">Diferente da API Key. Encontre em Dashboard → API Credentials.</p>
+            </div>
+
+            <div>
+              <label class="form-label">País padrão</label>
+              <select v-model="form.default_country" class="form-input">
+                <option value="BR">Brasil (BR)</option>
+                <option value="MX">México (MX)</option>
+                <option value="CO">Colômbia (CO)</option>
+                <option value="AR">Argentina (AR)</option>
+                <option value="CL">Chile (CL)</option>
+                <option value="PE">Peru (PE)</option>
+              </select>
+              <p class="form-hint">Usado como padrão na criação de pagamentos.</p>
+            </div>
+
+          </template>
         </div>
       </div>
 
@@ -72,8 +113,11 @@ const gateway   = props.gateway   || {};
 const providers = props.providers || [];
 
 const form = useForm({
-  provider: gateway.provider || "",
-  api_key:  "",
+  provider:        gateway.provider                          || "",
+  api_key:         "",
+  secret_key:      "",
+  sandbox:         gateway.sandbox != null ? String(gateway.sandbox) : "true",
+  default_country: gateway.default_country                  || "BR",
 });
 
 const submit = () => {

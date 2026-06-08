@@ -20,6 +20,7 @@ class PaymentGatewaysController < ApplicationController
     gateway = PaymentGateway.new(provider: params[:gateway][:provider],
                                  active:   true)
     gateway.api_key = params[:gateway][:api_key] if params[:gateway][:api_key].present?
+    apply_gateway_params(gateway)
 
     if gateway.save
       redirect_to payment_gateways_path, notice: "Gateway configurado."
@@ -43,6 +44,7 @@ class PaymentGatewaysController < ApplicationController
   def update
     @gateway.api_key = params[:gateway][:api_key] if params[:gateway][:api_key].present?
     @gateway.active = params[:gateway][:active] if params[:gateway].key?(:active)
+    apply_gateway_params(@gateway)
 
     if @gateway.save
       redirect_to payment_gateways_path, notice: "Gateway atualizado."
@@ -68,10 +70,22 @@ class PaymentGatewaysController < ApplicationController
 
   def serialize(gateway)
     {
-      id:       gateway.id,
-      provider: gateway.provider,
-      active:   gateway.active,
-      last_four: nil
+      id:              gateway.id,
+      provider:        gateway.provider,
+      active:          gateway.active,
+      last_four:       nil,
+      sandbox:         gateway.gateway_data.fetch("sandbox", true),
+      is_dlocal:       gateway.provider == "dlocal",
+      default_country: gateway.gateway_data["default_country"]
     }
+  end
+
+  def apply_gateway_params(gateway)
+    p = params[:gateway]
+    gateway.gateway_data["sandbox"] = p[:sandbox] == "true" if p.key?(:sandbox)
+    return unless gateway.provider == "dlocal"
+
+    gateway.secret_key = p[:secret_key] if p[:secret_key].present?
+    gateway.gateway_data["default_country"] = p[:default_country] if p[:default_country].present?
   end
 end

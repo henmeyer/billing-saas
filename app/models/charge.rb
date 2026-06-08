@@ -3,7 +3,7 @@ class Charge < ApplicationRecord
   belongs_to :subscription
 
   STATUSES = %w[pending paid failed refunded].freeze
-  GATEWAYS = %w[stripe asaas].freeze
+  GATEWAYS = %w[stripe asaas dlocal].freeze
 
   validates :status,       inclusion: { in: STATUSES }
   validates :gateway,      inclusion: { in: GATEWAYS }
