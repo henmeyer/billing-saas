@@ -36,6 +36,31 @@ Rails.application.routes.draw do
   resources :payment_gateways
   resources :products
 
+  # Superadmin
+  namespace :superadmin do
+    root "dashboard#index"
+
+    resources :accounts, only: [:index, :show, :edit, :update] do
+      member do
+        post :suspend
+        post :activate
+      end
+    end
+
+    resources :users, only: [:index, :show] do
+      member do
+        post :impersonate
+      end
+    end
+
+    resources :super_admins, only: [:index, :new, :create, :destroy]
+  end
+
+  get  "/impersonation/enter", to: "superadmin/impersonations#enter",
+       as: :impersonation_enter
+  post "/impersonation/stop",  to: "superadmin/impersonations#stop",
+       as: :impersonation_stop
+
   # Webhooks de entrada (sem auth de usuário)
   namespace :webhooks do
     post "/asaas",       to: "asaas#receive"

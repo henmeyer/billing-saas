@@ -36,6 +36,15 @@
         <NavLink href="/feature_types" icon="◆" label="Features" />
         <NavLink href="/payment_gateways" icon="▷" label="Gateways" />
         <NavLink href="/currencies" icon="💱" label="Moedas" />
+
+        <template v-if="auth?.user?.superadmin">
+          <p
+            class="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 pt-4 pb-1"
+          >
+            SuperAdmin
+          </p>
+          <NavLink href="/superadmin" icon="🛡️" label="Painel admin" />
+        </template>
       </div>
     </div>
 
