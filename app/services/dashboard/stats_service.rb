@@ -28,8 +28,8 @@ class Dashboard::StatsService
 
   def calculate_mrr
     Subscription.active
-                .joins(:plan)
-                .sum("plans.price_cents") / 100.0
+                .includes(:currency, plan: :plan_prices)
+                .sum(&:price_in_currency) / 100.0
   end
 
   def churned_this_month
@@ -51,10 +51,9 @@ class Dashboard::StatsService
 
   def mrr_by_plan
     Subscription.active
-                .joins(:plan)
-                .group("plans.name")
-                .sum("plans.price_cents")
-                .transform_values { |v| v / 100.0 }
+                .includes(:currency, plan: :plan_prices)
+                .group_by { |s| s.plan.name }
+                .transform_values { |subs| subs.sum(&:price_in_currency) / 100.0 }
   end
 
   def recent_charges

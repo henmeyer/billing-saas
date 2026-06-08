@@ -35,6 +35,7 @@
         <NavLink href="/credit_types" icon="◈" label="Tipos de crédito" />
         <NavLink href="/feature_types" icon="◆" label="Features" />
         <NavLink href="/payment_gateways" icon="▷" label="Gateways" />
+        <NavLink href="/currencies" icon="💱" label="Moedas" />
       </div>
     </div>
 

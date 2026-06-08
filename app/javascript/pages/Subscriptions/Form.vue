@@ -31,7 +31,7 @@
             <select v-model="form.plan_id" class="form-input">
               <option value="">Selecione um plano</option>
               <option v-for="p in plans" :key="p.id" :value="p.id">
-                {{ p.name }} — {{ fmt(p.price) }}/{{ p.billing_cycle === "monthly" ? "mês" : "ano" }}
+                {{ p.name }} ({{ p.billing_cycle === "monthly" ? "mensal" : "anual" }})
               </option>
             </select>
           </div>
@@ -75,6 +75,22 @@
             </select>
           </div>
 
+          <div>
+            <label class="form-label">Moeda da assinatura</label>
+            <select
+              v-model.number="form.currency_id"
+              class="form-input"
+              :disabled="!!subscription.id"
+            >
+              <option v-for="c in currencies" :key="c.id" :value="c.id">
+                {{ c.code }} — {{ c.name }} ({{ c.symbol }})
+              </option>
+            </select>
+            <p v-if="subscription.id" class="form-hint">
+              Moeda não pode ser alterada após criação.
+            </p>
+          </div>
+
           <div v-if="!subscription.id">
             <label class="form-label">Data de início</label>
             <input v-model="form.started_at" type="date" class="form-input" />
@@ -82,18 +98,45 @@
         </div>
       </div>
 
-      <div v-if="selectedPlan" class="card bg-gray-50">
-        <div class="card-body">
-          <p class="text-xs font-medium text-gray-500 uppercase mb-3">
-            Resumo do plano selecionado
-          </p>
-          <div class="space-y-1 text-sm">
-            <div class="flex justify-between">
-              <span class="text-gray-600">Valor</span>
-              <span class="font-medium">
-                {{ fmt(selectedPlan.price) }}/{{ selectedPlan.billing_cycle === "monthly" ? "mês" : "ano" }}
-              </span>
-            </div>
+      <div v-if="selectedPlan && selectedCurrency" class="card bg-gray-50">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Resumo da cobrança</h3>
+        </div>
+        <div class="card-body space-y-3 text-sm">
+          <div v-if="selectedPlan.pricing_model !== 'flat'" class="flex justify-between">
+            <span class="text-gray-500">
+              Modelo: <strong>{{ pricingModelLabel }}</strong>
+            </span>
+            <span class="text-gray-500">
+              Métrica: <strong>{{ selectedPlan.pricing_metric_label || '—' }}</strong>
+            </span>
+          </div>
+
+          <div v-if="selectedPlan.pricing_model !== 'flat'">
+            <label class="form-label text-xs">
+              Quantidade atual de {{ selectedPlan.pricing_metric_label || 'unidades' }}
+            </label>
+            <input
+              v-model.number="form.initial_quantity"
+              type="number" min="0"
+              class="form-input w-32"
+              placeholder="0"
+            />
+            <p class="form-hint">Quantidade do cliente no momento da assinatura</p>
+          </div>
+
+          <div class="flex justify-between pt-2 border-t border-gray-200">
+            <span class="text-gray-600">Valor da primeira cobrança</span>
+            <span class="font-semibold text-gray-900 text-base">{{ calculatedPrice }}</span>
+          </div>
+
+          <div v-if="selectedPlan.pricing_model === 'volume' && activeTier" class="text-xs text-gray-400">
+            Faixa aplicada: {{ activeTier.label }} →
+            {{ selectedCurrency.symbol }} {{ (activeTier.unit_amount_cents / 100).toFixed(2) }}/un
+          </div>
+
+          <div v-if="!priceAvailable && selectedPlan.pricing_model === 'flat'" class="text-xs text-amber-600">
+            ⚠ Este plano não tem preço cadastrado para {{ selectedCurrency.code }}.
           </div>
         </div>
       </div>
@@ -137,21 +180,67 @@ const props = defineProps({
   subscription: Object,
   plans: Array,
   gateways: Array,
+  currencies: { type: Array, default: () => [] },
+  default_currency_id: { type: Number, default: null },
   errors: { type: [Array, Object], default: () => [] },
 });
 
 const form = useForm({
-  plan_id: props.subscription.plan_id || "",
-  gateway: props.subscription.gateway || "",
+  plan_id:                 props.subscription.plan_id     || "",
+  gateway:                 props.subscription.gateway     || "",
+  currency_id:             props.subscription.currency_id || props.default_currency_id || "",
   gateway_subscription_id: props.subscription.gateway_subscription_id || "",
-  status: props.subscription.status || "active",
-  started_at:
-    props.subscription.started_at || new Date().toISOString().split("T")[0],
+  status:                  props.subscription.status      || "active",
+  started_at:              props.subscription.started_at  || new Date().toISOString().split("T")[0],
+  initial_quantity:        1,
 });
 
 const selectedPlan = computed(() =>
   props.plans.find((p) => p.id === Number(form.plan_id)),
 );
+
+const selectedCurrency = computed(() =>
+  props.currencies.find((c) => c.id === Number(form.currency_id)),
+);
+
+const priceAvailable = computed(() => {
+  if (!selectedPlan.value || !selectedCurrency.value) return false;
+  return selectedPlan.value.prices?.some((p) => p.currency_id === selectedCurrency.value.id);
+});
+
+const pricingModelLabel = computed(() => ({
+  flat:     "Fixo",
+  per_unit: "Por unidade",
+  volume:   "Volume",
+}[selectedPlan.value?.pricing_model] || ""));
+
+const activeTier = computed(() => {
+  if (selectedPlan.value?.pricing_model !== "volume" || !selectedCurrency.value) return null;
+  const qty = form.initial_quantity || 1;
+  return selectedPlan.value.pricing_tiers
+    ?.filter((t) => t.currency_id === selectedCurrency.value.id)
+    ?.find((t) => qty >= t.from_unit && (!t.to_unit || qty <= t.to_unit));
+});
+
+const calculatedPrice = computed(() => {
+  if (!selectedPlan.value || !selectedCurrency.value) return "—";
+  const qty      = form.initial_quantity || 1;
+  const symbol   = selectedCurrency.value.symbol;
+  const priceMap = selectedPlan.value.prices?.find((p) => p.currency_id === selectedCurrency.value.id);
+  const tierMap  = selectedPlan.value.pricing_tiers?.filter((t) => t.currency_id === selectedCurrency.value.id) || [];
+  let amount = 0;
+
+  if (selectedPlan.value.pricing_model === "flat") {
+    amount = priceMap?.amount_cents || 0;
+  } else if (selectedPlan.value.pricing_model === "per_unit") {
+    amount = (priceMap?.amount_cents || 0) * qty;
+  } else if (selectedPlan.value.pricing_model === "volume") {
+    const tier = tierMap.find((t) => qty >= t.from_unit && (!t.to_unit || qty <= t.to_unit));
+    amount = tier ? tier.unit_amount_cents * qty : 0;
+  }
+
+  return `${symbol} ${(amount / 100).toFixed(2)}`;
+});
 
 const submit = () => {
   const base = `/customers/${props.customer.id}/subscriptions`;
@@ -166,8 +255,4 @@ const cancelSubscription = () => {
   );
 };
 
-const fmt = (v) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    v || 0,
-  );
 </script>

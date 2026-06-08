@@ -2,74 +2,79 @@ class CustomersController < ApplicationController
   before_action :set_customer, only: [:show, :edit, :update]
 
   def index
-    customers = Customer.includes(:subscriptions)
+    customers = Customer.includes(:subscriptions, :currency)
                         .order(name: :asc)
-                        .map { |c| serialize_customer(c) }
+                        .map { |customer| serialize_customer(customer) }
 
-    render inertia: 'Customers/Index', props: { customers: }
+    render inertia: "Customers/Index", props: { customers: }
   end
 
   def show
     subscription = @customer.active_subscription
     charges      = @customer.charges.order(created_at: :desc).limit(10)
-    snapshots    = @customer.current_period
-                            &.credit_snapshots
-                            &.includes(:credit_type) || []
+    snapshots    = @customer.current_period&.credit_snapshots&.includes(:credit_type) || []
+    currency     = @customer.effective_currency
 
-    available_products = Product.where(active: true, product_type: "credit_pack")
-                                .includes(:credit_type)
-                                .order(name: :asc)
-                                .map { |p|
+    available_products = Product
+                         .where(active: true, product_type: "credit_pack")
+                         .includes(:credit_type, :product_prices)
+                         .order(name: :asc)
+                         .map do |prod|
       {
-        id:              p.id,
-        name:            p.name,
-        price:           p.price_cents / 100.0,
-        credit_quantity: p.credit_quantity,
-        credit_type:     p.credit_type ? { unit: p.credit_type.unit } : nil
+        id:              prod.id,
+        name:            prod.name,
+        price:           prod.price_in(currency),
+        credit_quantity: prod.credit_quantity,
+        credit_type:     prod.credit_type ? { unit: prod.credit_type.unit } : nil
       }
-    }
+    end
 
-    render inertia: 'Customers/Show', props: {
+    render inertia: "Customers/Show", props: {
       customer:           serialize_customer(@customer),
       subscription:       subscription ? serialize_subscription(subscription) : nil,
-      charges:            charges.map { |c| serialize_charge(c) },
-      snapshots:          snapshots.map { |s| serialize_snapshot(s) },
+      charges:            charges.map { |charge| serialize_charge(charge) },
+      snapshots:          snapshots.map { |snap| serialize_snapshot(snap) },
       available_products: available_products
     }
   end
 
   def new
-    render inertia: 'Customers/Form', props: {
-      customer: {}, errors: {}
+    render inertia: "Customers/Form", props: {
+      customer:   {},
+      currencies: serialize_currencies,
+      errors:     {}
     }
   end
 
   def create
     customer = Customer.new(customer_params)
     if customer.save
-      redirect_to customer_path(customer), notice: 'Cliente criado.'
+      redirect_to customer_path(customer), notice: "Cliente criado."
     else
-      render inertia: 'Customers/Form', props: {
-        customer: customer_params,
-        errors:   customer.errors.as_json
+      render inertia: "Customers/Form", props: {
+        customer:   customer_params,
+        currencies: serialize_currencies,
+        errors:     customer.errors.as_json
       }
     end
   end
 
   def edit
-    render inertia: 'Customers/Form', props: {
-      customer: serialize_customer(@customer),
-      errors:   {}
+    render inertia: "Customers/Form", props: {
+      customer:   serialize_customer(@customer),
+      currencies: serialize_currencies,
+      errors:     {}
     }
   end
 
   def update
     if @customer.update(customer_params)
-      redirect_to customer_path(@customer), notice: 'Cliente atualizado.'
+      redirect_to customer_path(@customer), notice: "Cliente atualizado."
     else
-      render inertia: 'Customers/Form', props: {
-        customer: serialize_customer(@customer).merge(customer_params),
-        errors:   @customer.errors.as_json
+      render inertia: "Customers/Form", props: {
+        customer:   serialize_customer(@customer).merge(customer_params),
+        currencies: serialize_currencies,
+        errors:     @customer.errors.as_json
       }
     end
   end
@@ -82,25 +87,28 @@ class CustomersController < ApplicationController
 
   def customer_params
     params.require(:customer).permit(
-      :name, :email, :document, :phone, :external_id, :status, :notes
+      :name, :email, :document, :phone, :external_id, :status, :notes, :currency_id
     )
   end
 
-  def serialize_customer(c)
-    sub = c.subscriptions.first
+  def serialize_customer(customer)
+    sub = customer.subscriptions.first
+    cur = customer.currency
     {
-      id:           c.id,
-      name:         c.name,
-      email:        c.email,
-      document:     c.document,
-      phone:        c.phone,
-      external_id:  c.external_id,
-      status:       c.status,
-      health_score: c.health_score,
-      notes:        c.notes,
+      id:           customer.id,
+      name:         customer.name,
+      email:        customer.email,
+      document:     customer.document,
+      phone:        customer.phone,
+      external_id:  customer.external_id,
+      status:       customer.status,
+      health_score: customer.health_score,
+      notes:        customer.notes,
       plan_name:    sub&.plan&.name,
       gateway:      sub&.gateway,
       sub_status:   sub&.status,
+      currency_id:  customer.currency_id,
+      currency:     cur ? { id: cur.id, code: cur.code, symbol: cur.symbol } : nil
     }
   end
 
@@ -110,32 +118,39 @@ class CustomersController < ApplicationController
       status:             sub.status,
       gateway:            sub.gateway,
       plan_name:          sub.plan.name,
-      price:              sub.plan.price_in_reais,
-      current_period_end: sub.current_period_end&.strftime('%d/%m/%Y'),
-      started_at:         sub.started_at&.strftime('%d/%m/%Y'),
+      price:              sub.price_in_currency / 100.0,
+      currency_code:      sub.effective_currency&.code,
+      current_period_end: sub.current_period_end&.strftime("%d/%m/%Y"),
+      started_at:         sub.started_at&.strftime("%d/%m/%Y")
     }
   end
 
-  def serialize_charge(c)
+  def serialize_charge(charge)
     {
-      id:       c.id,
-      amount:   c.amount_cents / 100.0,
-      status:   c.status,
-      gateway:  c.gateway,
-      due_date: c.due_date&.strftime('%d/%m/%Y'),
-      paid_at:  c.paid_at&.strftime('%d/%m/%Y'),
+      id:       charge.id,
+      amount:   charge.amount_cents / 100.0,
+      status:   charge.status,
+      gateway:  charge.gateway,
+      due_date: charge.due_date&.strftime("%d/%m/%Y"),
+      paid_at:  charge.paid_at&.strftime("%d/%m/%Y")
     }
   end
 
-  def serialize_snapshot(s)
+  def serialize_currencies
+    Currency.active.map do |cur|
+      { id: cur.id, code: cur.code, name: cur.name, symbol: cur.symbol, default: cur.default }
+    end
+  end
+
+  def serialize_snapshot(snap)
     {
-      credit_type_key:   s.credit_type.key,
-      credit_type_label: s.credit_type.label,
-      credit_type_unit:  s.credit_type.unit,
-      used:              s.used,
-      limit:             s.limit,
-      balance:           s.balance,
-      usage_percent:     s.usage_percent,
+      credit_type_key:   snap.credit_type.key,
+      credit_type_label: snap.credit_type.label,
+      credit_type_unit:  snap.credit_type.unit,
+      used:              snap.used,
+      limit:             snap.limit,
+      balance:           snap.balance,
+      usage_percent:     snap.usage_percent
     }
   end
 end

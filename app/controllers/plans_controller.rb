@@ -4,9 +4,10 @@ class PlansController < ApplicationController
 
   def index
     plans = Plan.active
-                .includes(:plan_licenses, :plan_credits,
-                          plan_licenses: :license_type, plan_credits: :credit_type)
-                .order(price_cents: :asc)
+                .includes(:plan_licenses, :plan_credits, :plan_prices,
+                          plan_licenses: :license_type, plan_credits: :credit_type,
+                          plan_prices: :currency)
+                .order(name: :asc)
                 .map { |p| serialize_plan(p) }
 
     render inertia: "Plans/Index", props: { plans: }
@@ -19,6 +20,7 @@ class PlansController < ApplicationController
       credit_types:  serialize_credit_types,
       feature_types: serialize_feature_types,
       integrations:  serialize_integrations,
+      currencies:    serialize_currencies,
       errors:        {}
     }
   end
@@ -30,6 +32,8 @@ class PlansController < ApplicationController
       sync_licenses_and_credits(plan)
       sync_features(plan)
       sync_integrations(plan)
+      sync_prices(plan)
+      sync_tiers(plan)
       redirect_to plans_path, notice: "Plano criado com sucesso."
     else
       render inertia: "Plans/Form", props: {
@@ -38,6 +42,7 @@ class PlansController < ApplicationController
         credit_types:  serialize_credit_types,
         feature_types: serialize_feature_types,
         integrations:  serialize_integrations,
+        currencies:    serialize_currencies,
         errors:        plan.errors.as_json
       }
     end
@@ -50,6 +55,7 @@ class PlansController < ApplicationController
       credit_types:  serialize_credit_types,
       feature_types: serialize_feature_types,
       integrations:  serialize_integrations,
+      currencies:    serialize_currencies,
       errors:        {}
     }
   end
@@ -59,6 +65,8 @@ class PlansController < ApplicationController
       sync_licenses_and_credits(@plan)
       sync_features(@plan)
       sync_integrations(@plan)
+      sync_prices(@plan)
+      sync_tiers(@plan)
       redirect_to plans_path, notice: "Plano atualizado."
     else
       render inertia: "Plans/Form", props: {
@@ -67,6 +75,7 @@ class PlansController < ApplicationController
         credit_types:  serialize_credit_types,
         feature_types: serialize_feature_types,
         integrations:  serialize_integrations,
+        currencies:    serialize_currencies,
         errors:        @plan.errors.as_json
       }
     end
@@ -85,8 +94,8 @@ class PlansController < ApplicationController
 
   def plan_params
     params.require(:plan).permit(
-      :name, :description, :price_cents, :currency,
-      :billing_cycle, :trial_days, :active
+      :name, :description, :billing_cycle, :trial_days, :active,
+      :pricing_model, :pricing_license_type_id, :pricing_credit_type_id
     )
   end
 
@@ -95,24 +104,44 @@ class PlansController < ApplicationController
       id:              plan.id,
       name:            plan.name,
       description:     plan.description,
-      price_cents:     plan.price_cents,
-      price:           plan.price_in_reais,
       billing_cycle:   plan.billing_cycle,
       trial_days:      plan.trial_days,
       active:          plan.active,
-      licenses:        plan.plan_licenses.map do |pl|
-        { license_type_id: pl.license_type_id, quantity: pl.quantity,
-          label: pl.license_type&.label }
-      end,
-      credits:         plan.plan_credits.map do |pc|
-        { credit_type_id: pc.credit_type_id, quantity: pc.quantity, rollover: pc.rollover,
-          label: pc.credit_type&.label }
-      end,
-      features:        plan.plan_features.map do |pf|
-        { feature_type_id: pf.feature_type_id, enabled: pf.enabled }
-      end,
-      integration_ids: plan.plan_integrations.pluck(:integration_id)
+      pricing_model:           plan.pricing_model,
+      pricing_license_type_id: plan.pricing_license_type_id,
+      pricing_credit_type_id:  plan.pricing_credit_type_id,
+      licenses:                serialize_plan_licenses(plan),
+      credits:                 serialize_plan_credits(plan),
+      features:                plan.plan_features.map { |pf| { feature_type_id: pf.feature_type_id, enabled: pf.enabled } },
+      integration_ids:         plan.plan_integrations.pluck(:integration_id),
+      prices:                  serialize_plan_prices(plan),
+      pricing_tiers:           serialize_plan_pricing_tiers(plan)
     }
+  end
+
+  def serialize_plan_licenses(plan)
+    plan.plan_licenses.map do |pl|
+      { license_type_id: pl.license_type_id, quantity: pl.quantity, label: pl.license_type&.label }
+    end
+  end
+
+  def serialize_plan_credits(plan)
+    plan.plan_credits.map do |pc|
+      { credit_type_id: pc.credit_type_id, quantity: pc.quantity, rollover: pc.rollover, label: pc.credit_type&.label }
+    end
+  end
+
+  def serialize_plan_prices(plan)
+    plan.plan_prices.includes(:currency).map do |pp|
+      {
+        currency_id:     pp.currency_id,
+        currency_code:   pp.currency.code,
+        currency_symbol: pp.currency.symbol,
+        default:         pp.currency.default,
+        amount_cents:    pp.amount_cents,
+        amount:          pp.amount_in_base
+      }
+    end
   end
 
   def serialize_license_types
@@ -129,6 +158,12 @@ class PlansController < ApplicationController
 
   def serialize_integrations
     Integration.active.map { |i| { id: i.id, name: i.name, url: i.url } }
+  end
+
+  def serialize_currencies
+    Currency.active.map do |c|
+      { id: c.id, code: c.code, name: c.name, symbol: c.symbol, default: c.default }
+    end
   end
 
   def sync_licenses_and_credits(plan)
@@ -163,4 +198,47 @@ class PlansController < ApplicationController
     end
   end
 
+  def sync_prices(plan)
+    return unless params[:prices].present?
+
+    params[:prices].each do |currency_id, amount_cents|
+      next if amount_cents.blank?
+
+      pp = plan.plan_prices.find_or_initialize_by(currency_id:)
+      pp.update!(amount_cents: amount_cents.to_i)
+    end
+  end
+
+  def sync_tiers(plan)
+    return unless params[:pricing_tiers].present?
+
+    plan.plan_pricing_tiers.destroy_all
+
+    params[:pricing_tiers].each_with_index do |tier_data, index|
+      next if tier_data[:unit_amount_cents].blank?
+
+      plan.plan_pricing_tiers.create!(
+        currency_id:       tier_data[:currency_id],
+        from_unit:         tier_data[:from_unit],
+        to_unit:           tier_data[:to_unit].presence,
+        unit_amount_cents: tier_data[:unit_amount_cents].to_i,
+        position:          index
+      )
+    end
+  end
+
+  def serialize_plan_pricing_tiers(plan)
+    plan.plan_pricing_tiers.includes(:currency).ordered.map do |t|
+      {
+        id:                t.id,
+        currency_id:       t.currency_id,
+        currency_code:     t.currency.code,
+        currency_symbol:   t.currency.symbol,
+        from_unit:         t.from_unit,
+        to_unit:           t.to_unit,
+        unit_amount_cents: t.unit_amount_cents,
+        position:          t.position
+      }
+    end
+  end
 end

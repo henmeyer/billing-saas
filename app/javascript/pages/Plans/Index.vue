@@ -26,8 +26,16 @@
             <div>
               <h3 class="font-semibold text-gray-900">{{ plan.name }}</h3>
               <p class="text-2xl font-bold text-gray-900 mt-1">
-                {{ fmt(plan.price) }}
-                <span class="text-sm font-normal text-gray-400">/mês</span>
+                <template v-if="planPrice(plan)">
+                  {{ planPrice(plan).currency_symbol }} {{ fmt(planPrice(plan).amount_cents / 100) }}
+                  <span class="text-sm font-normal text-gray-400">
+                    /{{ plan.billing_cycle === "monthly" ? "mês" : "ano" }}
+                  </span>
+                  <span class="text-xs font-normal text-gray-400 ml-1">
+                    {{ planPrice(plan).currency_code }}
+                  </span>
+                </template>
+                <span v-else class="text-sm font-normal text-gray-400">Sem preço</span>
               </p>
             </div>
             <Badge :variant="plan.active ? 'green' : 'gray'">
@@ -94,7 +102,12 @@ defineProps({ plans: Array });
 
 const archivePlan = (id) => router.delete(`/plans/${id}`);
 
+const planPrice = (plan) => {
+  const prices = plan.prices || [];
+  return prices.find((p) => p.default) || prices[0] || null;
+};
+
 const fmt = (val) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val || 0);
+  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
 const fmtNum = (val) => new Intl.NumberFormat("pt-BR").format(val || 0);
 </script>

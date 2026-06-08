@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_08_000006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -55,12 +55,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
     t.string "gateway", null: false
     t.string "gateway_charge_id"
     t.integer "amount_cents", null: false
-    t.string "currency", default: "BRL", null: false
     t.string "status", default: "pending", null: false
     t.date "due_date"
     t.datetime "paid_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "currency_id"
+    t.index ["currency_id"], name: "index_charges_on_currency_id"
     t.index ["customer_id"], name: "index_charges_on_customer_id"
     t.index ["gateway", "gateway_charge_id"], name: "index_charges_on_gateway_and_gateway_charge_id", unique: true, where: "(gateway_charge_id IS NOT NULL)"
     t.index ["subscription_id"], name: "index_charges_on_subscription_id"
@@ -105,6 +106,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
     t.index ["account_id"], name: "index_credit_types_on_account_id"
   end
 
+  create_table "currencies", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "code", null: false
+    t.string "name", null: false
+    t.string "symbol", null: false
+    t.boolean "default", default: false, null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "code"], name: "index_currencies_on_account_id_and_code", unique: true
+    t.index ["account_id"], name: "index_currencies_on_account_id"
+  end
+
   create_table "customers", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
@@ -119,9 +133,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "currency_id"
     t.index ["account_id", "email"], name: "index_customers_on_account_id_and_email", unique: true
     t.index ["account_id", "external_id"], name: "index_customers_on_account_id_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
     t.index ["account_id"], name: "index_customers_on_account_id"
+    t.index ["currency_id"], name: "index_customers_on_currency_id"
   end
 
   create_table "feature_types", force: :cascade do |t|
@@ -234,12 +250,35 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
     t.index ["plan_id"], name: "index_plan_licenses_on_plan_id"
   end
 
+  create_table "plan_prices", force: :cascade do |t|
+    t.bigint "plan_id", null: false
+    t.bigint "currency_id", null: false
+    t.integer "amount_cents", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["currency_id"], name: "index_plan_prices_on_currency_id"
+    t.index ["plan_id", "currency_id"], name: "index_plan_prices_on_plan_id_and_currency_id", unique: true
+    t.index ["plan_id"], name: "index_plan_prices_on_plan_id"
+  end
+
+  create_table "plan_pricing_tiers", force: :cascade do |t|
+    t.bigint "plan_id", null: false
+    t.bigint "currency_id", null: false
+    t.integer "from_unit", null: false
+    t.integer "to_unit"
+    t.integer "unit_amount_cents", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["currency_id"], name: "index_plan_pricing_tiers_on_currency_id"
+    t.index ["plan_id", "currency_id", "from_unit"], name: "idx_plan_pricing_tiers_unique", unique: true
+    t.index ["plan_id"], name: "index_plan_pricing_tiers_on_plan_id"
+  end
+
   create_table "plans", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
     t.text "description"
-    t.integer "price_cents", default: 0, null: false
-    t.string "currency", default: "BRL", null: false
     t.string "billing_cycle", default: "monthly", null: false
     t.integer "trial_days", default: 0, null: false
     t.boolean "active", default: true, null: false
@@ -248,23 +287,56 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
     t.jsonb "metadata", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "pricing_model", default: "flat", null: false
+    t.bigint "pricing_license_type_id"
+    t.bigint "pricing_credit_type_id"
     t.index ["account_id"], name: "index_plans_on_account_id"
+    t.index ["pricing_credit_type_id"], name: "index_plans_on_pricing_credit_type_id"
+    t.index ["pricing_license_type_id"], name: "index_plans_on_pricing_license_type_id"
+  end
+
+  create_table "product_prices", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.bigint "currency_id", null: false
+    t.integer "amount_cents", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["currency_id"], name: "index_product_prices_on_currency_id"
+    t.index ["product_id", "currency_id"], name: "index_product_prices_on_product_id_and_currency_id", unique: true
+    t.index ["product_id"], name: "index_product_prices_on_product_id"
+  end
+
+  create_table "product_pricing_tiers", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.bigint "currency_id", null: false
+    t.integer "from_unit", null: false
+    t.integer "to_unit"
+    t.integer "unit_amount_cents", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["currency_id"], name: "index_product_pricing_tiers_on_currency_id"
+    t.index ["product_id", "currency_id", "from_unit"], name: "idx_product_pricing_tiers_unique", unique: true
+    t.index ["product_id"], name: "index_product_pricing_tiers_on_product_id"
   end
 
   create_table "products", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
     t.text "description"
-    t.integer "price_cents", default: 0, null: false
-    t.string "currency", default: "BRL", null: false
     t.string "product_type", default: "one_time", null: false
     t.bigint "credit_type_id"
     t.integer "credit_quantity", default: 0
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "pricing_model", default: "flat", null: false
+    t.bigint "pricing_license_type_id"
+    t.bigint "pricing_credit_type_id"
     t.index ["account_id"], name: "index_products_on_account_id"
     t.index ["credit_type_id"], name: "index_products_on_credit_type_id"
+    t.index ["pricing_credit_type_id"], name: "index_products_on_pricing_credit_type_id"
+    t.index ["pricing_license_type_id"], name: "index_products_on_pricing_license_type_id"
   end
 
   create_table "subscription_periods", force: :cascade do |t|
@@ -303,6 +375,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
     t.datetime "current_period_end"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "currency_id"
+    t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["gateway", "gateway_subscription_id"], name: "index_subscriptions_on_gateway_and_gateway_subscription_id", unique: true, where: "(gateway_subscription_id IS NOT NULL)"
     t.index ["plan_id"], name: "index_subscriptions_on_plan_id"
@@ -345,6 +419,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
   add_foreign_key "account_users", "accounts"
   add_foreign_key "account_users", "users"
   add_foreign_key "api_keys", "accounts"
+  add_foreign_key "charges", "currencies"
   add_foreign_key "charges", "customers"
   add_foreign_key "charges", "subscriptions"
   add_foreign_key "credit_alerts", "credit_types"
@@ -352,7 +427,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
   add_foreign_key "credit_snapshots", "credit_types"
   add_foreign_key "credit_snapshots", "subscription_periods"
   add_foreign_key "credit_types", "accounts"
+  add_foreign_key "currencies", "accounts"
   add_foreign_key "customers", "accounts"
+  add_foreign_key "customers", "currencies"
   add_foreign_key "feature_types", "accounts"
   add_foreign_key "integration_field_configs", "credit_types"
   add_foreign_key "integration_field_configs", "feature_types"
@@ -369,13 +446,26 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_06_000008) do
   add_foreign_key "plan_integrations", "plans"
   add_foreign_key "plan_licenses", "license_types"
   add_foreign_key "plan_licenses", "plans"
+  add_foreign_key "plan_prices", "currencies"
+  add_foreign_key "plan_prices", "plans"
+  add_foreign_key "plan_pricing_tiers", "currencies"
+  add_foreign_key "plan_pricing_tiers", "plans"
   add_foreign_key "plans", "accounts"
+  add_foreign_key "plans", "credit_types", column: "pricing_credit_type_id"
+  add_foreign_key "plans", "license_types", column: "pricing_license_type_id"
+  add_foreign_key "product_prices", "currencies"
+  add_foreign_key "product_prices", "products"
+  add_foreign_key "product_pricing_tiers", "currencies"
+  add_foreign_key "product_pricing_tiers", "products"
   add_foreign_key "products", "accounts"
   add_foreign_key "products", "credit_types"
+  add_foreign_key "products", "credit_types", column: "pricing_credit_type_id"
+  add_foreign_key "products", "license_types", column: "pricing_license_type_id"
   add_foreign_key "subscription_periods", "subscriptions"
   add_foreign_key "subscription_plan_changes", "plans", column: "from_plan_id"
   add_foreign_key "subscription_plan_changes", "plans", column: "to_plan_id"
   add_foreign_key "subscription_plan_changes", "subscriptions"
+  add_foreign_key "subscriptions", "currencies"
   add_foreign_key "subscriptions", "customers"
   add_foreign_key "subscriptions", "plans"
   add_foreign_key "users", "accounts"

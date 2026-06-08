@@ -17,6 +17,7 @@ Rails.application.routes.draw do
   # App principal
   root "dashboard#index"
 
+  resources :currencies
   resources :plans do
     resources :plan_licenses, shallow: true
     resources :plan_credits,  shallow: true

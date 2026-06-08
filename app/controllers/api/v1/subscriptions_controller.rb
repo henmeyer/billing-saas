@@ -14,7 +14,8 @@ class Api::V1::SubscriptionsController < Api::V1::BaseController
         id:            subscription.plan.id,
         name:          subscription.plan.name,
         billing_cycle: subscription.plan.billing_cycle,
-        price_cents:   subscription.plan.price_cents
+        price_cents:   subscription.price_in_currency,
+        currency:      subscription.effective_currency&.code
       },
       status:             subscription.status,
       gateway:            subscription.gateway,

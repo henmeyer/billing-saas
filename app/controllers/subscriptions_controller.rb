@@ -5,34 +5,33 @@ class SubscriptionsController < ApplicationController
 
   def index
     subscriptions = Subscription
-                      .includes(:customer, :plan)
-                      .order(created_at: :desc)
+                    .includes(:customer, :plan, :currency, plan: :plan_prices)
+                    .order(created_at: :desc)
 
     render inertia: "Subscriptions/Index", props: {
-      subscriptions: subscriptions.map { |s| serialize_subscription_row(s) }
+      subscriptions: subscriptions.map { |sub| serialize_subscription_row(sub) }
     }
   end
 
   def new
     render inertia: "Subscriptions/Form", props: {
-      customer:     serialize_customer(@customer),
-      subscription: {},
-      plans:        Plan.active.map { |p|
-        { id: p.id, name: p.name, price: p.price_in_reais, billing_cycle: p.billing_cycle }
-      },
-      gateways: PaymentGateway.active.map { |g|
-        { id: g.id, provider: g.provider }
-      },
-      errors: {}
+      customer:            serialize_customer(@customer),
+      subscription:        {},
+      plans:               serialize_plans,
+      gateways:            serialize_gateways,
+      currencies:          serialize_currencies,
+      default_currency_id: @customer.effective_currency&.id,
+      errors:              {}
     }
   end
 
   def create
     result = Subscriptions::CreateService.call(
-      customer:   @customer,
-      plan_id:    params[:plan_id],
-      gateway:    params[:gateway],
-      started_at: params[:started_at] || Time.current,
+      customer:                @customer,
+      plan_id:                 params[:plan_id],
+      gateway:                 params[:gateway],
+      currency_id:             params[:currency_id],
+      started_at:              params[:started_at] || Time.current,
       gateway_subscription_id: params[:gateway_subscription_id]
     )
 
@@ -40,30 +39,26 @@ class SubscriptionsController < ApplicationController
       redirect_to customer_path(@customer), notice: "Assinatura criada com sucesso."
     else
       render inertia: "Subscriptions/Form", props: {
-        customer:     serialize_customer(@customer),
-        subscription: params.permit(:plan_id, :gateway),
-        plans:        Plan.active.map { |p|
-          { id: p.id, name: p.name, price: p.price_in_reais, billing_cycle: p.billing_cycle }
-        },
-        gateways: PaymentGateway.active.map { |g|
-          { id: g.id, provider: g.provider }
-        },
-        errors: result.errors
+        customer:            serialize_customer(@customer),
+        subscription:        params.permit(:plan_id, :gateway, :currency_id),
+        plans:               serialize_plans,
+        gateways:            serialize_gateways,
+        currencies:          serialize_currencies,
+        default_currency_id: @customer.effective_currency&.id,
+        errors:              result.errors
       }
     end
   end
 
   def edit
     render inertia: "Subscriptions/Form", props: {
-      customer:     serialize_customer(@customer),
-      subscription: serialize_subscription(@subscription),
-      plans:        Plan.active.map { |p|
-        { id: p.id, name: p.name, price: p.price_in_reais, billing_cycle: p.billing_cycle }
-      },
-      gateways: PaymentGateway.active.map { |g|
-        { id: g.id, provider: g.provider }
-      },
-      errors: {}
+      customer:            serialize_customer(@customer),
+      subscription:        serialize_subscription(@subscription),
+      plans:               serialize_plans,
+      gateways:            serialize_gateways,
+      currencies:          serialize_currencies,
+      default_currency_id: @customer.effective_currency&.id,
+      errors:              {}
     }
   end
 
@@ -75,14 +70,14 @@ class SubscriptionsController < ApplicationController
 
     @subscription.update!(status: params[:status] || @subscription.status)
     redirect_to customer_path(@customer), notice: "Assinatura atualizada."
-  rescue => e
+  rescue StandardError => e
     redirect_to customer_path(@customer), alert: e.message
   end
 
   def destroy
     @subscription.cancel!
     redirect_to customer_path(@customer), notice: "Assinatura cancelada."
-  rescue => e
+  rescue StandardError => e
     redirect_to customer_path(@customer), alert: e.message
   end
 
@@ -96,37 +91,71 @@ class SubscriptionsController < ApplicationController
     @subscription = @customer.subscriptions.find(params[:id])
   end
 
-  def serialize_customer(c)
-    { id: c.id, name: c.name, email: c.email }
+  def serialize_customer(customer)
+    { id: customer.id, name: customer.name, email: customer.email }
   end
 
-  def serialize_subscription(s)
+  def serialize_subscription(sub)
     {
-      id:                      s.id,
-      plan_id:                 s.plan_id,
-      gateway:                 s.gateway,
-      gateway_subscription_id: s.gateway_subscription_id,
-      status:                  s.status,
-      started_at:              s.started_at&.strftime("%Y-%m-%d"),
-      current_period_end:      s.current_period_end&.strftime("%Y-%m-%d"),
+      id:                      sub.id,
+      plan_id:                 sub.plan_id,
+      gateway:                 sub.gateway,
+      gateway_subscription_id: sub.gateway_subscription_id,
+      status:                  sub.status,
+      currency_id:             sub.currency_id,
+      currency_code:           sub.currency&.code,
+      price_in_currency:       sub.price_in_currency,
+      started_at:              sub.started_at&.strftime("%Y-%m-%d"),
+      current_period_end:      sub.current_period_end&.strftime("%Y-%m-%d")
     }
   end
 
-  def serialize_subscription_row(s)
+  def serialize_subscription_row(sub)
     {
-      id:                 s.id,
-      status:             s.status,
-      gateway:            s.gateway,
-      plan_name:          s.plan&.name,
-      price:              s.plan&.price_in_reais,
-      billing_cycle:      s.plan&.billing_cycle,
-      current_period_end: s.current_period_end&.strftime("%d/%m/%Y"),
-      started_at:         s.started_at&.strftime("%d/%m/%Y"),
-      customer: {
-        id:   s.customer.id,
-        name: s.customer.name,
-      },
+      id:                 sub.id,
+      status:             sub.status,
+      gateway:            sub.gateway,
+      plan_name:          sub.plan&.name,
+      price_cents:        sub.price_in_currency,
+      billing_cycle:      sub.plan&.billing_cycle,
+      currency_code:      sub.currency&.code,
+      current_period_end: sub.current_period_end&.strftime("%d/%m/%Y"),
+      started_at:         sub.started_at&.strftime("%d/%m/%Y"),
+      customer:           { id: sub.customer.id, name: sub.customer.name }
     }
   end
 
+  def serialize_plans
+    Plan.active
+        .includes(:plan_pricing_tiers, plan_prices: :currency)
+        .map do |plan|
+      {
+        id:                    plan.id,
+        name:                  plan.name,
+        billing_cycle:         plan.billing_cycle,
+        pricing_model:         plan.pricing_model,
+        pricing_metric_label:  plan.pricing_metric_label,
+        prices:                plan.plan_prices.map { |pp|
+          { currency_id: pp.currency_id, amount_cents: pp.amount_cents }
+        },
+        pricing_tiers:         plan.plan_pricing_tiers.ordered.map { |t|
+          {
+            currency_id:       t.currency_id,
+            from_unit:         t.from_unit,
+            to_unit:           t.to_unit,
+            unit_amount_cents: t.unit_amount_cents,
+            label:             t.label
+          }
+        }
+      }
+    end
+  end
+
+  def serialize_gateways
+    PaymentGateway.active.map { |gw| { id: gw.id, provider: gw.provider } }
+  end
+
+  def serialize_currencies
+    Currency.active.map { |cur| { id: cur.id, code: cur.code, name: cur.name, symbol: cur.symbol } }
+  end
 end

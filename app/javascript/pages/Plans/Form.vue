@@ -2,16 +2,21 @@
   <AppLayout>
     <div class="page-header">
       <div class="flex items-center gap-3">
-        <Link href="/plans" class="text-sm text-gray-500 hover:text-gray-700">← Planos</Link>
-        <h2 class="page-title">{{ plan.id ? "Editar plano" : "Novo plano" }}</h2>
+        <Link href="/plans" class="text-sm text-gray-500 hover:text-gray-700"
+          >← Planos</Link
+        >
+        <h2 class="page-title">
+          {{ plan.id ? "Editar plano" : "Novo plano" }}
+        </h2>
       </div>
     </div>
 
     <div class="max-w-2xl space-y-6">
-      <!-- Erros -->
       <div v-if="Object.keys(errors).length" class="alert-danger">
         <div>
-          <p v-for="(msgs, field) in errors" :key="field">{{ msgs.join(", ") }}</p>
+          <p v-for="(msgs, field) in errors" :key="field">
+            {{ msgs.join(", ") }}
+          </p>
         </div>
       </div>
 
@@ -42,17 +47,6 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="form-label">Preço (em centavos)</label>
-              <input
-                v-model.number="form.price_cents"
-                type="number"
-                min="0"
-                class="form-input"
-                placeholder="Ex: 19700 = R$ 197,00"
-              />
-              <p class="form-hint">Valor: {{ fmtCents(form.price_cents) }}</p>
-            </div>
-            <div>
               <label class="form-label">Dias de trial</label>
               <input
                 v-model.number="form.trial_days"
@@ -76,32 +70,324 @@
         </div>
       </div>
 
+      <!-- Modelo de precificação -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">
+            Modelo de precificação
+          </h3>
+        </div>
+        <div class="card-body space-y-4">
+          <div class="grid grid-cols-3 gap-3">
+            <label
+              v-for="model in pricingModels"
+              :key="model.value"
+              :class="[
+                'border rounded-lg p-3 cursor-pointer transition-colors',
+                form.pricing_model === model.value
+                  ? 'border-brand-500 bg-brand-50'
+                  : 'border-gray-200 hover:border-gray-300',
+              ]"
+            >
+              <input
+                type="radio"
+                :value="model.value"
+                v-model="form.pricing_model"
+                class="sr-only"
+              />
+              <p class="text-sm font-medium text-gray-900">{{ model.label }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                {{ model.description }}
+              </p>
+            </label>
+          </div>
+
+          <!-- Métrica (per_unit e volume) -->
+          <template v-if="form.pricing_model !== 'flat'">
+            <div>
+              <label class="form-label">Métrica de cobrança</label>
+              <p class="text-xs text-gray-500 mb-2">
+                Qual campo define a quantidade para o cálculo?
+              </p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <p class="text-xs font-medium text-gray-500 mb-1.5">
+                    Licenças
+                  </p>
+                  <label
+                    v-for="lt in licenseTypes"
+                    :key="'lt-' + lt.id"
+                    class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-1"
+                  >
+                    <input
+                      type="radio"
+                      :value="lt.id"
+                      v-model="form.pricing_license_type_id"
+                      @change="form.pricing_credit_type_id = null"
+                      class="border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    {{ lt.label }}
+                    <span class="text-xs text-gray-400 font-mono">{{
+                      lt.key
+                    }}</span>
+                  </label>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-gray-500 mb-1.5">
+                    Créditos
+                  </p>
+                  <label
+                    v-for="ct in creditTypes"
+                    :key="'ct-' + ct.id"
+                    class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-1"
+                  >
+                    <input
+                      type="radio"
+                      :value="ct.id"
+                      v-model="form.pricing_credit_type_id"
+                      @change="form.pricing_license_type_id = null"
+                      class="border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    {{ ct.label }}
+                    <span class="text-xs text-gray-400 font-mono">{{
+                      ct.key
+                    }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Preços por moeda (flat e per_unit) -->
+      <div
+        v-if="currencies.length && form.pricing_model !== 'volume'"
+        class="card"
+      >
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">
+            {{
+              form.pricing_model === "per_unit" ? "Preço por unidade" : "Preços"
+            }}
+          </h3>
+          <p class="text-xs text-gray-500 mt-0.5">
+            <template v-if="form.pricing_model === 'per_unit'">
+              Preço por {{ pricingMetricLabel || "unidade" }} em cada moeda
+            </template>
+            <template v-else> Defina o preço para cada moeda aceita </template>
+          </p>
+        </div>
+        <div class="card-body space-y-4">
+          <div
+            v-for="cur in currencies"
+            :key="cur.id"
+            class="flex items-start gap-3"
+          >
+            <div class="w-16 pt-2 text-center flex-shrink-0">
+              <span class="font-mono text-sm font-semibold text-gray-700">{{
+                cur.code
+              }}</span>
+              <p class="text-xs text-gray-400">{{ cur.symbol }}</p>
+            </div>
+            <div class="flex-1">
+              <div class="relative">
+                <span
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none"
+                >
+                  {{ cur.symbol }}
+                </span>
+                <input
+                  v-model.number="prices[cur.id]"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-input pl-8"
+                  :placeholder="
+                    cur.default ? 'Obrigatório' : 'Deixe vazio para não aceitar'
+                  "
+                />
+              </div>
+              <p v-if="prices[cur.id] > 0" class="form-hint mt-1">
+                {{ fmtPrice(prices[cur.id], cur) }}/{{
+                  form.pricing_model === "per_unit"
+                    ? pricingMetricLabel || "unidade"
+                    : form.billing_cycle === "monthly"
+                      ? "mês"
+                      : "ano"
+                }}
+              </p>
+            </div>
+            <div class="pt-2">
+              <Badge v-if="cur.default" variant="blue">Padrão</Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Faixas de volume -->
+      <div
+        v-if="form.pricing_model === 'volume' && currencies.length"
+        class="card"
+      >
+        <div class="card-header">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-medium text-gray-900">Faixas de volume</h3>
+            <button type="button" @click="addTier" class="btn-secondary btn-sm">
+              + Faixa
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Preço da faixa vale para todas as unidades. Última sem "até" =
+            ilimitado.
+          </p>
+        </div>
+        <div class="card-body space-y-4">
+          <!-- Tabs de moeda -->
+          <div class="flex gap-2">
+            <button
+              v-for="c in currencies"
+              :key="c.id"
+              type="button"
+              @click="activeCurrencyId = c.id"
+              :class="[
+                'px-3 py-1.5 text-xs rounded-lg font-medium transition-colors',
+                activeCurrencyId === c.id
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              ]"
+            >
+              {{ c.code }}
+            </button>
+          </div>
+
+          <div class="space-y-2">
+            <div
+              v-for="(tier, index) in tiersForActiveCurrency"
+              :key="index"
+              class="flex items-center gap-2"
+            >
+              <span class="text-xs text-gray-500 w-4">{{ index + 1 }}</span>
+              <div class="flex items-center gap-1 flex-1">
+                <input
+                  v-model.number="tier.from_unit"
+                  type="number"
+                  min="1"
+                  class="w-20 rounded-lg border-gray-300 text-sm focus:ring-brand-500"
+                  placeholder="De"
+                />
+                <span class="text-xs text-gray-400">até</span>
+                <input
+                  v-model.number="tier.to_unit"
+                  type="number"
+                  min="1"
+                  class="w-20 rounded-lg border-gray-300 text-sm focus:ring-brand-500"
+                  placeholder="∞"
+                />
+                <span class="text-xs text-gray-400 mx-1">{{
+                  pricingMetricLabel
+                }}</span>
+              </div>
+              <div class="relative w-36">
+                <span
+                  class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400"
+                >
+                  {{ activeCurrency?.symbol }}
+                </span>
+                <input
+                  v-model.number="tier.unit_amount_cents"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="w-full pl-6 rounded-lg border-gray-300 text-sm focus:ring-brand-500"
+                  placeholder="Preço/un"
+                />
+              </div>
+              <span class="text-xs text-gray-400">/ un</span>
+              <button
+                type="button"
+                @click="removeTier(index)"
+                class="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div
+              v-if="!tiersForActiveCurrency.length"
+              class="text-sm text-gray-400 text-center py-3"
+            >
+              Nenhuma faixa para {{ activeCurrency?.code }}.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulador -->
+      <div v-if="form.pricing_model !== 'flat'" class="card bg-gray-50">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Simulador de preço</h3>
+        </div>
+        <div class="card-body">
+          <div class="flex items-center gap-3 mb-3">
+            <label class="text-sm text-gray-600">
+              Simular com {{ pricingMetricLabel || "unidades" }}:
+            </label>
+            <input
+              v-model.number="simulatedQty"
+              type="number"
+              min="1"
+              class="w-24 rounded-lg border-gray-300 text-sm focus:ring-brand-500"
+            />
+          </div>
+          <div class="space-y-1">
+            <div
+              v-for="c in currencies"
+              :key="c.id"
+              class="flex justify-between text-sm"
+            >
+              <span class="text-gray-600">{{ c.code }}</span>
+              <span class="font-medium text-gray-900"
+                >{{ c.symbol }} {{ simulatePrice(c) }}</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Integrações cobertas -->
       <div class="card">
         <div class="card-header">
-          <h3 class="text-sm font-medium text-gray-900">Integrações cobertas</h3>
-          <p class="text-xs text-gray-500 mt-0.5">Este plano vale para quais integrações</p>
+          <h3 class="text-sm font-medium text-gray-900">
+            Integrações cobertas
+          </h3>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Este plano vale para quais integrações
+          </p>
         </div>
         <div class="card-body">
           <div v-if="integrations.length" class="space-y-2">
             <label
-              v-for="i in integrations"
-              :key="i.id"
+              v-for="integ in integrations"
+              :key="integ.id"
               class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
             >
               <input
                 type="checkbox"
-                :value="i.id"
+                :value="integ.id"
                 v-model="form.integration_ids"
                 class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
               />
-              <span class="font-medium">{{ i.name }}</span>
-              <span class="text-gray-400 font-mono text-xs truncate max-w-xs">{{ i.url }}</span>
+              <span class="font-medium">{{ integ.name }}</span>
+              <span class="text-gray-400 font-mono text-xs truncate max-w-xs">{{
+                integ.url
+              }}</span>
             </label>
           </div>
           <p v-else class="text-sm text-gray-400">
             Nenhuma integração cadastrada ainda.
-            <a href="/integrations/new" class="text-brand-600 hover:underline">Criar integração</a>
+            <a href="/integrations/new" class="text-brand-600 hover:underline"
+              >Criar integração</a
+            >
           </p>
         </div>
       </div>
@@ -131,11 +417,17 @@
                   class="w-24 rounded-lg border-gray-300 text-sm focus:ring-brand-500 focus:border-brand-500"
                 />
                 <span class="text-xs text-gray-400 w-20">{{ lt.unit }}(s)</span>
-                <span v-if="licenses[lt.id] === 0" class="text-xs text-gray-400 italic">ilimitado</span>
+                <span
+                  v-if="licenses[lt.id] === 0"
+                  class="text-xs text-gray-400 italic"
+                  >ilimitado</span
+                >
               </div>
             </div>
           </template>
-          <p v-else class="text-sm text-gray-400">Nenhum tipo de licença configurado.</p>
+          <p v-else class="text-sm text-gray-400">
+            Nenhum tipo de licença configurado.
+          </p>
         </div>
       </div>
 
@@ -163,7 +455,9 @@
                   class="w-28 rounded-lg border-gray-300 text-sm focus:ring-brand-500 focus:border-brand-500"
                 />
                 <span class="text-xs text-gray-400 w-16">{{ ct.unit }}(s)</span>
-                <label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                <label
+                  class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer"
+                >
                   <input
                     v-model="credits[ct.id].rollover"
                     type="checkbox"
@@ -174,7 +468,9 @@
               </div>
             </div>
           </template>
-          <p v-else class="text-sm text-gray-400">Nenhum tipo de crédito configurado.</p>
+          <p v-else class="text-sm text-gray-400">
+            Nenhum tipo de crédito configurado.
+          </p>
         </div>
       </div>
 
@@ -182,7 +478,9 @@
       <div class="card">
         <div class="card-header">
           <h3 class="text-sm font-medium text-gray-900">Features</h3>
-          <p class="text-xs text-gray-500 mt-0.5">Funcionalidades habilitadas neste plano</p>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Funcionalidades habilitadas neste plano
+          </p>
         </div>
         <div class="card-body space-y-2">
           <div v-if="featureTypes.length">
@@ -203,7 +501,9 @@
               />
             </label>
           </div>
-          <p v-else class="text-sm text-gray-400">Nenhuma feature configurada ainda.</p>
+          <p v-else class="text-sm text-gray-400">
+            Nenhuma feature configurada ainda.
+          </p>
         </div>
       </div>
 
@@ -211,7 +511,13 @@
       <div class="flex gap-3 justify-end">
         <Link href="/plans" class="btn-secondary">Cancelar</Link>
         <button @click="submit" :disabled="form.processing" class="btn-primary">
-          {{ form.processing ? "Salvando..." : plan.id ? "Salvar alterações" : "Criar plano" }}
+          {{
+            form.processing
+              ? "Salvando..."
+              : plan.id
+                ? "Salvar alterações"
+                : "Criar plano"
+          }}
         </button>
       </div>
     </div>
@@ -219,9 +525,10 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import { Link, useForm } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
+import Badge from "@/components/Shared/Badge.vue";
 
 const props = defineProps({
   plan: Object,
@@ -229,6 +536,7 @@ const props = defineProps({
   credit_types: Array,
   feature_types: Array,
   integrations: Array,
+  currencies: Array,
   errors: Object,
 });
 
@@ -236,20 +544,43 @@ const licenseTypes = props.license_types || [];
 const creditTypes = props.credit_types || [];
 const featureTypes = props.feature_types || [];
 const integrations = props.integrations || [];
+const currencies = props.currencies || [];
+
+const pricingModels = [
+  {
+    value: "flat",
+    label: "Fixo",
+    description: "Preço fixo independente do uso",
+  },
+  {
+    value: "per_unit",
+    label: "Por unidade",
+    description: "Preço × quantidade da métrica",
+  },
+  {
+    value: "volume",
+    label: "Volume",
+    description: "Faixas com preço por unidade",
+  },
+];
 
 const form = useForm({
   name: props.plan.name || "",
   description: props.plan.description || "",
-  price_cents: props.plan.price_cents || 0,
   billing_cycle: props.plan.billing_cycle || "monthly",
   trial_days: props.plan.trial_days || 0,
   integration_ids: props.plan.integration_ids || [],
+  pricing_model: props.plan.pricing_model || "flat",
+  pricing_license_type_id: props.plan.pricing_license_type_id || null,
+  pricing_credit_type_id: props.plan.pricing_credit_type_id || null,
 });
 
 const licenses = reactive(
   Object.fromEntries(
     licenseTypes.map((lt) => {
-      const existing = props.plan.licenses?.find((l) => l.license_type_id === lt.id);
+      const existing = props.plan.licenses?.find(
+        (l) => l.license_type_id === lt.id,
+      );
       return [lt.id, existing?.quantity ?? 0];
     }),
   ),
@@ -258,8 +589,16 @@ const licenses = reactive(
 const credits = reactive(
   Object.fromEntries(
     creditTypes.map((ct) => {
-      const existing = props.plan.credits?.find((c) => c.credit_type_id === ct.id);
-      return [ct.id, { quantity: existing?.quantity ?? 0, rollover: existing?.rollover ?? false }];
+      const existing = props.plan.credits?.find(
+        (c) => c.credit_type_id === ct.id,
+      );
+      return [
+        ct.id,
+        {
+          quantity: existing?.quantity ?? 0,
+          rollover: existing?.rollover ?? false,
+        },
+      ];
     }),
   ),
 );
@@ -267,21 +606,126 @@ const credits = reactive(
 const features = reactive(
   Object.fromEntries(
     featureTypes.map((ft) => {
-      const existing = props.plan.features?.find((f) => f.feature_type_id === ft.id);
+      const existing = props.plan.features?.find(
+        (f) => f.feature_type_id === ft.id,
+      );
       return [ft.id, existing?.enabled ?? false];
     }),
   ),
 );
 
+// Preços por moeda (flat = preço fixo, per_unit = preço unitário). Armazenados em unidade base (decimais).
+const prices = reactive(
+  Object.fromEntries(
+    currencies.map((cur) => {
+      const existing = props.plan.prices?.find((p) => p.currency_id === cur.id);
+      return [cur.id, existing ? existing.amount_cents / 100 : null];
+    }),
+  ),
+);
+
+// Faixas de volume por moeda (unit_amount_cents em centavos)
+const tiers = reactive(
+  Object.fromEntries(
+    currencies.map((c) => {
+      const existing =
+        props.plan.pricing_tiers?.filter((t) => t.currency_id === c.id) || [];
+      return [c.id, existing.map((t) => ({ ...t }))];
+    }),
+  ),
+);
+
+const activeCurrencyId = ref(currencies[0]?.id);
+const activeCurrency = computed(() =>
+  currencies.find((c) => c.id === activeCurrencyId.value),
+);
+const tiersForActiveCurrency = computed(
+  () => tiers[activeCurrencyId.value] || [],
+);
+
+const addTier = () => {
+  const curr = tiers[activeCurrencyId.value] || [];
+  const last = curr[curr.length - 1];
+  tiers[activeCurrencyId.value] = [
+    ...curr,
+    {
+      currency_id: activeCurrencyId.value,
+      from_unit: last ? (last.to_unit || 0) + 1 : 1,
+      to_unit: null,
+      unit_amount_cents: 0,
+      position: curr.length,
+    },
+  ];
+};
+
+const removeTier = (index) => {
+  tiers[activeCurrencyId.value].splice(index, 1);
+};
+
+const pricingMetricLabel = computed(() => {
+  if (form.pricing_license_type_id)
+    return licenseTypes.find((lt) => lt.id === form.pricing_license_type_id)
+      ?.label;
+  if (form.pricing_credit_type_id)
+    return creditTypes.find((ct) => ct.id === form.pricing_credit_type_id)
+      ?.label;
+  return null;
+});
+
+const simulatedQty = ref(5);
+
+const simulatePrice = (currency) => {
+  const qty = simulatedQty.value || 1;
+  if (form.pricing_model === "per_unit") {
+    return (((prices[currency.id] || 0) * 100 * qty) / 100).toFixed(2);
+  }
+  if (form.pricing_model === "volume") {
+    const currTiers = tiers[currency.id] || [];
+    const tier = currTiers.find(
+      (t) => qty >= t.from_unit && (!t.to_unit || qty <= t.to_unit),
+    );
+    if (!tier) return "—";
+    return (tier.unit_amount_cents * qty).toFixed(2);
+  }
+  return (prices[currency.id] || 0).toFixed(2);
+};
+
+const fmtPrice = (value) => {
+  if (!value) return "";
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 const submit = () => {
   const url = props.plan.id ? `/plans/${props.plan.id}` : "/plans";
   const method = props.plan.id ? "put" : "post";
 
-  form.transform((data) => ({ ...data, licenses, credits, features }))[method](url);
-};
-
-const fmtCents = (cents) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    (cents || 0) / 100,
+  const pricesToCents = Object.fromEntries(
+    Object.entries(prices).map(([id, val]) => [
+      id,
+      val != null ? Math.round(val * 100) : null,
+    ]),
   );
+
+  const allTiers = Object.entries(tiers).flatMap(([currencyId, currTiers]) =>
+    currTiers.map((t, i) => ({
+      ...t,
+      currency_id: parseInt(currencyId),
+      position: i,
+    })),
+  );
+
+  form
+    .transform((data) => ({
+      ...data,
+      licenses,
+      credits,
+      features,
+      prices: pricesToCents,
+      pricing_tiers: allTiers,
+    }))
+    [method](url);
+};
 </script>

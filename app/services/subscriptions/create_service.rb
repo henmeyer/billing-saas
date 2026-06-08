@@ -3,10 +3,11 @@ class Subscriptions::CreateService
 
   def self.call(**args) = new(**args).call
 
-  def initialize(customer:, plan_id:, gateway:, started_at: Time.current, gateway_subscription_id: nil)
+  def initialize(customer:, plan_id:, gateway:, currency_id: nil, started_at: Time.current, gateway_subscription_id: nil)
     @customer                = customer
     @plan                    = Plan.find(plan_id)
     @gateway                 = gateway
+    @currency                = Currency.find_by(id: currency_id) || customer.effective_currency
     @started_at              = started_at
     @gateway_subscription_id = gateway_subscription_id
   end
@@ -16,11 +17,13 @@ class Subscriptions::CreateService
       period_start = @started_at.to_time
       period_end   = period_start + 1.month
 
-      gw_sub_id = @gateway_subscription_id.presence || generate_gateway_subscription
+      pricing   = Pricing::CalculateService.call(plan: @plan, customer: @customer, currency: @currency)
+      gw_sub_id = @gateway_subscription_id.presence || create_gateway_subscription(pricing.amount_cents)
 
       subscription = @customer.subscriptions.create!(
         plan:                    @plan,
         gateway:                 @gateway,
+        currency:                @currency,
         gateway_subscription_id: gw_sub_id,
         status:                  "active",
         started_at:              period_start,
@@ -46,7 +49,12 @@ class Subscriptions::CreateService
 
   private
 
-  def generate_gateway_subscription
+  def create_gateway_subscription(amount_cents)
+    adapter = Gateways::Base.for(@gateway)
+    adapter.create_customer(@customer) unless @customer.gateway_data[@gateway].present?
+    result = adapter.create_subscription(@customer, @plan, amount_cents: amount_cents)
+    result["id"] || result.id
+  rescue Gateways::Base::GatewayError
     "manual_#{SecureRandom.hex(8)}"
   end
 end

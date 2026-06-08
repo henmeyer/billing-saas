@@ -12,9 +12,9 @@ module Gateways
     end
 
     def create_customer(customer) = raise NotImplementedError
-    def create_subscription(customer, plan)   = raise NotImplementedError
-    def cancel_subscription(sub_id)           = raise NotImplementedError
-    def update_subscription(sub_id, new_plan) = raise NotImplementedError
+    def create_subscription(customer, plan, amount_cents:)  = raise NotImplementedError
+    def cancel_subscription(sub_id)                         = raise NotImplementedError
+    def update_subscription(sub_id, new_plan, amount_cents:) = raise NotImplementedError
     def create_charge(customer, amount_cents) = raise NotImplementedError
 
     def self.for(provider)

@@ -21,9 +21,19 @@ module Gateways
       raise GatewayError.new(e.message, code: e.code)
     end
 
-    def create_subscription(customer, plan)
-      price_id = plan.gateway_data.dig("stripe", "price_id")
-      raise GatewayError, "Plano não configurado no Stripe (falta price_id)" unless price_id
+    def create_subscription(customer, plan, amount_cents: nil)
+      price_id = if amount_cents
+        price = Stripe::Price.create(
+          currency:    "brl",
+          unit_amount: amount_cents,
+          recurring:   { interval: plan.billing_cycle == "yearly" ? "year" : "month" },
+          product:     plan.gateway_data.dig("stripe", "product_id")
+        )
+        price.id
+      else
+        plan.gateway_data.dig("stripe", "price_id") ||
+          raise(GatewayError, "Plano não configurado no Stripe (falta price_id)")
+      end
 
       Stripe::Subscription.create(
         customer: customer.gateway_data.dig("stripe", "customer_id"),
@@ -40,7 +50,7 @@ module Gateways
       raise GatewayError.new(e.message, code: e.code)
     end
 
-    def update_subscription(gateway_sub_id, new_plan)
+    def update_subscription(gateway_sub_id, new_plan, amount_cents:)
       sub      = Stripe::Subscription.retrieve(gateway_sub_id)
       price_id = new_plan.gateway_data.dig("stripe", "price_id")
       raise GatewayError, "Novo plano não configurado no Stripe" unless price_id

@@ -23,11 +23,12 @@ module Gateways
       response
     end
 
-    def create_subscription(customer, plan)
+    def create_subscription(customer, plan, amount_cents: nil)
+      value = (amount_cents || plan.price_for(Currency.find_by(default: true))) / 100.0
       post("/subscriptions", {
              customer:          customer.gateway_data.dig("asaas", "customer_id"),
              billingType:       plan.gateway_data.dig("asaas", "billing_type") || "BOLETO",
-             value:             plan.price_cents / 100.0,
+             value:             value,
              nextDueDate:       Date.tomorrow.strftime("%Y-%m-%d"),
              cycle:             asaas_cycle(plan.billing_cycle),
              description:       plan.name,
@@ -45,9 +46,9 @@ module Gateways
       response.parsed_response
     end
 
-    def update_subscription(gateway_sub_id, new_plan)
+    def update_subscription(gateway_sub_id, new_plan, amount_cents:)
       post("/subscriptions/#{gateway_sub_id}", {
-             value: new_plan.price_cents / 100.0,
+             value: amount_cents / 100.0,
              cycle: asaas_cycle(new_plan.billing_cycle)
            })
     end

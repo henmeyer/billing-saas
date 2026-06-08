@@ -63,6 +63,17 @@
           </div>
 
           <div>
+            <label class="form-label">Moeda preferida</label>
+            <select v-model.number="form.currency_id" class="form-input">
+              <option value="">Usar padrão da conta</option>
+              <option v-for="c in currencies" :key="c.id" :value="c.id">
+                {{ c.code }} — {{ c.name }} ({{ c.symbol }})
+              </option>
+            </select>
+            <p class="form-hint">Usada como padrão ao criar assinaturas para este cliente.</p>
+          </div>
+
+          <div>
             <label class="form-label">Observações</label>
             <textarea v-model="form.notes" rows="3" class="form-input" placeholder="Informações adicionais..." />
           </div>
@@ -85,17 +96,21 @@ import AppLayout from "@/components/Layout/AppLayout.vue";
 
 const props = defineProps({
   customer: Object,
+  currencies: { type: Array, default: () => [] },
   errors: Object,
 });
 
+const currencies = props.currencies;
+
 const form = useForm({
-  name: props.customer.name || "",
-  email: props.customer.email || "",
-  document: props.customer.document || "",
-  phone: props.customer.phone || "",
+  name:        props.customer.name        || "",
+  email:       props.customer.email       || "",
+  document:    props.customer.document    || "",
+  phone:       props.customer.phone       || "",
   external_id: props.customer.external_id || "",
-  status: props.customer.status || "active",
-  notes: props.customer.notes || "",
+  status:      props.customer.status      || "active",
+  currency_id: props.customer.currency_id || "",
+  notes:       props.customer.notes       || "",
 });
 
 const submit = () => {

@@ -21,6 +21,12 @@ class Seeds::DefaultTypesService
                             { key: "api_access",         label: "Acesso à API" },
                             { key: "advanced_analytics", label: "Analytics avançado" }
                           ])
+
+      Currency.create!([
+                         { code: "BRL", name: "Real Brasileiro",  symbol: "R$", default: true },
+                         { code: "USD", name: "Dólar Americano",  symbol: "$",  default: false },
+                         { code: "EUR", name: "Euro",             symbol: "€",  default: false }
+                       ])
     end
   end
 end
