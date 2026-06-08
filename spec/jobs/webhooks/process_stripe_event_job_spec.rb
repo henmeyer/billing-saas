@@ -12,6 +12,9 @@ RSpec.describe Webhooks::ProcessStripeEventJob do
     )
   end
 
+  before { set_tenant(account) }
+  after  { ActsAsTenant.current_tenant = nil }
+
   describe "payment_received" do
     let(:payload) do
       {

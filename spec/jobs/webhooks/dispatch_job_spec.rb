@@ -1,18 +1,18 @@
 require "rails_helper"
 
 RSpec.describe WebhookDispatchJob do
-  let(:account)     { create(:account) }
-  let(:customer)    { create(:customer, account: account) }
-  let(:integration) do
-    create(:integration,
-      account: account,
-      events:  ["payment.received"],
-      url:     "https://example.com/hook"
-    )
-  end
+  let(:account)  { create(:account) }
+  let(:customer) { create(:customer, account: account) }
 
-  before { ActsAsTenant.current_tenant = account }
+  before { set_tenant(account) }
   after  { ActsAsTenant.current_tenant = nil }
+
+  let!(:integration) do
+    create(:integration,
+           account: account,
+           events:  ["payment.received"],
+           url:     "https://example.com/hook")
+  end
 
   describe "entrega com sucesso" do
     before do
@@ -68,7 +68,7 @@ RSpec.describe WebhookDispatchJob do
     end
 
     it "marca o log como failed na última tentativa" do
-      described_class.perform_now(customer, "payment.received", {}, attempt: 5)
+      described_class.perform_now(customer, "payment.received", {}, attempt: 6)
       expect(WebhookLog.last.status).to eq("failed")
     end
   end

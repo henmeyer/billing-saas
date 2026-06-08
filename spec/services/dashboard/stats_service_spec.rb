@@ -1,11 +1,16 @@
 require "rails_helper"
 
 RSpec.describe Dashboard::StatsService do
-  let(:account) { create(:account) }
-  let(:plan)    { create(:plan, account: account, price_cents: 9900) }
+  let(:account)  { create(:account) }
+  let(:currency) { create(:currency, account: account, default: true) }
+  let(:plan)     { create(:plan, account: account) }
 
-  before { ActsAsTenant.current_tenant = account }
-  after  { ActsAsTenant.current_tenant = nil }
+  before do
+    ActsAsTenant.current_tenant = account
+    create(:plan_price, plan: plan, currency: currency, amount_cents: 9900)
+  end
+
+  after { ActsAsTenant.current_tenant = nil }
 
   subject(:stats) { described_class.call(account) }
 
@@ -13,8 +18,8 @@ RSpec.describe Dashboard::StatsService do
     context "com clientes e assinaturas ativas" do
       let!(:customer1) { create(:customer, account: account, status: "active") }
       let!(:customer2) { create(:customer, account: account, status: "active") }
-      let!(:sub1) { create(:subscription, customer: customer1, plan: plan) }
-      let!(:sub2) { create(:subscription, customer: customer2, plan: plan) }
+      let!(:sub1) { create(:subscription, customer: customer1, plan: plan, currency: currency) }
+      let!(:sub2) { create(:subscription, customer: customer2, plan: plan, currency: currency) }
 
       it "calcula MRR corretamente" do
         expect(stats[:mrr]).to eq(198.0)

@@ -1,21 +1,26 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::Subscriptions", type: :request do
-  let(:account)  { create(:account) }
-  let(:customer) { create(:customer, account: account, external_id: "EXT001") }
-  let(:plan)     { create(:plan, account: account, name: "Pro", price_cents: 9900) }
-  let!(:sub)     { create(:subscription, customer: customer, plan: plan) }
+  let(:account)   { create(:account) }
+  let(:currency)  { create(:currency, account: account, default: true) }
+  let(:plan)      { create(:plan, account: account, name: "Pro") }
+  let(:customer)  { create(:customer, account: account, external_id: "EXT001") }
   let(:raw_token) { "billing_#{SecureRandom.hex(32)}" }
+
+  before { set_tenant(account) }
+  after  { ActsAsTenant.current_tenant = nil }
+
+  let!(:sub) { create(:subscription, customer: customer, plan: plan, currency: currency) }
   let!(:api_key) do
-    ActsAsTenant.with_tenant(account) do
-      ApiKey.create!(
-        name:         "test",
-        token_digest: Digest::SHA256.hexdigest(raw_token),
-        last_four:    raw_token.last(4),
-        active:       true
-      )
-    end
+    ApiKey.create!(
+      name:         "test",
+      token_digest: Digest::SHA256.hexdigest(raw_token),
+      last_four:    raw_token.last(4),
+      active:       true
+    )
   end
+
+  before { create(:plan_price, plan: plan, currency: currency, amount_cents: 9900) }
 
   let(:headers) { { "Authorization" => "Bearer #{raw_token}" } }
 
@@ -30,7 +35,7 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
     end
 
     it "retorna 404 para cliente sem assinatura" do
-      customer2 = create(:customer, account: account, external_id: "EXT002")
+      create(:customer, account: account, external_id: "EXT002")
       get "/api/v1/customers/EXT002/subscription", headers: headers
       expect(response).to have_http_status(:not_found)
     end
