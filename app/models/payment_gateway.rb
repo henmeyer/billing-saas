@@ -1,7 +1,7 @@
 class PaymentGateway < ApplicationRecord
   acts_as_tenant :account
 
-  PROVIDERS = %w[stripe asaas dlocal].freeze
+  PROVIDERS = %w[stripe asaas dlocal_go].freeze
 
   validates :provider, inclusion:  { in: PROVIDERS },
                        uniqueness: { scope: :account_id }

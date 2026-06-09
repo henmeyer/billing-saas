@@ -54,7 +54,7 @@
             </select>
           </div>
 
-          <template v-if="form.provider === 'dlocal'">
+          <template v-if="form.provider === 'dlocal_go'">
             <div>
               <label class="form-label">
                 Secret Key (X-Secret-Key)

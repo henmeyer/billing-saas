@@ -75,8 +75,8 @@ Rails.application.routes.draw do
   namespace :webhooks do
     post "/asaas",       to: "asaas#receive"
     post "/stripe",      to: "stripe#receive"
+    post "/dlocal_go",   to: "dlocal_go#receive"
     post "/omnichannel", to: "omnichannel#receive"
-    post "/dlocal",      to: "dlocal#receive"
   end
 
   # API externa (auth por API key)

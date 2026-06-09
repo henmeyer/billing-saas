@@ -79,11 +79,13 @@ com API de integração para sistemas externos via webhooks.
 ### Gateways
 
 - Interface comum: `Gateways::Base`
-- Factory: `Gateways::Base.for("stripe")` ou `Gateways::Base.for("asaas")`
-- NUNCA chamar Stripe ou Asaas diretamente fora dos adapters
+- Adapters: `Gateways::StripeAdapter`, `Gateways::AsaasAdapter`, `Gateways::DlocalGoAdapter`
+- Factory: `Gateways::Base.for("stripe")`, `Gateways::Base.for("asaas")`, `Gateways::Base.for("dlocal_go")`
+- NUNCA chamar os gateways diretamente fora dos adapters
 - Dados específicos por gateway em `gateway_data:jsonb`
 - Stripe: precisa de `product_id` + `price_id`
 - Asaas: só valor e ciclo
+- dLocal Go: usa a gem `dlocal_go` com subscriptions nativas — `plan_id` obrigatório em `gateway_data["dlocal_go"]["plan_id"]`
 
 ### Assinaturas
 

@@ -29,6 +29,7 @@ gem "httparty"
 
 # Gateways
 gem "stripe"
+gem "dlocal_go"
 
 # IA
 gem "anthropic"

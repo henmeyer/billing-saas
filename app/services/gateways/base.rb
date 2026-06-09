@@ -19,9 +19,9 @@ module Gateways
 
     def self.for(provider)
       case provider.to_s
-      when "stripe" then Gateways::StripeAdapter.new
-      when "asaas"  then Gateways::AsaasAdapter.new
-      when "dlocal" then Gateways::DlocalAdapter.new
+      when "stripe"    then Gateways::StripeAdapter.new
+      when "asaas"     then Gateways::AsaasAdapter.new
+      when "dlocal_go" then Gateways::DlocalGoAdapter.new
       else raise ArgumentError, "Gateway '#{provider}' não suportado"
       end
     end

@@ -13,6 +13,10 @@ FactoryBot.define do
       gateway { "asaas" }
     end
 
+    trait :dlocal_go do
+      gateway { "dlocal_go" }
+    end
+
     trait :past_due do
       status { "past_due" }
     end

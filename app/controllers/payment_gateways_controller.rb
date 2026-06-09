@@ -75,7 +75,7 @@ class PaymentGatewaysController < ApplicationController
       active:          gateway.active,
       last_four:       nil,
       sandbox:         gateway.gateway_data.fetch("sandbox", true),
-      is_dlocal:       gateway.provider == "dlocal",
+      is_dlocal_go:    gateway.provider == "dlocal_go",
       default_country: gateway.gateway_data["default_country"]
     }
   end
@@ -83,7 +83,7 @@ class PaymentGatewaysController < ApplicationController
   def apply_gateway_params(gateway)
     p = params[:gateway]
     gateway.gateway_data["sandbox"] = p[:sandbox] == "true" if p.key?(:sandbox)
-    return unless gateway.provider == "dlocal"
+    return unless gateway.provider == "dlocal_go"
 
     gateway.secret_key = p[:secret_key] if p[:secret_key].present?
     gateway.gateway_data["default_country"] = p[:default_country] if p[:default_country].present?

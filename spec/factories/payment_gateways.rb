@@ -12,8 +12,8 @@ FactoryBot.define do
       provider { "stripe" }
     end
 
-    factory :dlocal_gateway do
-      provider { "dlocal" }
+    factory :dlocal_go_gateway do
+      provider { "dlocal_go" }
       gateway_data do
         {
           "secret_key_enc" => Rails.application.message_verifier(:gateway_keys)

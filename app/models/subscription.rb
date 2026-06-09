@@ -8,7 +8,7 @@ class Subscription < ApplicationRecord
   has_many :subscription_plan_changes
 
   STATUSES = %w[active past_due cancelled trialing].freeze
-  GATEWAYS = %w[stripe asaas dlocal].freeze
+  GATEWAYS = %w[stripe asaas dlocal_go].freeze
 
   validates :status,  inclusion: { in: STATUSES }
   validates :gateway, inclusion: { in: GATEWAYS }
