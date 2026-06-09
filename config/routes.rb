@@ -33,7 +33,15 @@ Rails.application.routes.draw do
     resources :subscriptions,    only: [:new, :create, :edit, :update, :destroy]
     resources :customer_products, only: [:create]
   end
-  resources :integrations
+  resources :integrations do
+    resources :webhook_tests,
+              only:       [:create],
+              controller: "integrations/webhook_tests" do
+      collection do
+        get :logs
+      end
+    end
+  end
   resources :api_keys, only: [:index, :create, :destroy]
   resources :payment_gateways
   resources :products

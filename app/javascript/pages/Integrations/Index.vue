@@ -35,7 +35,7 @@
               </div>
             </div>
             <div class="flex gap-2 ml-4">
-              <Link :href="`/integrations/${i.id}/edit`" class="btn-secondary btn-sm">Editar</Link>
+              <Link :href="`/integrations/${i.id}`" class="btn-secondary btn-sm">Gerenciar</Link>
               <ConfirmButton
                 :message="`Desativar a integração ${i.name}?`"
                 @confirm="deactivate(i.id)"

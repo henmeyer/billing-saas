@@ -24,39 +24,50 @@ ActsAsTenant.with_tenant(account) do
   ai_tokens  = CreditType.find_by!(key: "ai_tokens")
   sms        = CreditType.find_by!(key: "sms")
 
+  # ── Moeda padrão ─────────────────────────────────────────────────────────────
+  brl = Currency.find_or_create_by!(code: "BRL") do |c|
+    c.name    = "Real Brasileiro"
+    c.symbol  = "R$"
+    c.default = true
+    c.active  = true
+  end
+
   # ── Usuário admin extra ──────────────────────────────────────────────────────
-  unless account.users.exists?(email: "admin@billing.com")
-    account.users.create!(
+  unless User.exists?(email: "admin@billing.com")
+    admin = User.create!(
       name:                  "Admin Demo",
       email:                 "admin@billing.com",
       password:              "password123",
-      password_confirmation: "password123",
-      role:                  "admin"
+      password_confirmation: "password123"
     )
+    AccountUser.create!(account: account, user: admin, role: "admin")
     puts "  ✓ Usuário admin criado"
   end
 
   # ── Planos ───────────────────────────────────────────────────────────────────
   starter = Plan.find_or_create_by!(name: "Starter") do |p|
-    p.price_cents   = 9_900
     p.billing_cycle = "monthly"
+    p.pricing_model = "flat"
     p.trial_days    = 7
     p.active        = true
   end
+  PlanPrice.find_or_create_by!(plan: starter, currency: brl) { |pp| pp.amount_cents = 9_900 }
 
   pro = Plan.find_or_create_by!(name: "Pro") do |p|
-    p.price_cents   = 29_900
     p.billing_cycle = "monthly"
+    p.pricing_model = "flat"
     p.trial_days    = 14
     p.active        = true
   end
+  PlanPrice.find_or_create_by!(plan: pro, currency: brl) { |pp| pp.amount_cents = 29_900 }
 
   enterprise = Plan.find_or_create_by!(name: "Enterprise") do |p|
-    p.price_cents   = 99_900
     p.billing_cycle = "monthly"
+    p.pricing_model = "flat"
     p.trial_days    = 0
     p.active        = true
   end
+  PlanPrice.find_or_create_by!(plan: enterprise, currency: brl) { |pp| pp.amount_cents = 99_900 }
 
   puts "  ✓ Planos criados: Starter / Pro / Enterprise"
 
@@ -114,12 +125,13 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
       gateway:                 "stripe",
       gateway_subscription_id: data[:gateway_sub]
     ) do |s|
-      s.customer               = customer
-      s.plan                   = data[:plan]
-      s.status                 = data[:external_id] == "EXT003" ? "past_due" : "active"
-      s.started_at             = 3.months.ago
-      s.current_period_start   = 1.day.ago.beginning_of_day
-      s.current_period_end     = 29.days.from_now.beginning_of_day
+      s.customer             = customer
+      s.plan                 = data[:plan]
+      s.currency             = brl
+      s.status               = data[:external_id] == "EXT003" ? "past_due" : "active"
+      s.started_at           = 3.months.ago
+      s.current_period_start = 1.day.ago.beginning_of_day
+      s.current_period_end   = 29.days.from_now.beginning_of_day
     end
 
     # Período atual
@@ -150,7 +162,7 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
       ) do |c|
         c.customer = customer
         c.subscription = sub
-        c.amount_cents = data[:plan].price_cents
+        c.amount_cents = data[:plan].price_for(brl)
         c.status      = "paid"
         c.paid_at     = paid_at
       end

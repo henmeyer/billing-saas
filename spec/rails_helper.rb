@@ -18,6 +18,8 @@ RSpec.configure do |config|
   config.use_transactional_fixtures = true
   config.filter_rails_from_backtrace!
 
+  config.include Devise::Test::IntegrationHelpers, type: :request
+
   config.before(:each) do
     ActsAsTenant.current_tenant = nil
   end

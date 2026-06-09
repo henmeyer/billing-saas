@@ -7,6 +7,12 @@ class IntegrationsController < ApplicationController
     render inertia: 'Integrations/Index', props: { integrations: }
   end
 
+  def show
+    render inertia: "Integrations/Show", props: {
+      integration: serialize_full(@integration)
+    }
+  end
+
   def new
     render inertia: 'Integrations/Form', props: {
       integration:      {},

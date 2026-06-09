@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_08_000008) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_09_013427) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -413,6 +413,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_08_000008) do
     t.datetime "next_retry_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "is_test", default: false, null: false
+    t.integer "response_code"
+    t.text "response_body"
+    t.integer "duration_ms"
     t.index ["customer_id"], name: "index_webhook_logs_on_customer_id"
     t.index ["integration_id", "status"], name: "index_webhook_logs_on_integration_id_and_status"
     t.index ["integration_id"], name: "index_webhook_logs_on_integration_id"

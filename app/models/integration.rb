@@ -16,8 +16,9 @@ class Integration < ApplicationRecord
   has_many :license_types,  through: :integration_field_configs
   has_many :credit_types,   through: :integration_field_configs
   has_many :feature_types,  through: :integration_field_configs
+  has_many :webhook_logs,      dependent: :destroy
   has_many :plan_integrations, dependent: :destroy
-  has_many :plans, through: :plan_integrations
+  has_many :plans,             through: :plan_integrations
 
   scope :active, -> { where(active: true) }
 
