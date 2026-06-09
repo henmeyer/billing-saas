@@ -1,6 +1,6 @@
 class Api::V1::LicensesController < Api::V1::BaseController
   def show
-    customer     = find_customer!
+    return unless (customer = find_customer!)
     subscription = customer.active_subscription
 
     unless subscription
@@ -27,7 +27,7 @@ class Api::V1::LicensesController < Api::V1::BaseController
   end
 
   def report
-    customer = find_customer!
+    return unless (customer = find_customer!)
 
     params[:licenses].each do |license_key, used_count|
       customer.metadata["license_usage"] ||= {}
@@ -44,7 +44,7 @@ class Api::V1::LicensesController < Api::V1::BaseController
     customer = current_account.customers.find_by(external_id: params[:external_id])
     unless customer
       render json: { error: "Cliente não encontrado" }, status: :not_found
-      raise ActionController::RoutingError, "not found"
+      return nil
     end
     customer
   end

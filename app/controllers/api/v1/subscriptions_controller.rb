@@ -1,6 +1,6 @@
 class Api::V1::SubscriptionsController < Api::V1::BaseController
   def show
-    customer     = find_customer!
+    return unless (customer = find_customer!)
     subscription = customer.active_subscription
 
     unless subscription
@@ -30,7 +30,7 @@ class Api::V1::SubscriptionsController < Api::V1::BaseController
     customer = current_account.customers.find_by(external_id: params[:external_id])
     unless customer
       render json: { error: "Cliente não encontrado" }, status: :not_found
-      raise ActionController::RoutingError, "not found"
+      return nil
     end
     customer
   end

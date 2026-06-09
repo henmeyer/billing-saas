@@ -1,6 +1,6 @@
 class Api::V1::CreditsController < Api::V1::BaseController
   def show
-    customer = find_customer!
+    return unless (customer = find_customer!)
     period   = customer.current_period
 
     unless period
@@ -27,7 +27,7 @@ class Api::V1::CreditsController < Api::V1::BaseController
   end
 
   def report
-    customer = find_customer!
+    return unless (customer = find_customer!)
     period   = customer.current_period
 
     unless period
@@ -70,7 +70,7 @@ class Api::V1::CreditsController < Api::V1::BaseController
     customer = current_account.customers.find_by(external_id: params[:external_id])
     unless customer
       render json: { error: "Cliente não encontrado" }, status: :not_found
-      raise ActionController::RoutingError, "not found"
+      return nil
     end
     customer
   end
