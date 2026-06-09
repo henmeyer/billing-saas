@@ -127,7 +127,17 @@ class PlansController < ApplicationController
 
   def serialize_plan_credits(plan)
     plan.plan_credits.map do |pc|
-      { credit_type_id: pc.credit_type_id, quantity: pc.quantity, rollover: pc.rollover, label: pc.credit_type&.label }
+      {
+        credit_type_id:         pc.credit_type_id,
+        credit_type_label:      pc.credit_type&.label,
+        credit_type_key:        pc.credit_type&.key,
+        unit:                   pc.credit_type&.unit,
+        quantity:               pc.quantity,
+        rollover:               pc.rollover,
+        allow_extras:           pc.allow_extras,
+        extra_unit_size:        pc.extra_unit_size,
+        extra_unit_price_cents: pc.extra_unit_price_cents
+      }
     end
   end
 
@@ -178,7 +188,13 @@ class PlansController < ApplicationController
 
     params[:credits].each do |credit_type_id, data|
       pc = plan.plan_credits.find_or_initialize_by(credit_type_id:)
-      pc.update!(quantity: data[:quantity].to_i, rollover: data[:rollover] == "true")
+      pc.update!(
+        quantity:               data[:quantity].to_i,
+        rollover:               ["true", true].include?(data[:rollover]),
+        allow_extras:           ["true", true].include?(data[:allow_extras]),
+        extra_unit_size:        data[:extra_unit_size].to_i,
+        extra_unit_price_cents: data[:extra_unit_price_cents].to_i
+      )
     end
   end
 

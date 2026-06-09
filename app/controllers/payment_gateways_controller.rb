@@ -17,16 +17,16 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def create
-    gateway = PaymentGateway.new(provider: params[:gateway][:provider],
+    gateway = PaymentGateway.new(provider: params[:provider],
                                  active:   true)
-    gateway.api_key = params[:gateway][:api_key] if params[:gateway][:api_key].present?
+    gateway.api_key = params[:api_key] if params[:api_key].present?
     apply_gateway_params(gateway)
 
     if gateway.save
       redirect_to payment_gateways_path, notice: "Gateway configurado."
     else
       render inertia: "PaymentGateways/Form", props: {
-        gateway:   { provider: params[:gateway][:provider] },
+        gateway:   { provider: params[:provider] },
         providers: PaymentGateway::PROVIDERS,
         errors:    gateway.errors.as_json
       }
@@ -42,8 +42,8 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def update
-    @gateway.api_key = params[:gateway][:api_key] if params[:gateway][:api_key].present?
-    @gateway.active = params[:gateway][:active] if params[:gateway].key?(:active)
+    @gateway.api_key = params[:api_key] if params[:api_key].present?
+    @gateway.active = params[:active] if params.key?(:active)
     apply_gateway_params(@gateway)
 
     if @gateway.save
@@ -81,7 +81,7 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def apply_gateway_params(gateway)
-    p = params[:gateway]
+    p = params
     gateway.gateway_data["sandbox"] = p[:sandbox] == "true" if p.key?(:sandbox)
     return unless gateway.provider == "dlocal_go"
 

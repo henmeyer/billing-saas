@@ -5,6 +5,33 @@
         <h2 class="page-title">Assinaturas</h2>
         <p class="text-sm text-gray-500 mt-0.5">Todas as assinaturas ativas e encerradas</p>
       </div>
+      <div class="flex items-center gap-2">
+        <template v-if="pickingCustomer">
+          <select
+            v-model="selectedCustomerId"
+            class="form-input w-56 text-sm"
+            autofocus
+          >
+            <option value="">Selecione o cliente…</option>
+            <option v-for="c in customers" :key="c.id" :value="c.id">
+              {{ c.name }}
+            </option>
+          </select>
+          <button
+            :disabled="!selectedCustomerId"
+            @click="goToNew"
+            class="btn-primary"
+          >
+            Continuar
+          </button>
+          <button @click="pickingCustomer = false" class="btn-secondary">
+            Cancelar
+          </button>
+        </template>
+        <button v-else @click="pickingCustomer = true" class="btn-primary">
+          + Nova assinatura
+        </button>
+      </div>
     </div>
 
     <div v-if="!subscriptions.length" class="card">
@@ -68,11 +95,20 @@
 </template>
 
 <script setup>
-import { Link } from "@inertiajs/vue3";
+import { ref } from "vue";
+import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 
-defineProps({ subscriptions: Array });
+defineProps({ subscriptions: Array, customers: { type: Array, default: () => [] } });
+
+const pickingCustomer  = ref(false);
+const selectedCustomerId = ref("");
+
+const goToNew = () => {
+  if (selectedCustomerId.value)
+    router.visit(`/customers/${selectedCustomerId.value}/subscriptions/new`);
+};
 
 const fmt = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);

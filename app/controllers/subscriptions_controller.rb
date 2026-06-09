@@ -9,7 +9,8 @@ class SubscriptionsController < ApplicationController
                     .order(created_at: :desc)
 
     render inertia: "Subscriptions/Index", props: {
-      subscriptions: subscriptions.map { |sub| serialize_subscription_row(sub) }
+      subscriptions: subscriptions.map { |sub| serialize_subscription_row(sub) },
+      customers:     Customer.order(:name).map { |c| { id: c.id, name: c.name } }
     }
   end
 
@@ -32,7 +33,8 @@ class SubscriptionsController < ApplicationController
       gateway:                 params[:gateway],
       currency_id:             params[:currency_id],
       started_at:              params[:started_at] || Time.current,
-      gateway_subscription_id: params[:gateway_subscription_id]
+      gateway_subscription_id: params[:gateway_subscription_id],
+      extra_packages:          params[:extra_packages]&.to_unsafe_h || {}
     )
 
     if result.success?
@@ -68,7 +70,15 @@ class SubscriptionsController < ApplicationController
       @subscription.change_plan!(new_plan, changed_by: current_user)
     end
 
-    @subscription.update!(status: params[:status] || @subscription.status)
+    extra_packages = params[:extra_packages]&.to_unsafe_h || {}
+
+    @subscription.update!(
+      status:   params[:status] || @subscription.status,
+      metadata: @subscription.metadata.merge("extra_packages" => extra_packages)
+    )
+
+    update_credit_snapshots_for_extras(extra_packages) if extra_packages.present?
+
     redirect_to customer_path(@customer), notice: "Assinatura atualizada."
   rescue StandardError => e
     redirect_to customer_path(@customer), alert: e.message
@@ -106,7 +116,8 @@ class SubscriptionsController < ApplicationController
       currency_code:           sub.currency&.code,
       price_in_currency:       sub.price_in_currency,
       started_at:              sub.started_at&.strftime("%Y-%m-%d"),
-      current_period_end:      sub.current_period_end&.strftime("%Y-%m-%d")
+      current_period_end:      sub.current_period_end&.strftime("%Y-%m-%d"),
+      extra_packages:          sub.metadata["extra_packages"] || {}
     }
   end
 
@@ -127,18 +138,19 @@ class SubscriptionsController < ApplicationController
 
   def serialize_plans
     Plan.active
-        .includes(:plan_pricing_tiers, plan_prices: :currency)
+        .includes(:plan_pricing_tiers, :plan_credits, plan_prices:  :currency,
+                                                      plan_credits: :credit_type)
         .map do |plan|
       {
-        id:                    plan.id,
-        name:                  plan.name,
-        billing_cycle:         plan.billing_cycle,
-        pricing_model:         plan.pricing_model,
-        pricing_metric_label:  plan.pricing_metric_label,
-        prices:                plan.plan_prices.map { |pp|
+        id:                   plan.id,
+        name:                 plan.name,
+        billing_cycle:        plan.billing_cycle,
+        pricing_model:        plan.pricing_model,
+        pricing_metric_label: plan.pricing_metric_label,
+        prices:               plan.plan_prices.map do |pp|
           { currency_id: pp.currency_id, amount_cents: pp.amount_cents }
-        },
-        pricing_tiers:         plan.plan_pricing_tiers.ordered.map { |t|
+        end,
+        pricing_tiers:        plan.plan_pricing_tiers.ordered.map do |t|
           {
             currency_id:       t.currency_id,
             from_unit:         t.from_unit,
@@ -146,8 +158,37 @@ class SubscriptionsController < ApplicationController
             unit_amount_cents: t.unit_amount_cents,
             label:             t.label
           }
-        }
+        end,
+        credits:              plan.plan_credits.map do |pc|
+          {
+            credit_type_id:         pc.credit_type_id,
+            credit_type_label:      pc.credit_type&.label,
+            credit_type_key:        pc.credit_type&.key,
+            unit:                   pc.credit_type&.unit,
+            base_quantity:          pc.quantity,
+            allow_extras:           pc.allow_extras,
+            extra_unit_size:        pc.extra_unit_size,
+            extra_unit_price_cents: pc.extra_unit_price_cents
+          }
+        end
       }
+    end
+  end
+
+  def update_credit_snapshots_for_extras(extra_packages)
+    period = @subscription.current_period
+    return unless period
+
+    @subscription.plan.plan_credits.each do |pc|
+      snapshot = period.credit_snapshots.find_by(credit_type_id: pc.credit_type_id)
+      next unless snapshot
+
+      n_packages = extra_packages[pc.credit_type_id.to_s].to_i
+      new_limit  = pc.total_quantity(n_packages)
+      snapshot.update!(
+        limit:   new_limit,
+        balance: [new_limit - snapshot.used, 0].max
+      )
     end
   end
 

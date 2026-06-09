@@ -436,35 +436,87 @@
         <div class="card-header">
           <h3 class="text-sm font-medium text-gray-900">Créditos por ciclo</h3>
         </div>
-        <div class="card-body space-y-3">
+        <div class="card-body space-y-4">
           <template v-if="creditTypes.length">
             <div
               v-for="ct in creditTypes"
               :key="ct.id"
-              class="flex items-center gap-4"
+              class="border border-gray-100 rounded-lg p-4 space-y-3"
             >
-              <div class="flex-1">
-                <p class="text-sm font-medium text-gray-700">{{ ct.label }}</p>
-                <p class="text-xs text-gray-400">{{ ct.key }}</p>
+              <!-- Cabeçalho -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-700">{{ ct.label }}</p>
+                  <p class="text-xs text-gray-400 font-mono">{{ ct.key }}</p>
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                <input
-                  v-model.number="credits[ct.id].quantity"
-                  type="number"
-                  min="0"
-                  class="w-28 rounded-lg border-gray-300 text-sm focus:ring-brand-500 focus:border-brand-500"
-                />
-                <span class="text-xs text-gray-400 w-16">{{ ct.unit }}(s)</span>
-                <label
-                  class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer"
-                >
+
+              <!-- Quantidade base + rollover -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs text-gray-500 mb-1 block">Quantidade base incluída</label>
                   <input
-                    v-model="credits[ct.id].rollover"
+                    v-model.number="credits[ct.id].quantity"
+                    type="number" min="0"
+                    class="form-input text-sm"
+                    :placeholder="`Ex: 2000 ${ct.unit}s/mês`"
+                  />
+                </div>
+                <div class="flex items-center gap-2 pt-5">
+                  <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <input
+                      v-model="credits[ct.id].rollover"
+                      type="checkbox"
+                      class="rounded border-gray-300 text-brand-600"
+                    />
+                    Acumula saldo não usado
+                  </label>
+                </div>
+              </div>
+
+              <!-- Extras pagos -->
+              <div class="border-t border-gray-100 pt-3">
+                <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-3">
+                  <input
+                    v-model="credits[ct.id].allow_extras"
                     type="checkbox"
                     class="rounded border-gray-300 text-brand-600"
                   />
-                  Acumula
+                  <span class="font-medium">Permitir compra de extras</span>
                 </label>
+
+                <div v-if="credits[ct.id].allow_extras" class="grid grid-cols-2 gap-3 pl-6">
+                  <div>
+                    <label class="text-xs text-gray-500 mb-1 block">Tamanho do pacote extra</label>
+                    <div class="relative">
+                      <input
+                        v-model.number="credits[ct.id].extra_unit_size"
+                        type="number" min="1"
+                        class="form-input text-sm"
+                        placeholder="1000"
+                      />
+                      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                        {{ ct.unit }}s
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-500 mb-1 block">Preço por pacote (centavos)</label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">R$</span>
+                      <input
+                        v-model.number="credits[ct.id].extra_unit_price_cents"
+                        type="number" min="0"
+                        class="form-input text-sm pl-8"
+                        placeholder="8990"
+                      />
+                    </div>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                      = {{ fmtCents(credits[ct.id].extra_unit_price_cents) }}
+                      por {{ fmtNum(credits[ct.id].extra_unit_size) }} {{ ct.unit }}s
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
@@ -595,8 +647,11 @@ const credits = reactive(
       return [
         ct.id,
         {
-          quantity: existing?.quantity ?? 0,
-          rollover: existing?.rollover ?? false,
+          quantity:               existing?.quantity               ?? 0,
+          rollover:               existing?.rollover               ?? false,
+          allow_extras:           existing?.allow_extras           ?? false,
+          extra_unit_size:        existing?.extra_unit_size        ?? 1000,
+          extra_unit_price_cents: existing?.extra_unit_price_cents ?? 0,
         },
       ];
     }),
@@ -697,6 +752,13 @@ const fmtPrice = (value) => {
     maximumFractionDigits: 2,
   }).format(value);
 };
+
+const fmtCents = (v) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    (v || 0) / 100,
+  );
+
+const fmtNum = (v) => new Intl.NumberFormat("pt-BR").format(v || 0);
 
 const submit = () => {
   const url = props.plan.id ? `/plans/${props.plan.id}` : "/plans";

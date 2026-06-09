@@ -215,6 +215,298 @@ RSpec.configure do |config|
                 example: '2026-01-01T00:00:00Z'
               }
             }
+          },
+
+          # --- Webhook schemas ---
+          WebhookCustomer: {
+            type: 'object',
+            properties: {
+              id:          { type: 'string', example: '42' },
+              external_id: { type: 'string', example: 'EXT123' },
+              name:        { type: 'string', example: 'Empresa X' },
+              email:       { type: 'string', example: 'admin@empresax.com' }
+            }
+          },
+          WebhookBase: {
+            type: 'object',
+            required: %w[event uuid timestamp account_id customer],
+            properties: {
+              event: {
+                type:        'string',
+                description: 'Tipo do evento',
+                example:     'payment.received'
+              },
+              uuid: {
+                type:        'string',
+                format:      'uuid',
+                description: 'Identificador único do disparo. Use para deduplicação e rastreamento.',
+                example:     'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+              },
+              timestamp: {
+                type:    'string',
+                format:  'date-time',
+                example: '2026-06-01T14:30:00Z'
+              },
+              account_id: {
+                type:    'string',
+                example: '1'
+              },
+              test: {
+                type:        'boolean',
+                description: 'true quando disparado pelo botão de teste. Ignore em produção.',
+                example:     false
+              },
+              customer: { '$ref' => '#/components/schemas/WebhookCustomer' },
+              features: {
+                type:        'object',
+                description: 'Features habilitadas no plano atual do cliente',
+                additionalProperties: { type: 'boolean' },
+                example: { 'ai_enabled' => true, 'export_reports' => false }
+              },
+              data: {
+                type:        'object',
+                description: 'Dados específicos do evento'
+              }
+            }
+          },
+          WebhookSubscriptionActivated: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['subscription.activated'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      plan: {
+                        type: 'object',
+                        properties: {
+                          id:   { type: 'integer', example: 1 },
+                          name: { type: 'string',  example: 'Pro' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookSubscriptionCancelled: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['subscription.cancelled'] },
+                  data:  { type: 'object', example: {} }
+                }
+              }
+            ]
+          },
+          WebhookSubscriptionPastDue: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['subscription.past_due'] },
+                  data:  { type: 'object', example: {} }
+                }
+              }
+            ]
+          },
+          WebhookSubscriptionRenewed: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['subscription.renewed'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      period_end: {
+                        type:    'string',
+                        format:  'date-time',
+                        example: '2026-07-01T00:00:00Z'
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookSubscriptionTrialEnding: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['subscription.trial_ending'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      trial_ends_at:  { type: 'string', format: 'date-time',
+                                        example: '2026-06-04T00:00:00Z' },
+                      days_remaining: { type: 'integer', example: 3 }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookPlanChanged: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['plan.changed'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      previous_plan: {
+                        type: 'object',
+                        properties: {
+                          id:   { type: 'integer', example: 1 },
+                          name: { type: 'string',  example: 'Starter' }
+                        }
+                      },
+                      new_plan: {
+                        type: 'object',
+                        properties: {
+                          id:   { type: 'integer', example: 2 },
+                          name: { type: 'string',  example: 'Pro' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookPaymentReceived: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['payment.received'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      amount_cents: { type: 'integer', example: 19700 },
+                      gateway:      { type: 'string',  example: 'asaas',
+                                      enum: %w[asaas stripe dlocal_go] },
+                      charge_id:    { type: 'string',  example: 'pay_abc123' }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookPaymentFailed: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['payment.failed'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      amount_cents: { type: 'integer', example: 19700 },
+                      gateway:      { type: 'string',  example: 'stripe' },
+                      attempt:      { type: 'integer', example: 1,
+                                      description: 'Número da tentativa de cobrança' }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookCreditsThresholdReached: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['credits.threshold_reached'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      credit_type:   { type: 'string',  example: 'coins' },
+                      used:          { type: 'integer', example: 800 },
+                      limit:         { type: 'integer', example: 1000 },
+                      usage_percent: { type: 'number',  example: 80.0 },
+                      threshold:     { type: 'integer', example: 80,
+                                       enum: [80, 95],
+                                       description: 'Percentual que disparou o alerta' }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookCreditsDepleted: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['credits.depleted'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      credit_type:   { type: 'string',  example: 'coins' },
+                      used:          { type: 'integer', example: 1000 },
+                      limit:         { type: 'integer', example: 1000 },
+                      usage_percent: { type: 'number',  example: 100.0 }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookCreditsRecharged: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['credits.recharged'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      credit_type:  { type: 'string',  example: 'coins' },
+                      added:        { type: 'integer', example: 1000,
+                                      description: 'Créditos adicionados' },
+                      new_balance:  { type: 'integer', example: 2000 }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          WebhookLicenseUpdated: {
+            allOf: [
+              { '$ref' => '#/components/schemas/WebhookBase' },
+              {
+                type: 'object',
+                properties: {
+                  event: { type: 'string', enum: ['license.updated'] },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      license_type:      { type: 'string',  example: 'user_licenses' },
+                      previous_quantity: { type: 'integer', example: 10 },
+                      new_quantity:      { type: 'integer', example: 20 }
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       },

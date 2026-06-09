@@ -29,6 +29,7 @@ class WebhookDispatchJob < ApplicationJob
       customer:    customer,
       event:       event_name,
       payload:     payload,
+      uuid:        payload[:uuid],
       status:      "pending",
       attempts:    attempt
     )
@@ -40,7 +41,7 @@ class WebhookDispatchJob < ApplicationJob
         headers: {
           "Content-Type"        => "application/json",
           "X-Billing-Signature" => "sha256=#{sig}",
-          "X-Webhook-Id"        => log.id.to_s,
+          "X-Webhook-Id"        => payload[:uuid],
           "X-Webhook-Event"     => event_name,
           "X-Webhook-Attempt"   => attempt.to_s
         },
@@ -90,6 +91,7 @@ class WebhookDispatchJob < ApplicationJob
 
     {
       event:      event_name,
+      uuid:       SecureRandom.uuid,
       timestamp:  Time.current.iso8601,
       account_id: customer.account.id.to_s,
       customer:   {

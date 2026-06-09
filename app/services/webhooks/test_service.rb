@@ -81,7 +81,7 @@ class Webhooks::TestService
         "X-Billing-Signature" => "sha256=#{sig}",
         "X-Webhook-Event"     => @event,
         "X-Webhook-Test"      => "true",
-        "X-Webhook-Id"        => SecureRandom.uuid
+        "X-Webhook-Id"        => payload[:uuid]
       },
       timeout: TIMEOUT
     )
@@ -127,6 +127,7 @@ class Webhooks::TestService
   def build_payload
     {
       event:      @event,
+      uuid:       SecureRandom.uuid,
       timestamp:  Time.current.iso8601,
       account_id: @integration.account.id.to_s,
       test:       true,
@@ -158,6 +159,7 @@ class Webhooks::TestService
       customer:      @integration.account.customers.first,
       event:         @event,
       payload:       payload,
+      uuid:          payload[:uuid],
       status:        status_code&.between?(200, 299) ? "delivered" : "failed",
       attempts:      1,
       is_test:       true,

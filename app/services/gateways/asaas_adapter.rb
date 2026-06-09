@@ -1,12 +1,12 @@
 module Gateways
   class AsaasAdapter < Base
-    SANDBOX_URL    = "https://sandbox.asaas.com/api/v3".freeze
+    SANDBOX_URL    = "https://api-sandbox.asaas.com/v3/".freeze
     PRODUCTION_URL = "https://api.asaas.com/v3".freeze
 
     def initialize
-      gateway  = ActsAsTenant.current_tenant
-                             .payment_gateways
-                             .find_by!(provider: "asaas")
+      gateway = ActsAsTenant.current_tenant
+                            .payment_gateways
+                            .find_by!(provider: "asaas")
       @api_key  = gateway.api_key
       @base_url = gateway.gateway_data.fetch("sandbox", true) ? SANDBOX_URL : PRODUCTION_URL
     end

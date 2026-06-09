@@ -1,10 +1,10 @@
 class IntegrationsController < ApplicationController
   before_action :require_admin!
-  before_action :set_integration, only: [:show, :edit, :update, :destroy]
+  before_action :set_integration, only: %i[show edit update destroy]
 
   def index
     integrations = Integration.order(name: :asc).map { |i| serialize_integration(i) }
-    render inertia: 'Integrations/Index', props: { integrations: }
+    render inertia: "Integrations/Index", props: { integrations: }
   end
 
   def show
@@ -14,7 +14,7 @@ class IntegrationsController < ApplicationController
   end
 
   def new
-    render inertia: 'Integrations/Form', props: {
+    render inertia: "Integrations/Form", props: {
       integration:      {},
       available_events: Integration::AVAILABLE_EVENTS,
       license_types:    serialize_license_types,
@@ -28,9 +28,9 @@ class IntegrationsController < ApplicationController
     integration = Integration.new(integration_params)
     if integration.save
       sync_field_configs(integration)
-      redirect_to integrations_path, notice: 'Integração criada.'
+      redirect_to integrations_path, notice: "Integração criada."
     else
-      render inertia: 'Integrations/Form', props: {
+      render inertia: "Integrations/Form", props: {
         integration:      integration_params,
         available_events: Integration::AVAILABLE_EVENTS,
         license_types:    serialize_license_types,
@@ -41,7 +41,7 @@ class IntegrationsController < ApplicationController
   end
 
   def edit
-    render inertia: 'Integrations/Form', props: {
+    render inertia: "Integrations/Form", props: {
       integration:      serialize_integration(@integration),
       available_events: Integration::AVAILABLE_EVENTS,
       license_types:    serialize_license_types,
@@ -54,9 +54,9 @@ class IntegrationsController < ApplicationController
   def update
     if @integration.update(integration_params)
       sync_field_configs(@integration)
-      redirect_to integrations_path, notice: 'Integração atualizada.'
+      redirect_to integrations_path, notice: "Integração atualizada."
     else
-      render inertia: 'Integrations/Form', props: {
+      render inertia: "Integrations/Form", props: {
         integration:      serialize_integration(@integration),
         available_events: Integration::AVAILABLE_EVENTS,
         license_types:    serialize_license_types,
@@ -68,7 +68,7 @@ class IntegrationsController < ApplicationController
 
   def destroy
     @integration.update!(active: false)
-    redirect_to integrations_path, notice: 'Integração desativada.'
+    redirect_to integrations_path, notice: "Integração desativada."
   end
 
   private
@@ -115,17 +115,21 @@ class IntegrationsController < ApplicationController
       events:           i.events,
       active:           i.active,
       retry_count:      i.retry_count,
-      last_error_at:    i.last_error_at&.strftime('%d/%m/%Y %H:%M'),
+      last_error_at:    i.last_error_at&.strftime("%d/%m/%Y %H:%M"),
       license_type_ids: i.integration_field_configs
                          .where(field_type: "license")
                          .pluck(:license_type_id),
-      credit_type_ids:   i.integration_field_configs
-                          .where(field_type: "credit")
-                          .pluck(:credit_type_id),
-      feature_type_ids:  i.integration_field_configs
-                          .where(field_type: "feature")
-                          .pluck(:feature_type_id),
+      credit_type_ids:  i.integration_field_configs
+                         .where(field_type: "credit")
+                         .pluck(:credit_type_id),
+      feature_type_ids: i.integration_field_configs
+                         .where(field_type: "feature")
+                         .pluck(:feature_type_id)
     }
+  end
+
+  def serialize_full(i)
+    serialize_integration(i).merge(secret: i.secret)
   end
 
   def serialize_license_types
@@ -139,5 +143,4 @@ class IntegrationsController < ApplicationController
   def serialize_feature_types
     FeatureType.all.map { |ft| { id: ft.id, key: ft.key, label: ft.label } }
   end
-
 end

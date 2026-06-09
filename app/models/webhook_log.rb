@@ -6,6 +6,7 @@ class WebhookLog < ApplicationRecord
 
   validates :event,  presence: true
   validates :status, inclusion: { in: STATUSES }
+  validates :uuid,   presence: true, uniqueness: true
 
   scope :pending, -> { where(status: "pending") }
   scope :failed,  -> { where(status: "failed") }

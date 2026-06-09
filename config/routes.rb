@@ -1,8 +1,8 @@
 require "sidekiq/web"
 
 Rails.application.routes.draw do
-  mount Rswag::Ui::Engine => '/api-docs'
-  mount Rswag::Api::Engine => '/api-docs'
+  mount Rswag::Ui::Engine => "/api-docs"
+  mount Rswag::Api::Engine => "/api-docs"
   get "up" => "rails/health#show", as: :rails_health_check
 
   # Auth
@@ -12,7 +12,7 @@ Rails.application.routes.draw do
   }
 
   # Sidekiq dashboard (admin only)
-  authenticate :user, ->(u) { u.admin? } do
+  authenticate :user, lambda(&:superadmin?) do
     mount Sidekiq::Web => "/sidekiq"
   end
 
@@ -30,7 +30,7 @@ Rails.application.routes.draw do
   resources :feature_types
   resources :subscriptions, only: [:index]
   resources :customers do
-    resources :subscriptions,    only: [:new, :create, :edit, :update, :destroy]
+    resources :subscriptions, only: %i[new create edit update destroy]
     resources :customer_products, only: [:create]
   end
   resources :integrations do
@@ -46,11 +46,18 @@ Rails.application.routes.draw do
   resources :payment_gateways
   resources :products
 
+  resources :imports, only: [:index, :create, :show] do
+    member do
+      post :decide
+      post :execute
+    end
+  end
+
   # Superadmin
   namespace :superadmin do
     root "dashboard#index"
 
-    resources :accounts, only: [:index, :show, :edit, :update] do
+    resources :accounts, only: %i[index show edit update] do
       member do
         post :suspend
         post :activate
@@ -63,13 +70,13 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :super_admins, only: [:index, :new, :create, :destroy]
+    resources :super_admins, only: %i[index new create destroy]
   end
 
   get  "/impersonation/enter", to: "superadmin/impersonations#enter",
-       as: :impersonation_enter
+                               as: :impersonation_enter
   post "/impersonation/stop",  to: "superadmin/impersonations#stop",
-       as: :impersonation_stop
+                               as: :impersonation_stop
 
   # Webhooks de entrada (sem auth de usuário)
   namespace :webhooks do

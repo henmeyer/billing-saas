@@ -22,6 +22,7 @@
         <NavLink href="/customers" icon="◉" label="Clientes" />
         <NavLink href="/plans" icon="▤" label="Planos" />
         <NavLink href="/products" icon="▦" label="Produtos" />
+        <NavLink href="/imports" icon="⬇" label="Importar clientes" />
 
         <p
           class="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 pt-4 pb-1"

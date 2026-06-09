@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_09_013428) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_09_160001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -153,6 +153,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_013428) do
     t.index ["account_id"], name: "index_feature_types_on_account_id"
   end
 
+  create_table "import_jobs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "user_id", null: false
+    t.string "gateway", null: false
+    t.string "status", default: "pending", null: false
+    t.jsonb "preview", default: {}, null: false
+    t.jsonb "decisions", default: {}, null: false
+    t.jsonb "result", default: {}, null: false
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_import_jobs_on_account_id"
+    t.index ["user_id"], name: "index_import_jobs_on_user_id"
+  end
+
   create_table "integration_field_configs", force: :cascade do |t|
     t.bigint "integration_id", null: false
     t.bigint "license_type_id"
@@ -216,6 +231,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_013428) do
     t.boolean "rollover", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "extra_unit_size", default: 0
+    t.integer "extra_unit_price_cents", default: 0
+    t.boolean "allow_extras", default: false
     t.index ["credit_type_id"], name: "index_plan_credits_on_credit_type_id"
     t.index ["plan_id", "credit_type_id"], name: "index_plan_credits_on_plan_id_and_credit_type_id", unique: true
     t.index ["plan_id"], name: "index_plan_credits_on_plan_id"
@@ -379,6 +397,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_013428) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "currency_id"
+    t.jsonb "metadata", default: {}, null: false
     t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["gateway", "gateway_subscription_id"], name: "index_subscriptions_on_gateway_and_gateway_subscription_id", unique: true, where: "(gateway_subscription_id IS NOT NULL)"
@@ -417,10 +436,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_013428) do
     t.integer "response_code"
     t.text "response_body"
     t.integer "duration_ms"
+    t.string "uuid", default: -> { "gen_random_uuid()" }, null: false
     t.index ["customer_id"], name: "index_webhook_logs_on_customer_id"
     t.index ["integration_id", "status"], name: "index_webhook_logs_on_integration_id_and_status"
     t.index ["integration_id"], name: "index_webhook_logs_on_integration_id"
     t.index ["next_retry_at"], name: "index_webhook_logs_on_next_retry_at"
+    t.index ["uuid"], name: "index_webhook_logs_on_uuid", unique: true
   end
 
   add_foreign_key "account_users", "accounts"
@@ -438,6 +459,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_013428) do
   add_foreign_key "customers", "accounts"
   add_foreign_key "customers", "currencies"
   add_foreign_key "feature_types", "accounts"
+  add_foreign_key "import_jobs", "accounts"
+  add_foreign_key "import_jobs", "users"
   add_foreign_key "integration_field_configs", "credit_types"
   add_foreign_key "integration_field_configs", "feature_types"
   add_foreign_key "integration_field_configs", "integrations"
