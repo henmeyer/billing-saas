@@ -10,7 +10,9 @@ class CustomersController < ApplicationController
   end
 
   def show
-    subscription = @customer.active_subscription
+    active_subscriptions = @customer.subscriptions
+                                    .where(status: %w[active trialing past_due])
+                                    .includes(:integration, :plan)
     charges      = @customer.charges.order(created_at: :desc).limit(10)
     snapshots    = @customer.current_period&.credit_snapshots&.includes(:credit_type) || []
     currency     = @customer.effective_currency
@@ -31,9 +33,12 @@ class CustomersController < ApplicationController
 
     period = @customer.current_period
 
+    first_subscription = active_subscriptions.first
+
     render inertia: "Customers/Show", props: {
       customer:           serialize_customer(@customer),
-      subscription:       subscription ? serialize_subscription(subscription) : nil,
+      subscriptions:      active_subscriptions.map { |sub| serialize_subscription(sub) },
+      subscription:       first_subscription ? serialize_subscription(first_subscription) : nil,
       charges:            charges.map { |charge| serialize_charge(charge) },
       snapshots:          snapshots.map { |snap| serialize_snapshot(snap) },
       available_products: available_products,
@@ -44,41 +49,47 @@ class CustomersController < ApplicationController
 
   def new
     render inertia: "Customers/Form", props: {
-      customer:   {},
-      currencies: serialize_currencies,
-      errors:     {}
+      customer:     {},
+      currencies:   serialize_currencies,
+      integrations: serialize_integrations,
+      errors:       {}
     }
   end
 
   def create
     customer = Customer.new(customer_params)
     if customer.save
+      sync_identities(customer)
       redirect_to customer_path(customer), notice: "Cliente criado."
     else
       render inertia: "Customers/Form", props: {
-        customer:   customer_params,
-        currencies: serialize_currencies,
-        errors:     customer.errors.as_json
+        customer:     customer_params,
+        currencies:   serialize_currencies,
+        integrations: serialize_integrations,
+        errors:       customer.errors.as_json
       }
     end
   end
 
   def edit
     render inertia: "Customers/Form", props: {
-      customer:   serialize_customer(@customer),
-      currencies: serialize_currencies,
-      errors:     {}
+      customer:     serialize_customer(@customer),
+      currencies:   serialize_currencies,
+      integrations: serialize_integrations,
+      errors:       {}
     }
   end
 
   def update
     if @customer.update(customer_params)
+      sync_identities(@customer)
       redirect_to customer_path(@customer), notice: "Cliente atualizado."
     else
       render inertia: "Customers/Form", props: {
-        customer:   serialize_customer(@customer).merge(customer_params),
-        currencies: serialize_currencies,
-        errors:     @customer.errors.as_json
+        customer:     serialize_customer(@customer).merge(customer_params),
+        currencies:   serialize_currencies,
+        integrations: serialize_integrations,
+        errors:       @customer.errors.as_json
       }
     end
   end
@@ -91,8 +102,26 @@ class CustomersController < ApplicationController
 
   def customer_params
     params.require(:customer).permit(
-      :name, :email, :document, :phone, :external_id, :status, :notes, :currency_id
+      :name, :email, :document, :phone, :status, :notes, :currency_id
     )
+  end
+
+  def sync_identities(customer)
+    return unless params[:identities].present?
+
+    params[:identities].each do |integration_id, external_id|
+      next if external_id.blank?
+
+      integration = Integration.find_by(id: integration_id)
+      next unless integration
+
+      identity = customer.customer_identities.find_or_initialize_by(integration: integration)
+      identity.update!(external_id: external_id)
+    end
+  end
+
+  def serialize_integrations
+    Integration.active.map { |itg| { id: itg.id, name: itg.name, url: itg.url } }
   end
 
   def serialize_customer(customer)
@@ -122,6 +151,7 @@ class CustomersController < ApplicationController
       id:                     sub.id,
       status:                 sub.status,
       gateway:                sub.gateway,
+      integration_name:       sub.integration&.name,
       plan_name:              sub.plan.name,
       base_price_cents:       sub.base_price_cents,
       period_amount_cents:    period&.amount_cents || sub.base_price_cents,

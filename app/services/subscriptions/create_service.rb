@@ -3,11 +3,12 @@ class Subscriptions::CreateService
 
   def self.call(**args) = new(**args).call
 
-  def initialize(customer:, plan_id:, gateway:, currency_id: nil, started_at: Time.current,
+  def initialize(customer:, plan_id:, gateway:, integration_id:, currency_id: nil, started_at: Time.current,
                  gateway_subscription_id: nil, extra_packages: {}, initial_quantity: nil)
     @customer                = customer
     @plan                    = Plan.find(plan_id)
     @gateway                 = gateway
+    @integration_id          = integration_id
     @currency                = Currency.find_by(id: currency_id) || customer.effective_currency
     @started_at              = started_at
     @gateway_subscription_id = gateway_subscription_id
@@ -16,6 +17,9 @@ class Subscriptions::CreateService
   end
 
   def call
+    errors = validate_integration
+    return Result.new(false, nil, errors) if errors.any?
+
     ActiveRecord::Base.transaction do
       period_start = @started_at.to_time
       period_end   = period_start + 1.month
@@ -33,6 +37,7 @@ class Subscriptions::CreateService
 
       subscription = @customer.subscriptions.create!(
         plan:                    @plan,
+        integration_id:          @integration_id,
         gateway:                 @gateway,
         currency:                @currency,
         gateway_subscription_id: gw_sub_id,
@@ -62,11 +67,34 @@ class Subscriptions::CreateService
 
       Result.new(true, subscription, [])
     end
+  rescue ActiveRecord::RecordNotUnique
+    Result.new(false, nil, ["Já existe assinatura ativa para este cliente nesta integração"])
   rescue StandardError => e
     Result.new(false, nil, [e.message])
   end
 
   private
+
+  def validate_integration
+    errors = []
+
+    integration = Integration.find_by(id: @integration_id)
+
+    if integration.nil?
+      errors << "Integração não encontrada"
+      return errors
+    end
+
+    unless integration.active?
+      errors << "Integração não está ativa"
+    end
+
+    unless PlanIntegration.exists?(plan_id: @plan.id, integration_id: @integration_id)
+      errors << "Plano não está disponível para esta integração"
+    end
+
+    errors
+  end
 
   def create_period_records(period, extras_breakdown)
     create_period_credits(period, extras_breakdown)

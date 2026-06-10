@@ -1,8 +1,8 @@
 class Api::V1::CreditsController < Api::V1::BaseController
   def show
-    return unless (customer = find_customer!)
-    period   = customer.current_period
+    return unless (customer = find_customer_by_external_id!(params[:external_id]))
 
+    period = customer.current_period
     unless period
       render json: { error: "Sem assinatura ativa" }, status: :unprocessable_entity
       return
@@ -27,9 +27,9 @@ class Api::V1::CreditsController < Api::V1::BaseController
   end
 
   def report
-    return unless (customer = find_customer!)
-    period   = customer.current_period
+    return unless (customer = find_customer_by_external_id!(params[:external_id]))
 
+    period = customer.current_period
     unless period
       render json: { error: "Sem assinatura ativa" }, status: :unprocessable_entity
       return
@@ -50,9 +50,7 @@ class Api::V1::CreditsController < Api::V1::BaseController
                     &.find_by(credit_type: credit_type)
                     &.quantity || 0
 
-    snapshot = period.credit_snapshots.find_or_initialize_by(
-      credit_type: credit_type
-    )
+    snapshot = period.credit_snapshots.find_or_initialize_by(credit_type: credit_type)
     snapshot.update!(used: used, limit: limit, synced_at: Time.current)
 
     Credits::CheckThresholdsService.call(customer, snapshot)
@@ -62,16 +60,5 @@ class Api::V1::CreditsController < Api::V1::BaseController
       usage_percent: snapshot.usage_percent,
       status:        snapshot.balance.positive? ? "ok" : "depleted"
     }
-  end
-
-  private
-
-  def find_customer!
-    customer = current_account.customers.find_by(external_id: params[:external_id])
-    unless customer
-      render json: { error: "Cliente não encontrado" }, status: :not_found
-      return nil
-    end
-    customer
   end
 end

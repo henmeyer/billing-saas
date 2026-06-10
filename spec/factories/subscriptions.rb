@@ -2,6 +2,7 @@ FactoryBot.define do
   factory :subscription do
     association :customer
     association :plan
+    association :integration
     status                  { "active" }
     gateway                 { "stripe" }
     gateway_subscription_id { "sub_#{SecureRandom.hex(8)}" }

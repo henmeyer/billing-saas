@@ -98,6 +98,20 @@ ActsAsTenant.with_tenant(account) do
     gw.default     = true
   end
 
+  # ── Integração (criada antes dos clientes para vincular assinaturas) ──────────
+  integration = Integration.find_or_create_by!(name: "Sistema Externo Demo") do |i|
+    i.url    = "https://httpbin.org/post"
+    i.events = Integration::AVAILABLE_EVENTS
+    i.active = true
+  end
+  puts "  ✓ Integração criada: #{integration.name}"
+
+  # Vincular planos à integração via plan_integrations
+  [starter, pro, enterprise].each do |plan|
+    PlanIntegration.find_or_create_by!(plan: plan, integration: integration)
+  end
+  puts "  ✓ Planos vinculados à integração"
+
   # ── Clientes ─────────────────────────────────────────────────────────────────
   customers_data = [
     { name: "Empresa Alpha Ltda",  email: "contato@alpha.com.br",  external_id: "EXT001", status: "active",
@@ -113,12 +127,14 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
   ]
 
   customers_data.each do |data|
-    customer = Customer.find_or_create_by!(external_id: data[:external_id]) do |c|
+    customer = Customer.find_or_create_by!(email: data[:email]) do |c|
       c.name         = data[:name]
-      c.email        = data[:email]
       c.status       = data[:status]
       c.health_score = data[:health]
     end
+
+    # Vincular identidade externa (external_id) via customer_identities
+    customer.set_identity!(integration: integration, external_id: data[:external_id])
 
     # Assinatura
     sub = Subscription.find_or_create_by!(
@@ -127,6 +143,7 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
     ) do |s|
       s.customer             = customer
       s.plan                 = data[:plan]
+      s.integration          = integration
       s.currency             = brl
       s.status               = data[:external_id] == "EXT003" ? "past_due" : "active"
       s.started_at           = 3.months.ago
@@ -192,17 +209,6 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
   # Gamma em atraso (past_due)
   Subscription.find_by(gateway_subscription_id: "sub_gamma_001")
               &.update!(status: "past_due")
-
-  # ── Integração de exemplo ─────────────────────────────────────────────────────
-  unless Integration.exists?(name: "Sistema Externo Demo")
-    Integration.create!(
-      name:   "Sistema Externo Demo",
-      url:    "https://httpbin.org/post",
-      events: Integration::AVAILABLE_EVENTS,
-      active: true
-    )
-    puts "  ✓ Integração de exemplo criada"
-  end
 
   # ── API key de exemplo ────────────────────────────────────────────────────────
   unless account.api_keys.exists?(name: "Demo Key")

@@ -13,12 +13,23 @@ RSpec.configure do |config|
 
           ## Autenticação
 
-          Todas as requisições precisam do header:
+          Use a **API Key da integração**, não a API Key de conta.
+
           ```
-          Authorization: Bearer {sua_api_key}
+          Authorization: Bearer billing_int_sua_chave
           ```
 
-          As API Keys são geradas no painel em **Configurações → API Keys**.
+          As API Keys de integração são geradas em:
+          **Configurações → Integrações → [sua integração] → API Keys**
+
+          > ⚠ API Keys de conta (`billing_...`) não funcionam nesta API.
+          > Elas servem apenas para autenticar no painel.
+
+          ## Namespace de clientes
+
+          O `external_id` é resolvido dentro do contexto da sua integração.
+          O mesmo `external_id: "1"` em duas integrações diferentes
+          corresponde a clientes diferentes.
 
           ## Idempotência
 

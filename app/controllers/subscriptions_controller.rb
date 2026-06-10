@@ -5,7 +5,7 @@ class SubscriptionsController < ApplicationController
 
   def index
     subscriptions = Subscription
-                    .includes(:customer, :plan, :currency, plan: :plan_prices)
+                    .includes(:customer, :plan, :integration, :currency, plan: :plan_prices)
                     .order(created_at: :desc)
 
     render inertia: "Subscriptions/Index", props: {
@@ -16,13 +16,15 @@ class SubscriptionsController < ApplicationController
 
   def new
     render inertia: "Subscriptions/Form", props: {
-      customer:            serialize_customer(@customer),
-      subscription:        {},
-      plans:               serialize_plans,
-      gateways:            serialize_gateways,
-      currencies:          serialize_currencies,
-      default_currency_id: @customer.effective_currency&.id,
-      errors:              {}
+      customer:               serialize_customer(@customer),
+      subscription:           {},
+      plans:                  serialize_plans,
+      gateways:               serialize_gateways,
+      currencies:             serialize_currencies,
+      default_currency_id:    @customer.effective_currency&.id,
+      available_integrations: serialize_available_integrations,
+      selected_integration_id: params[:integration_id]&.to_i,
+      errors:                 {}
     }
   end
 
@@ -31,6 +33,7 @@ class SubscriptionsController < ApplicationController
       customer:                @customer,
       plan_id:                 params[:plan_id],
       gateway:                 params[:gateway],
+      integration_id:          params[:integration_id],
       currency_id:             params[:currency_id],
       started_at:              params[:started_at] || Time.current,
       gateway_subscription_id: params[:gateway_subscription_id],
@@ -42,26 +45,29 @@ class SubscriptionsController < ApplicationController
       redirect_to customer_path(@customer), notice: "Assinatura criada com sucesso."
     else
       render inertia: "Subscriptions/Form", props: {
-        customer:            serialize_customer(@customer),
-        subscription:        params.permit(:plan_id, :gateway, :currency_id),
-        plans:               serialize_plans,
-        gateways:            serialize_gateways,
-        currencies:          serialize_currencies,
-        default_currency_id: @customer.effective_currency&.id,
-        errors:              result.errors
+        customer:               serialize_customer(@customer),
+        subscription:           params.permit(:plan_id, :gateway, :currency_id, :integration_id),
+        plans:                  serialize_plans,
+        gateways:               serialize_gateways,
+        currencies:             serialize_currencies,
+        default_currency_id:    @customer.effective_currency&.id,
+        available_integrations: serialize_available_integrations,
+        errors:                 result.errors
       }
     end
   end
 
   def edit
     render inertia: "Subscriptions/Form", props: {
-      customer:            serialize_customer(@customer),
-      subscription:        serialize_subscription(@subscription),
-      plans:               serialize_plans,
-      gateways:            serialize_gateways,
-      currencies:          serialize_currencies,
-      default_currency_id: @customer.effective_currency&.id,
-      errors:              {}
+      customer:               serialize_customer(@customer),
+      subscription:           serialize_subscription(@subscription),
+      plans:                  serialize_plans,
+      gateways:               serialize_gateways,
+      currencies:             serialize_currencies,
+      default_currency_id:    @customer.effective_currency&.id,
+      available_integrations: serialize_available_integrations,
+      linked_integration:     serialize_linked_integration(@subscription.integration),
+      errors:                 {}
     }
   end
 
@@ -112,6 +118,8 @@ class SubscriptionsController < ApplicationController
     {
       id:                      sub.id,
       plan_id:                 sub.plan_id,
+      integration_id:          sub.integration_id,
+      integration_name:        sub.integration&.name,
       gateway:                 sub.gateway,
       gateway_subscription_id: sub.gateway_subscription_id,
       status:                  sub.status,
@@ -148,6 +156,8 @@ class SubscriptionsController < ApplicationController
       status:             sub.status,
       gateway:            sub.gateway,
       plan_name:          sub.plan&.name,
+      integration_id:     sub.integration_id,
+      integration_name:   sub.integration&.name,
       base_price_cents:   sub.base_price_cents,
       billing_cycle:      sub.plan&.billing_cycle,
       currency_code:      sub.currency_code,
@@ -159,7 +169,7 @@ class SubscriptionsController < ApplicationController
 
   def serialize_plans
     Plan.active
-        .includes(:plan_pricing_tiers, :plan_credits, :plan_licenses,
+        .includes(:plan_pricing_tiers, :plan_credits, :plan_licenses, :plan_integrations,
                   plan_prices:   :currency,
                   plan_credits:  :credit_type,
                   plan_licenses: :license_type)
@@ -170,6 +180,7 @@ class SubscriptionsController < ApplicationController
         billing_cycle:        plan.billing_cycle,
         pricing_model:        plan.pricing_model,
         pricing_metric_label: plan.pricing_metric_label,
+        integration_ids:      plan.plan_integrations.map(&:integration_id),
         prices:               plan.plan_prices.map do |pp|
           {
             currency_id:     pp.currency_id,
@@ -279,5 +290,18 @@ class SubscriptionsController < ApplicationController
 
   def serialize_currencies
     Currency.active.map { |cur| { id: cur.id, code: cur.code, name: cur.name, symbol: cur.symbol } }
+  end
+
+  def serialize_available_integrations
+    used_integration_ids = @customer.subscriptions.active.pluck(:integration_id)
+    Integration.active
+               .where.not(id: used_integration_ids)
+               .map { |i| { id: i.id, name: i.name } }
+  end
+
+  def serialize_linked_integration(integration)
+    return nil unless integration
+
+    { id: integration.id, name: integration.name }
   end
 end

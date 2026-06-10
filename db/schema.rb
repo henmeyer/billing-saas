@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_10_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -121,13 +121,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
     t.index ["account_id"], name: "index_currencies_on_account_id"
   end
 
+  create_table "customer_identities", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.bigint "integration_id", null: false
+    t.string "external_id", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id", "integration_id"], name: "idx_customer_identities_customer_integration", unique: true
+    t.index ["customer_id"], name: "index_customer_identities_on_customer_id"
+    t.index ["integration_id", "external_id"], name: "idx_customer_identities_integration_external", unique: true
+    t.index ["integration_id"], name: "index_customer_identities_on_integration_id"
+  end
+
   create_table "customers", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.string "name", null: false
     t.string "email", null: false
     t.string "document"
     t.string "phone"
-    t.string "external_id"
     t.string "status", default: "active", null: false
     t.integer "health_score", default: 100, null: false
     t.jsonb "gateway_data", default: {}, null: false
@@ -137,7 +149,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
     t.datetime "updated_at", null: false
     t.bigint "currency_id"
     t.index ["account_id", "email"], name: "index_customers_on_account_id_and_email", unique: true
-    t.index ["account_id", "external_id"], name: "index_customers_on_account_id_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
     t.index ["account_id"], name: "index_customers_on_account_id"
     t.index ["currency_id"], name: "index_customers_on_currency_id"
   end
@@ -164,8 +175,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
     t.text "error_message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "integration_id"
+    t.jsonb "identities", default: {}, null: false
     t.index ["account_id"], name: "index_import_jobs_on_account_id"
+    t.index ["integration_id"], name: "index_import_jobs_on_integration_id"
     t.index ["user_id"], name: "index_import_jobs_on_user_id"
+  end
+
+  create_table "integration_api_keys", force: :cascade do |t|
+    t.bigint "integration_id", null: false
+    t.string "name", null: false
+    t.string "token_digest", null: false
+    t.string "last_four", null: false
+    t.datetime "last_used_at"
+    t.datetime "expires_at"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["integration_id"], name: "index_integration_api_keys_on_integration_id"
+    t.index ["token_digest"], name: "index_integration_api_keys_on_token_digest", unique: true
   end
 
   create_table "integration_field_configs", force: :cascade do |t|
@@ -428,9 +456,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
     t.jsonb "metadata", default: {}, null: false
     t.integer "base_price_cents", default: 0, null: false
     t.string "currency_code", default: "BRL", null: false
+    t.bigint "integration_id"
     t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
+    t.index ["customer_id", "integration_id"], name: "idx_unique_active_subscription_per_customer_integration", unique: true, where: "((status)::text = ANY ((ARRAY['active'::character varying, 'trialing'::character varying, 'past_due'::character varying])::text[]))"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["gateway", "gateway_subscription_id"], name: "index_subscriptions_on_gateway_and_gateway_subscription_id", unique: true, where: "(gateway_subscription_id IS NOT NULL)"
+    t.index ["integration_id"], name: "index_subscriptions_on_integration_id"
     t.index ["plan_id"], name: "index_subscriptions_on_plan_id"
   end
 
@@ -486,11 +517,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
   add_foreign_key "credit_snapshots", "subscription_periods"
   add_foreign_key "credit_types", "accounts"
   add_foreign_key "currencies", "accounts"
+  add_foreign_key "customer_identities", "customers"
+  add_foreign_key "customer_identities", "integrations"
   add_foreign_key "customers", "accounts"
   add_foreign_key "customers", "currencies"
   add_foreign_key "feature_types", "accounts"
   add_foreign_key "import_jobs", "accounts"
+  add_foreign_key "import_jobs", "integrations"
   add_foreign_key "import_jobs", "users"
+  add_foreign_key "integration_api_keys", "integrations"
   add_foreign_key "integration_field_configs", "credit_types"
   add_foreign_key "integration_field_configs", "feature_types"
   add_foreign_key "integration_field_configs", "integrations"
@@ -531,6 +566,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
   add_foreign_key "subscription_plan_changes", "subscriptions"
   add_foreign_key "subscriptions", "currencies"
   add_foreign_key "subscriptions", "customers"
+  add_foreign_key "subscriptions", "integrations"
   add_foreign_key "subscriptions", "plans"
   add_foreign_key "users", "accounts"
   add_foreign_key "webhook_logs", "customers"

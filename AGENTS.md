@@ -89,7 +89,7 @@ com API de integração para sistemas externos via webhooks.
 
 ### Assinaturas
 
-- Uma assinatura por cliente que RENOVA (nunca cria nova)
+- Uma assinatura por cliente por integração que RENOVA (nunca cria nova)
 - `gateway_subscription_id` nunca muda
 - Renovação: atualiza período + cria `subscription_period`
 

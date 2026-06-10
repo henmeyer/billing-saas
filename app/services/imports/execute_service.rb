@@ -37,24 +37,32 @@ class Imports::ExecuteService
   private
 
   def import_new(data)
+    email = data["email"] || data[:email]
     ActiveRecord::Base.transaction do
       customer = Customer.create!(
-        name:        data["name"]         || data[:name],
-        email:       data["email"]        || data[:email],
-        document:    data["document"]     || data[:document],
-        phone:       data["phone"]        || data[:phone],
-        external_id: data["external_ref"] || data[:external_ref],
+        name:        data["name"]     || data[:name],
+        email:       email,
+        document:    data["document"] || data[:document],
+        phone:       data["phone"]    || data[:phone],
         status:      "active",
         gateway_data: {
           @import_job.gateway => { "customer_id" => data["gateway_id"] || data[:gateway_id] }
         }
       )
 
+      identity_data  = @import_job.identities&.dig(email)
+      external_id    = identity_data&.dig("external_id").presence
+      integration_id = identity_data&.dig("integration_id")
+      integration    = integration_id.present? ? Integration.find_by(id: integration_id) : nil
+      if external_id && integration
+        customer.customer_identities.create!(integration: integration, external_id: external_id)
+      end
+
       import_subscription(customer, data["subscription"] || data[:subscription])
       @result[:imported] += 1
     end
   rescue ActiveRecord::RecordInvalid => e
-    @result[:errors] << { email: data["email"] || data[:email], message: e.message }
+    @result[:errors] << { email: email, message: e.message }
   end
 
   def process_duplicate(data, decision)

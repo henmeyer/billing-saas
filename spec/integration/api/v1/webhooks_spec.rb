@@ -1,11 +1,12 @@
 require 'swagger_helper'
 
-RSpec.describe 'Webhooks de saída', type: :request do
+# Spec puramente documentacional — não existem rotas reais para estes endpoints.
+# Os webhooks são ENVIADOS pelo sistema para URLs externas configuradas nas integrações.
+# Este arquivo gera a documentação Swagger dos payloads de webhook de saída.
+RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
+  let(:Authorization) { nil }
 
   path '/webhooks/callbacks' do
-    # Path fictício — serve apenas para documentar os webhooks no Swagger.
-    # Os webhooks são enviados para a URL configurada em cada integração.
-
     get 'Documentação dos webhooks de saída' do
       tags        'Webhooks'
       produces    'application/json'
@@ -76,7 +77,7 @@ RSpec.describe 'Webhooks de saída', type: :request do
       DESC
 
       response '200', 'Documentação de referência' do
-        run_test! do
+        it "documentação apenas" do |example|
           expect(true).to be true
         end
       end
@@ -116,7 +117,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
             plan: { id: 1, name: 'Pro' }
           }
         }
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -134,7 +137,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
 
       response '200', 'Payload do evento' do
         schema '$ref' => '#/components/schemas/WebhookSubscriptionCancelled'
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -152,7 +157,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
 
       response '200', 'Payload do evento' do
         schema '$ref' => '#/components/schemas/WebhookSubscriptionPastDue'
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -183,7 +190,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
           features: { ai_enabled: true },
           data: { period_end: '2026-07-01T00:00:00Z' }
         }
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -201,7 +210,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
 
       response '200', 'Payload do evento' do
         schema '$ref' => '#/components/schemas/WebhookSubscriptionTrialEnding'
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -238,7 +249,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
             new_plan:      { id: 2, name: 'Pro' }
           }
         }
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -273,7 +286,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
             charge_id:    'pay_abc123'
           }
         }
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -291,7 +306,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
 
       response '200', 'Payload do evento' do
         schema '$ref' => '#/components/schemas/WebhookPaymentFailed'
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -330,7 +347,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
             threshold:     80
           }
         }
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -348,7 +367,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
 
       response '200', 'Payload do evento' do
         schema '$ref' => '#/components/schemas/WebhookCreditsDepleted'
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -367,7 +388,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
 
       response '200', 'Payload do evento' do
         schema '$ref' => '#/components/schemas/WebhookCreditsRecharged'
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end
@@ -403,7 +426,9 @@ RSpec.describe 'Webhooks de saída', type: :request do
             new_quantity:      20
           }
         }
-        run_test! { expect(true).to be true }
+        it "documentação apenas" do |example|
+          expect(true).to be true
+        end
       end
     end
   end

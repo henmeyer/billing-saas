@@ -115,11 +115,11 @@ import Badge from "@/components/Shared/Badge.vue";
 
 defineProps({
   importJobs: { type: Array, default: () => [] },
-  gateways: { type: Array, default: () => [] },
+  gateways:   { type: Array, default: () => [] },
 });
 
 const selectedGateway = ref("");
-const starting = ref(false);
+const starting        = ref(false);
 
 const startImport = () => {
   if (!selectedGateway.value) return;

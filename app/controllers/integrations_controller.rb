@@ -8,8 +8,10 @@ class IntegrationsController < ApplicationController
   end
 
   def show
+    keys = @integration.integration_api_keys.order(created_at: :desc)
     render inertia: "Integrations/Show", props: {
-      integration: serialize_full(@integration)
+      integration: serialize_full(@integration),
+      api_keys:    keys.map { |k| serialize_api_key(k) }
     }
   end
 
@@ -107,29 +109,41 @@ class IntegrationsController < ApplicationController
     end
   end
 
-  def serialize_integration(i)
+  def serialize_integration(integration)
     {
-      id:               i.id,
-      name:             i.name,
-      url:              i.url,
-      events:           i.events,
-      active:           i.active,
-      retry_count:      i.retry_count,
-      last_error_at:    i.last_error_at&.strftime("%d/%m/%Y %H:%M"),
-      license_type_ids: i.integration_field_configs
-                         .where(field_type: "license")
-                         .pluck(:license_type_id),
-      credit_type_ids:  i.integration_field_configs
-                         .where(field_type: "credit")
-                         .pluck(:credit_type_id),
-      feature_type_ids: i.integration_field_configs
-                         .where(field_type: "feature")
-                         .pluck(:feature_type_id)
+      id:               integration.id,
+      name:             integration.name,
+      url:              integration.url,
+      events:           integration.events,
+      active:           integration.active,
+      retry_count:      integration.retry_count,
+      last_error_at:    integration.last_error_at&.strftime("%d/%m/%Y %H:%M"),
+      license_type_ids: integration.integration_field_configs
+                                   .where(field_type: "license")
+                                   .pluck(:license_type_id),
+      credit_type_ids:  integration.integration_field_configs
+                                   .where(field_type: "credit")
+                                   .pluck(:credit_type_id),
+      feature_type_ids: integration.integration_field_configs
+                                   .where(field_type: "feature")
+                                   .pluck(:feature_type_id)
     }
   end
 
-  def serialize_full(i)
-    serialize_integration(i).merge(secret: i.secret)
+  def serialize_full(integration)
+    serialize_integration(integration).merge(secret: integration.secret)
+  end
+
+  def serialize_api_key(api_key)
+    used_at = api_key.last_used_at
+    {
+      id:           api_key.id,
+      name:         api_key.name,
+      last_four:    api_key.last_four,
+      active:       api_key.active,
+      last_used_at: used_at ? "#{helpers.time_ago_in_words(used_at)} atrás" : "Nunca",
+      expires_at:   api_key.expires_at&.strftime("%d/%m/%Y")
+    }
   end
 
   def serialize_license_types

@@ -2,24 +2,24 @@ require "rails_helper"
 
 RSpec.describe "Api::V1::Credits", type: :request do
   let(:account)     { create(:account) }
-  let(:customer)    { create(:customer, account: account, external_id: "EXT001") }
+  let(:integration) { create(:integration, account: account) }
+  let(:customer)    { create(:customer, account: account) }
   let(:plan)        { create(:plan, account: account) }
-  let(:sub)         { create(:subscription, customer: customer, plan: plan) }
+  let(:sub)         { create(:subscription, customer: customer, plan: plan, integration: integration) }
   let(:period)      { create(:subscription_period, subscription: sub) }
   let(:credit_type) { create(:credit_type, account: account, key: "api_calls") }
-  let(:raw_token)   { "billing_#{SecureRandom.hex(32)}" }
 
-  before { set_tenant(account) }
-  after  { ActsAsTenant.current_tenant = nil }
-
-  let!(:api_key) do
-    ApiKey.create!(
-      name:         "test",
-      token_digest: Digest::SHA256.hexdigest(raw_token),
-      last_four:    raw_token.last(4),
-      active:       true
-    )
+  let(:raw_token) do
+    key, token = IntegrationApiKey.generate!(integration: integration, name: "test")
+    token
   end
+
+  before do
+    set_tenant(account)
+    customer.set_identity!(integration: integration, external_id: "EXT001")
+  end
+
+  after { ActsAsTenant.current_tenant = nil }
 
   let(:headers) { { "Authorization" => "Bearer #{raw_token}" } }
 
@@ -43,8 +43,13 @@ RSpec.describe "Api::V1::Credits", type: :request do
     end
 
     context "sem assinatura ativa" do
+      let(:customer2) { create(:customer, account: account) }
+
+      before do
+        customer2.set_identity!(integration: integration, external_id: "EXT002")
+      end
+
       it "retorna 422" do
-        create(:customer, account: account, external_id: "EXT002")
         get "/api/v1/customers/EXT002/credits", headers: headers
         expect(response).to have_http_status(:unprocessable_entity)
       end

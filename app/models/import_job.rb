@@ -3,6 +3,7 @@ class ImportJob < ApplicationRecord
 
   belongs_to :account
   belongs_to :user
+  belongs_to :integration, optional: true
 
   STATUSES = %w[pending fetching preview_ready importing done failed].freeze
   GATEWAYS = %w[asaas stripe].freeze

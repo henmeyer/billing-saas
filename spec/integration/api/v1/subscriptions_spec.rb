@@ -2,20 +2,20 @@ require 'swagger_helper'
 
 RSpec.describe 'API de Assinatura', type: :request do
   let(:account)      { create(:account) }
-  let(:raw_token)    { "billing_test_token_subs_swagger" }
-  let(:customer)     { create(:customer, account: account, external_id: "EXT123") }
+  let(:integration)  { create(:integration, account: account) }
+  let(:customer)     { create(:customer, account: account) }
   let(:plan)         { create(:plan, account: account, name: "Pro") }
   let(:currency)     { create(:currency, account: account) }
-  let(:subscription) { create(:subscription, customer: customer, plan: plan, currency: currency) }
-  let(:api_key) do
-    create(:api_key, account: account,
-           token_digest: Digest::SHA256.hexdigest(raw_token),
-           last_four: raw_token.last(4))
+  let(:subscription) { create(:subscription, customer: customer, plan: plan, integration: integration, currency: currency) }
+
+  let(:raw_token) do
+    _key, token = IntegrationApiKey.generate!(integration: integration, name: "swagger-test")
+    token
   end
 
   before do
     set_tenant(account)
-    api_key
+    customer.set_identity!(integration: integration, external_id: "EXT123")
     create(:plan_price, plan: plan, currency: currency, amount_cents: 19700)
     subscription
   end

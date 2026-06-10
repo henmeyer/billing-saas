@@ -6,6 +6,8 @@ class Customer < ApplicationRecord
   has_many :subscriptions
   has_many :charges
   has_many :credit_alerts
+  has_many :customer_identities, dependent: :destroy
+  has_many :integrations,        through: :customer_identities
 
   STATUSES = %w[active suspended churned trial].freeze
 
@@ -16,6 +18,19 @@ class Customer < ApplicationRecord
   scope :active,  -> { where(status: "active") }
   scope :churned, -> { where(status: "churned") }
   scope :at_risk, -> { where("health_score < ?", 40) }
+
+  def external_id_for(integration)
+    customer_identities.find_by(integration: integration)&.external_id
+  end
+
+  def set_identity!(integration:, external_id:)
+    identity = customer_identities.find_or_initialize_by(integration: integration)
+    identity.update!(external_id: external_id)
+  end
+
+  def external_id
+    customer_identities.first&.external_id
+  end
 
   def effective_currency
     currency || Currency.default_for_account

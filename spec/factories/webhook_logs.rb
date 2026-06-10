@@ -6,5 +6,6 @@ FactoryBot.define do
     payload  { { "amount" => 197 } }
     status   { "pending" }
     attempts { 1 }
+    uuid     { SecureRandom.uuid }
   end
 end

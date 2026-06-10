@@ -32,7 +32,8 @@ class ImportsController < ApplicationController
 
   def show
     render inertia: "Imports/Show", props: {
-      import_job: serialize_full(@import_job)
+      import_job:   serialize_full(@import_job),
+      integrations: Integration.active.map { |i| { id: i.id, name: i.name } }
     }
   end
 
@@ -42,7 +43,10 @@ class ImportsController < ApplicationController
       return
     end
 
-    @import_job.update!(decisions: params[:decisions] || {})
+    @import_job.update!(
+      decisions:  params[:decisions]  || {},
+      identities: params[:identities] || {}
+    )
     render json: { status: "ok" }
   end
 
@@ -62,24 +66,25 @@ class ImportsController < ApplicationController
     @import_job = ImportJob.find(params[:id])
   end
 
-  def serialize(j)
+  def serialize(job)
     {
-      id:               j.id,
-      gateway:          j.gateway,
-      status:           j.status,
-      total_preview:    j.total_preview,
-      total_new:        j.total_new,
-      total_duplicates: j.total_duplicates,
-      result:           j.result,
-      error_message:    j.error_message,
-      created_at:       j.created_at.strftime("%d/%m/%Y %H:%M")
+      id:               job.id,
+      gateway:          job.gateway,
+      status:           job.status,
+      total_preview:    job.total_preview,
+      total_new:        job.total_new,
+      total_duplicates: job.total_duplicates,
+      result:           job.result,
+      error_message:    job.error_message,
+      created_at:       job.created_at.strftime("%d/%m/%Y %H:%M")
     }
   end
 
-  def serialize_full(j)
-    serialize(j).merge(
-      preview:   j.preview,
-      decisions: j.decisions
+  def serialize_full(job)
+    serialize(job).merge(
+      preview:    job.preview,
+      decisions:  job.decisions,
+      identities: job.identities
     )
   end
 

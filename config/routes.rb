@@ -34,6 +34,7 @@ Rails.application.routes.draw do
     resources :customer_products, only: [:create]
   end
   resources :integrations do
+    resources :integration_api_keys, only: [:index, :create, :destroy]
     resources :webhook_tests,
               only:       [:create],
               controller: "integrations/webhook_tests" do

@@ -1,6 +1,6 @@
 class Api::V1::LicensesController < Api::V1::BaseController
   def show
-    return unless (customer = find_customer!)
+    return unless (customer = find_customer_by_external_id!(params[:external_id]))
 
     subscription = customer.active_subscription
     period       = customer.current_period
@@ -14,7 +14,7 @@ class Api::V1::LicensesController < Api::V1::BaseController
 
     licenses = period.subscription_period_licenses
                      .includes(:license_type)
-                     .map do |spl|
+                     .to_h do |spl|
       used = license_usage[spl.license_type.key].to_i
       [
         spl.license_type.key,
@@ -25,13 +25,13 @@ class Api::V1::LicensesController < Api::V1::BaseController
           unlimited: spl.unlimited?
         }
       ]
-    end.to_h
+    end
 
     render json: { customer_id: params[:external_id], licenses: }
   end
 
   def report
-    return unless (customer = find_customer!)
+    return unless (customer = find_customer_by_external_id!(params[:external_id]))
 
     params[:licenses].each do |license_key, used_count|
       customer.metadata["license_usage"] ||= {}
@@ -40,16 +40,5 @@ class Api::V1::LicensesController < Api::V1::BaseController
     customer.save!
 
     render json: { status: "ok", licenses: customer.metadata["license_usage"] }
-  end
-
-  private
-
-  def find_customer!
-    customer = current_account.customers.find_by(external_id: params[:external_id])
-    unless customer
-      render json: { error: "Cliente não encontrado" }, status: :not_found
-      return nil
-    end
-    customer
   end
 end

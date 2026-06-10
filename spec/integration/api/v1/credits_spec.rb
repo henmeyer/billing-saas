@@ -2,21 +2,22 @@ require 'swagger_helper'
 
 RSpec.describe 'API de Créditos', type: :request do
   let(:account)     { create(:account) }
-  let(:raw_token)   { "billing_test_token_credits_swagger" }
-  let(:customer)    { create(:customer, account: account, external_id: "EXT123") }
+  let(:integration) { create(:integration, account: account) }
+  let(:customer)    { create(:customer, account: account) }
   let(:plan)        { create(:plan, account: account) }
-  let(:subscription) { create(:subscription, customer: customer, plan: plan) }
+  let(:subscription) { create(:subscription, customer: customer, plan: plan, integration: integration) }
   let(:period)      { create(:subscription_period, subscription: subscription) }
   let(:credit_type) { create(:credit_type, account: account, key: 'coins') }
-  let(:api_key) do
-    create(:api_key, account: account,
-           token_digest: Digest::SHA256.hexdigest(raw_token),
-           last_four: raw_token.last(4))
+
+  let(:raw_token) do
+    _key, token = IntegrationApiKey.generate!(integration: integration, name: "swagger-test")
+    token
   end
 
   before do
     set_tenant(account)
-    api_key; customer; period; credit_type
+    customer.set_identity!(integration: integration, external_id: "EXT123")
+    period; credit_type
     create(:credit_snapshot, subscription_period: period,
            credit_type: credit_type, used: 300, limit: 1000)
   end

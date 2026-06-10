@@ -2,21 +2,24 @@ require 'swagger_helper'
 
 RSpec.describe 'API de Licenças', type: :request do
   let(:account)      { create(:account) }
-  let(:raw_token)    { "billing_test_token_licenses_swagger" }
-  let(:customer)     { create(:customer, account: account, external_id: "EXT123") }
+  let(:integration)  { create(:integration, account: account) }
+  let(:customer)     { create(:customer, account: account) }
   let(:plan)         { create(:plan, account: account) }
-  let(:subscription) { create(:subscription, customer: customer, plan: plan) }
+  let(:subscription) { create(:subscription, customer: customer, plan: plan, integration: integration) }
   let(:license_type) { create(:license_type, account: account, key: 'user_licenses') }
-  let(:api_key) do
-    create(:api_key, account: account,
-           token_digest: Digest::SHA256.hexdigest(raw_token),
-           last_four: raw_token.last(4))
+
+  let(:raw_token) do
+    _key, token = IntegrationApiKey.generate!(integration: integration, name: "swagger-test")
+    token
   end
 
   before do
     set_tenant(account)
-    api_key; subscription
+    customer.set_identity!(integration: integration, external_id: "EXT123")
+    subscription
     create(:plan_license, plan: plan, license_type: license_type, quantity: 20)
+    period = create(:subscription_period, subscription: subscription)
+    period.subscription_period_licenses.create!(license_type: license_type, quantity: 20)
     customer.metadata['license_usage'] = { 'user_licenses' => 14 }
     customer.save!
   end

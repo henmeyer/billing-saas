@@ -1,6 +1,7 @@
 class Subscription < ApplicationRecord
   belongs_to :customer
   belongs_to :plan
+  belongs_to :integration
   belongs_to :currency, optional: true
 
   has_many :subscription_periods, dependent: :destroy
@@ -12,8 +13,12 @@ class Subscription < ApplicationRecord
 
   validates :status,  inclusion: { in: STATUSES }
   validates :gateway, inclusion: { in: GATEWAYS }
+  validates :integration_id, presence: true
+  validate :unique_active_per_integration, on: :create
 
-  scope :active, -> { where(status: %w[active trialing]) }
+  scope :active, -> { where(status: %w[active trialing past_due]) }
+
+  attr_readonly :integration_id
 
   def current_period
     subscription_periods.current.last
@@ -73,5 +78,19 @@ class Subscription < ApplicationRecord
                                        previous_plan: { id: old_plan.id, name: old_plan.name },
                                        new_plan:      { id: new_plan.id, name: new_plan.name }
                                      })
+  end
+
+  private
+
+  def unique_active_per_integration
+    return unless customer_id && integration_id
+
+    existing = Subscription.where(customer_id: customer_id, integration_id: integration_id)
+                           .where(status: %w[active trialing past_due])
+    existing = existing.where.not(id: id) if persisted?
+
+    if existing.exists?
+      errors.add(:integration_id, "já possui assinatura ativa nesta integração")
+    end
   end
 end

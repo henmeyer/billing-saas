@@ -144,15 +144,19 @@
             Novos clientes ({{ import_job.preview.new.length }})
           </h3>
           <p class="text-xs text-gray-500 mt-0.5">
-            Serão criados automaticamente.
+            Serão criados automaticamente. Vincule a uma integração se desejar.
           </p>
         </div>
-        <div class="table-wrapper border-0 rounded-none max-h-64 overflow-y-auto">
+        <div class="table-wrapper border-0 rounded-none max-h-96 overflow-y-auto">
           <table class="table">
             <thead>
               <tr>
                 <th>Cliente</th>
                 <th>Assinatura</th>
+                <template v-if="integrations.length">
+                  <th>Integração</th>
+                  <th>ID externo</th>
+                </template>
               </tr>
             </thead>
             <tbody>
@@ -168,6 +172,33 @@
                   <Badge v-if="c.subscription" variant="green">Ativa</Badge>
                   <span v-else class="text-xs text-gray-400">Sem assinatura</span>
                 </td>
+                <template v-if="integrations.length">
+                  <td>
+                    <select
+                      v-model="identities[c.email].integration_id"
+                      class="form-input text-sm py-1"
+                      @change="saveDecisions"
+                    >
+                      <option :value="null">—</option>
+                      <option
+                        v-for="i in integrations"
+                        :key="i.id"
+                        :value="i.id"
+                      >
+                        {{ i.name }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      v-model="identities[c.email].external_id"
+                      type="text"
+                      class="form-input text-sm font-mono py-1"
+                      placeholder="opcional"
+                      @change="saveDecisions"
+                    />
+                  </td>
+                </template>
               </tr>
             </tbody>
           </table>
@@ -202,11 +233,34 @@
             :key="c.email"
             class="px-6 py-4 flex items-center gap-4"
           >
-            <div class="flex-1">
+            <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-gray-900">{{ c.name }}</p>
               <p class="text-xs text-gray-400">{{ c.email }}</p>
             </div>
-            <div class="flex gap-2">
+            <div v-if="integrations.length" class="flex gap-2 flex-shrink-0">
+              <select
+                v-model="identities[c.email].integration_id"
+                class="form-input text-sm py-1 w-36"
+                @change="saveDecisions"
+              >
+                <option :value="null">—</option>
+                <option
+                  v-for="i in integrations"
+                  :key="i.id"
+                  :value="i.id"
+                >
+                  {{ i.name }}
+                </option>
+              </select>
+              <input
+                v-model="identities[c.email].external_id"
+                type="text"
+                class="form-input text-sm font-mono py-1 w-32"
+                placeholder="ID externo"
+                @change="saveDecisions"
+              />
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
               <button
                 v-for="opt in decisionOptions"
                 :key="opt.value"
@@ -257,16 +311,38 @@ import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 
-const props = defineProps({ import_job: Object });
+const props = defineProps({
+  import_job:   Object,
+  integrations: { type: Array, default: () => [] },
+});
 
 const decisions = ref({ ...props.import_job.decisions });
 const executing = ref(false);
 let polling = null;
 let mounted = true;
 
+const identities = ref({});
+
+const populateIdentities = (preview) => {
+  if (!preview) return;
+  const customers = [...(preview.new || []), ...(preview.duplicates || [])];
+  customers.forEach((c) => {
+    if (!c.email || identities.value[c.email]) return;
+    const saved = props.import_job.identities?.[c.email];
+    const isObj = saved && typeof saved === "object" && !Array.isArray(saved);
+    identities.value[c.email] = isObj ? saved : { integration_id: null, external_id: "" };
+  });
+};
+
+watch(
+  () => props.import_job.preview,
+  (preview) => populateIdentities(preview),
+  { immediate: true }
+);
+
 const decisionOptions = [
-  { value: "skip",   label: "Ignorar",   activeClass: "border-gray-400 bg-gray-100 text-gray-700" },
-  { value: "update", label: "Atualizar", activeClass: "border-blue-400 bg-blue-50 text-blue-700" },
+  { value: "skip",   label: "Ignorar",    activeClass: "border-gray-400 bg-gray-100 text-gray-700" },
+  { value: "update", label: "Atualizar",  activeClass: "border-blue-400 bg-blue-50 text-blue-700" },
   { value: "create", label: "Criar novo", activeClass: "border-green-400 bg-green-50 text-green-700" },
 ];
 
@@ -289,7 +365,10 @@ const saveDecisions = async () => {
       "Content-Type": "application/json",
       "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
     },
-    body: JSON.stringify({ decisions: decisions.value }),
+    body: JSON.stringify({
+      decisions:  decisions.value,
+      identities: identities.value,
+    }),
   });
 };
 

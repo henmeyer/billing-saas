@@ -15,6 +15,94 @@
       </Link>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- API Keys -->
+      <div class="lg:col-span-2">
+        <div class="card">
+          <div class="card-header flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-medium text-gray-900">API Keys</h3>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Use estas chaves para integrar seu software com a plataforma.
+                <strong>Não use API Keys de conta aqui.</strong>
+              </p>
+            </div>
+            <button @click="showNewKeyForm = !showNewKeyForm" class="btn-secondary btn-sm">
+              + Nova chave
+            </button>
+          </div>
+
+          <!-- Form de nova chave -->
+          <div v-if="showNewKeyForm" class="px-6 py-4 border-b border-gray-100">
+            <form @submit.prevent="createKey" class="flex gap-3">
+              <input
+                v-model="createForm.name"
+                type="text"
+                class="form-input flex-1"
+                placeholder="Nome da chave (ex: Produção)"
+                required
+              />
+              <button type="submit" :disabled="createForm.processing" class="btn-primary">
+                {{ createForm.processing ? "..." : "Gerar" }}
+              </button>
+            </form>
+          </div>
+
+          <!-- Token gerado (mostrado uma vez) -->
+          <div v-if="newToken" class="px-6 py-4 border-b border-yellow-100 bg-yellow-50">
+            <p class="text-xs font-medium text-yellow-800 mb-1">
+              Copie agora — não será exibido novamente
+            </p>
+            <code class="text-xs font-mono text-yellow-900 break-all block bg-yellow-100 px-3 py-2 rounded">
+              {{ newToken }}
+            </code>
+            <button @click="newToken = null" class="text-xs text-yellow-600 mt-2">Fechar</button>
+          </div>
+
+          <!-- Lista de chaves -->
+          <div v-if="!localApiKeys.length" class="px-6 py-8 text-center text-sm text-gray-400">
+            Nenhuma API Key criada para esta integração.
+          </div>
+          <div v-else class="divide-y divide-gray-100">
+            <div
+              v-for="key in localApiKeys"
+              :key="key.id"
+              class="px-6 py-3 flex items-center justify-between"
+            >
+              <div>
+                <p class="text-sm font-medium text-gray-900">{{ key.name }}</p>
+                <div class="flex items-center gap-3 mt-0.5">
+                  <code class="text-xs bg-gray-100 px-2 py-0.5 rounded font-mono">
+                    billing_int_···{{ key.last_four }}
+                  </code>
+                  <span class="text-xs text-gray-400">{{ key.last_used_at }}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <Badge :variant="key.active ? 'green' : 'gray'">
+                  {{ key.active ? "Ativa" : "Revogada" }}
+                </Badge>
+                <ConfirmButton
+                  v-if="key.active"
+                  :message="`Revogar a chave ${key.name}?`"
+                  @confirm="revokeKey(key.id)"
+                >
+                  Revogar
+                </ConfirmButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- Instruções de uso -->
+          <div class="px-6 py-4 bg-gray-50 rounded-b-xl">
+            <p class="text-xs font-medium text-gray-500 mb-2">Como usar</p>
+            <pre class="text-xs bg-gray-900 text-gray-100 rounded px-3 py-2 overflow-x-auto">curl -H "Authorization: Bearer billing_int_sua_chave" \
+     {{ appUrl }}/api/v1/customers/EXT123/credits</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Info da integração -->
       <div class="space-y-4">
@@ -223,19 +311,51 @@ valid = f"sha256={sig}" == request.headers.get("X-Billing-Signature")</pre>
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, router, useForm, usePage } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
+import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 const props = defineProps({
   integration: Object,
+  apiKeys: { type: Array, default: () => [] },
 });
+
+const page = usePage();
 
 const selectedEvent = ref(props.integration.events?.[0] || "");
 const testing = ref(false);
 const showSecret = ref(false);
 const lastResult = ref(null);
 const testLogs = ref([]);
+
+// API Keys
+const showNewKeyForm = ref(false);
+const localApiKeys = ref(props.apiKeys);
+const appUrl = window.location.origin;
+
+const newToken = ref(page.props.flash?.token || null);
+
+const createForm = useForm({ name: "" });
+
+const createKey = () => {
+  createForm.post(`/integrations/${props.integration.id}/integration_api_keys`, {
+    onSuccess: () => {
+      showNewKeyForm.value = false;
+      createForm.reset();
+      newToken.value = page.props.flash?.token || null;
+    },
+  });
+};
+
+const revokeKey = (id) => {
+  router.delete(`/integrations/${props.integration.id}/integration_api_keys/${id}`, {
+    onSuccess: () => {
+      const key = localApiKeys.value.find((k) => k.id === id);
+      if (key) key.active = false;
+    },
+  });
+};
 
 const sendTest = async () => {
   if (!selectedEvent.value || testing.value) return;
