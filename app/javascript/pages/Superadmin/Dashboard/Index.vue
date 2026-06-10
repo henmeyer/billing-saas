@@ -1,5 +1,5 @@
 <template>
-  <SuperadminLayout>
+  <AppLayout>
     <div class="page-header">
       <h2 class="page-title">Painel SuperAdmin</h2>
     </div>
@@ -50,12 +50,12 @@
         </table>
       </div>
     </div>
-  </SuperadminLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { Link } from "@inertiajs/vue3";
-import SuperadminLayout from "@/components/Layout/SuperadminLayout.vue";
+import AppLayout from "@/components/Layout/AppLayout.vue";
 import StatCard from "@/components/Shared/StatCard.vue";
 import Badge from "@/components/Shared/Badge.vue";
 

@@ -26,6 +26,44 @@ class Superadmin::UsersController < Superadmin::BaseController
     }
   end
 
+  def new
+    render inertia: "Superadmin/Users/New", props: {
+      accounts: Account.order(:name).map { |a| { id: a.id, name: a.name } },
+      errors:   {}
+    }
+  end
+
+  def create
+    ActiveRecord::Base.transaction do
+      user = User.new(
+        name:                  params[:name],
+        email:                 params[:email],
+        password:              params[:password],
+        password_confirmation: params[:password_confirmation]
+      )
+
+      unless user.save
+        render inertia: "Superadmin/Users/New", props: {
+          accounts: Account.order(:name).map { |a| { id: a.id, name: a.name } },
+          errors:   user.errors.full_messages
+        }
+        return
+      end
+
+      if params[:account_id].present?
+        account = Account.find(params[:account_id])
+        account.account_users.create!(user: user, role: params[:role] || "member")
+      end
+
+      redirect_to superadmin_user_path(user), notice: "Usuário criado com sucesso."
+    end
+  rescue => e
+    render inertia: "Superadmin/Users/New", props: {
+      accounts: Account.order(:name).map { |a| { id: a.id, name: a.name } },
+      errors:   [e.message]
+    }
+  end
+
   def impersonate
     user = User.find(params[:id])
 

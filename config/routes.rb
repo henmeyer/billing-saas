@@ -58,14 +58,14 @@ Rails.application.routes.draw do
   namespace :superadmin do
     root "dashboard#index"
 
-    resources :accounts, only: %i[index show edit update] do
+    resources :accounts, only: %i[index show new create edit update] do
       member do
         post :suspend
         post :activate
       end
     end
 
-    resources :users, only: [:index, :show] do
+    resources :users, only: %i[index show new create] do
       member do
         post :impersonate
       end

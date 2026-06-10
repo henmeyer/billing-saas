@@ -1,5 +1,5 @@
 <template>
-  <SuperadminLayout>
+  <AppLayout>
     <div class="page-header">
       <div class="flex items-center gap-3">
         <Link href="/superadmin/accounts" class="text-sm text-gray-500 hover:text-gray-700">
@@ -109,12 +109,12 @@
         </div>
       </div>
     </div>
-  </SuperadminLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { Link, router } from "@inertiajs/vue3";
-import SuperadminLayout from "@/components/Layout/SuperadminLayout.vue";
+import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 

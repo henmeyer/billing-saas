@@ -29,6 +29,27 @@ class Superadmin::AccountsController < Superadmin::BaseController
     end
   end
 
+  def new
+    render inertia: "Superadmin/Accounts/New", props: { errors: {} }
+  end
+
+  def create
+    result = Accounts::CreateService.call(
+      company_name:          params[:company_name],
+      name:                  params[:owner_name],
+      email:                 params[:owner_email],
+      password:              params[:password],
+      password_confirmation: params[:password_confirmation]
+    )
+
+    if result.success?
+      redirect_to superadmin_account_path(result.account),
+                  notice: "Conta '#{result.account.name}' criada com sucesso."
+    else
+      render inertia: "Superadmin/Accounts/New", props: { errors: result.errors }
+    end
+  end
+
   def edit
     render inertia: "Superadmin/Accounts/Edit", props: {
       account: serialize(@account),

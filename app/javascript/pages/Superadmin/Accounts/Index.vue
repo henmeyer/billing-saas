@@ -1,10 +1,13 @@
 <template>
-  <SuperadminLayout>
+  <AppLayout>
     <div class="page-header">
       <div>
         <h2 class="page-title">Contas</h2>
         <p class="text-sm text-gray-500 mt-0.5">{{ accounts.length }} contas cadastradas</p>
       </div>
+      <Link href="/superadmin/accounts/new" class="btn-primary">
+        Nova conta
+      </Link>
     </div>
 
     <div class="mb-4">
@@ -54,13 +57,13 @@
         </table>
       </div>
     </div>
-  </SuperadminLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
 import { Link } from "@inertiajs/vue3";
-import SuperadminLayout from "@/components/Layout/SuperadminLayout.vue";
+import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 
 const props = defineProps({ accounts: Array });

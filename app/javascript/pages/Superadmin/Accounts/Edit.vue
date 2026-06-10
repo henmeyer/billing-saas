@@ -1,5 +1,5 @@
 <template>
-  <SuperadminLayout>
+  <AppLayout>
     <div class="page-header">
       <div class="flex items-center gap-3">
         <Link
@@ -41,12 +41,12 @@
         </button>
       </div>
     </div>
-  </SuperadminLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { Link, useForm } from "@inertiajs/vue3";
-import SuperadminLayout from "@/components/Layout/SuperadminLayout.vue";
+import AppLayout from "@/components/Layout/AppLayout.vue";
 
 const props = defineProps({
   account: Object,

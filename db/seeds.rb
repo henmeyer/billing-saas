@@ -38,7 +38,8 @@ ActsAsTenant.with_tenant(account) do
       name:                  "Admin Demo",
       email:                 "admin@billing.com",
       password:              "password123",
-      password_confirmation: "password123"
+      password_confirmation: "password123",
+      type: "SuperAdmin"
     )
     AccountUser.create!(account: account, user: admin, role: "admin")
     puts "  ✓ Usuário admin criado"

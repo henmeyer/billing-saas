@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_10_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_10_130002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -456,7 +456,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_10_130000) do
     t.jsonb "metadata", default: {}, null: false
     t.integer "base_price_cents", default: 0, null: false
     t.string "currency_code", default: "BRL", null: false
-    t.bigint "integration_id"
+    t.bigint "integration_id", null: false
     t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
     t.index ["customer_id", "integration_id"], name: "idx_unique_active_subscription_per_customer_integration", unique: true, where: "((status)::text = ANY ((ARRAY['active'::character varying, 'trialing'::character varying, 'past_due'::character varying])::text[]))"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"

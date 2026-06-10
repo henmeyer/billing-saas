@@ -1,10 +1,13 @@
 <template>
-  <SuperadminLayout>
+  <AppLayout>
     <div class="page-header">
       <div>
         <h2 class="page-title">Usuários</h2>
         <p class="text-sm text-gray-500 mt-0.5">{{ users.length }} usuários cadastrados</p>
       </div>
+      <Link href="/superadmin/users/new" class="btn-primary">
+        Novo usuário
+      </Link>
     </div>
 
     <div class="mb-4">
@@ -57,13 +60,13 @@
         </table>
       </div>
     </div>
-  </SuperadminLayout>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
 import { Link, router } from "@inertiajs/vue3";
-import SuperadminLayout from "@/components/Layout/SuperadminLayout.vue";
+import AppLayout from "@/components/Layout/AppLayout.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 const props = defineProps({ users: Array });
