@@ -1,0 +1,37 @@
+ARG RUBY_VERSION=3.4.4
+FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim
+
+WORKDIR /rails
+
+# Install system dependencies + Node.js 22
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      build-essential \
+      curl \
+      git \
+      libpq-dev \
+      libyaml-dev \
+      libvips \
+      pkg-config \
+      ca-certificates \
+      gnupg && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install gems
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+# Don't install node_modules in build — they go in a volume
+# and need to be installed at runtime for correct native bindings
+
+COPY bin/docker-entrypoint-dev /usr/bin/
+RUN chmod +x /usr/bin/docker-entrypoint-dev
+ENTRYPOINT ["docker-entrypoint-dev"]
+
+EXPOSE 3000
+CMD ["bash"]

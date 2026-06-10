@@ -1,0 +1,12 @@
+#!/bin/bash -e
+
+# Install node_modules if missing or outdated
+if [ ! -d "node_modules/.package-lock.json" ] || [ "package-lock.json" -nt "node_modules/.package-lock.json" ]; then
+  echo "📦 Installing node packages..."
+  npm install
+fi
+
+# Remove stale Rails pid
+rm -f tmp/pids/server.pid
+
+exec "${@}"
