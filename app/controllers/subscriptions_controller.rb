@@ -34,7 +34,8 @@ class SubscriptionsController < ApplicationController
       currency_id:             params[:currency_id],
       started_at:              params[:started_at] || Time.current,
       gateway_subscription_id: params[:gateway_subscription_id],
-      extra_packages:          params[:extra_packages]&.to_unsafe_h || {}
+      extra_packages:          params[:extra_packages]&.to_unsafe_h || {},
+      initial_quantity:        params[:initial_quantity]&.to_i
     )
 
     if result.success?
@@ -70,14 +71,15 @@ class SubscriptionsController < ApplicationController
       @subscription.change_plan!(new_plan, changed_by: current_user)
     end
 
-    extra_packages = params[:extra_packages]&.to_unsafe_h || {}
+    extra_packages   = params[:extra_packages]&.to_unsafe_h || {}
+    initial_quantity = params[:initial_quantity]&.to_i
 
     @subscription.update!(
       status:   params[:status] || @subscription.status,
       metadata: @subscription.metadata.merge("extra_packages" => extra_packages)
     )
 
-    update_credit_snapshots_for_extras(extra_packages) if extra_packages.present?
+    update_period_records(extra_packages, initial_quantity:)
 
     redirect_to customer_path(@customer), notice: "Assinatura atualizada."
   rescue StandardError => e
@@ -106,6 +108,7 @@ class SubscriptionsController < ApplicationController
   end
 
   def serialize_subscription(sub)
+    period = sub.current_period
     {
       id:                      sub.id,
       plan_id:                 sub.plan_id,
@@ -114,11 +117,29 @@ class SubscriptionsController < ApplicationController
       status:                  sub.status,
       currency_id:             sub.currency_id,
       currency_code:           sub.currency&.code,
-      price_in_currency:       sub.price_in_currency,
+      base_price_cents:        sub.base_price_cents,
+      period_amount_cents:     period&.amount_cents || sub.base_price_cents,
+      period_base_cents:       period&.base_amount_cents || sub.base_price_cents,
+      period_extras_cents:     period&.extras_amount_cents || 0,
+      current_quantity:        current_quantity_for(sub),
       started_at:              sub.started_at&.strftime("%Y-%m-%d"),
       current_period_end:      sub.current_period_end&.strftime("%Y-%m-%d"),
-      extra_packages:          sub.metadata["extra_packages"] || {}
+      current_extra_packages:  period ? extract_extra_packages(period) : {}
     }
+  end
+
+  def current_quantity_for(sub)
+    plan = sub.plan
+    case plan.pricing_model
+    when "flat"     then 1
+    when "per_unit"
+      unit_price = plan.unit_price_for(sub.effective_currency)
+      unit_price.zero? ? 1 : (sub.base_price_cents.to_f / unit_price).round
+    when "volume"
+      plan.current_quantity_for(sub.customer)
+    else
+      1
+    end
   end
 
   def serialize_subscription_row(sub)
@@ -127,9 +148,9 @@ class SubscriptionsController < ApplicationController
       status:             sub.status,
       gateway:            sub.gateway,
       plan_name:          sub.plan&.name,
-      price_cents:        sub.price_in_currency,
+      base_price_cents:   sub.base_price_cents,
       billing_cycle:      sub.plan&.billing_cycle,
-      currency_code:      sub.currency&.code,
+      currency_code:      sub.currency_code,
       current_period_end: sub.current_period_end&.strftime("%d/%m/%Y"),
       started_at:         sub.started_at&.strftime("%d/%m/%Y"),
       customer:           { id: sub.customer.id, name: sub.customer.name }
@@ -138,8 +159,10 @@ class SubscriptionsController < ApplicationController
 
   def serialize_plans
     Plan.active
-        .includes(:plan_pricing_tiers, :plan_credits, plan_prices:  :currency,
-                                                      plan_credits: :credit_type)
+        .includes(:plan_pricing_tiers, :plan_credits, :plan_licenses,
+                  plan_prices:   :currency,
+                  plan_credits:  :credit_type,
+                  plan_licenses: :license_type)
         .map do |plan|
       {
         id:                   plan.id,
@@ -148,7 +171,12 @@ class SubscriptionsController < ApplicationController
         pricing_model:        plan.pricing_model,
         pricing_metric_label: plan.pricing_metric_label,
         prices:               plan.plan_prices.map do |pp|
-          { currency_id: pp.currency_id, amount_cents: pp.amount_cents }
+          {
+            currency_id:     pp.currency_id,
+            currency_code:   pp.currency.code,
+            currency_symbol: pp.currency.symbol,
+            amount_cents:    pp.amount_cents
+          }
         end,
         pricing_tiers:        plan.plan_pricing_tiers.ordered.map do |t|
           {
@@ -162,33 +190,86 @@ class SubscriptionsController < ApplicationController
         credits:              plan.plan_credits.map do |pc|
           {
             credit_type_id:         pc.credit_type_id,
-            credit_type_label:      pc.credit_type&.label,
             credit_type_key:        pc.credit_type&.key,
-            unit:                   pc.credit_type&.unit,
-            base_quantity:          pc.quantity,
+            credit_type_label:      pc.credit_type&.label,
+            credit_type_unit:       pc.credit_type&.unit,
+            quantity:               pc.quantity,
             allow_extras:           pc.allow_extras,
             extra_unit_size:        pc.extra_unit_size,
             extra_unit_price_cents: pc.extra_unit_price_cents
+          }
+        end,
+        licenses:             plan.plan_licenses.map do |pl|
+          {
+            license_type_id:    pl.license_type_id,
+            license_type_label: pl.license_type&.label,
+            license_type_unit:  pl.license_type&.unit,
+            quantity:           pl.quantity
           }
         end
       }
     end
   end
 
-  def update_credit_snapshots_for_extras(extra_packages)
+  def update_period_records(extra_packages, initial_quantity: nil)
     period = @subscription.current_period
     return unless period
 
-    @subscription.plan.plan_credits.each do |pc|
-      snapshot = period.credit_snapshots.find_by(credit_type_id: pc.credit_type_id)
-      next unless snapshot
+    plan = @subscription.plan
+    pricing = Pricing::CalculateService.call(
+      plan:             plan,
+      customer:         @subscription.customer,
+      currency:         @subscription.effective_currency,
+      extra_packages:   extra_packages,
+      initial_quantity: initial_quantity
+    )
 
+    base_price   = plan.calculate_price(pricing.quantity, @subscription.effective_currency)
+    extras_total = [pricing.amount_cents - base_price, 0].max
+
+    period.update!(
+      amount_cents:        pricing.amount_cents,
+      base_amount_cents:   base_price,
+      extras_amount_cents: extras_total
+    )
+
+    @subscription.update_column(:base_price_cents, base_price)
+
+    @subscription.plan.plan_credits.each do |pc|
       n_packages = extra_packages[pc.credit_type_id.to_s].to_i
-      new_limit  = pc.total_quantity(n_packages)
-      snapshot.update!(
-        limit:   new_limit,
-        balance: [new_limit - snapshot.used, 0].max
+      extra_qty  = n_packages * pc.extra_unit_size
+      total_qty  = pc.quantity + extra_qty
+
+      period.subscription_period_credits
+            .find_by(credit_type_id: pc.credit_type_id)
+            &.update!(quantity: total_qty, extras: extra_qty, extra_packages: n_packages)
+
+      snapshot = period.credit_snapshots.find_by(credit_type_id: pc.credit_type_id)
+      snapshot&.update!(
+        limit:   total_qty,
+        balance: [total_qty - snapshot.used, 0].max
       )
+    end
+
+    # Upsert subscription_period_licenses based on current plan
+    @subscription.plan.plan_licenses.includes(:license_type).each do |pl|
+      spl = period.subscription_period_licenses
+                  .find_or_initialize_by(license_type_id: pl.license_type_id)
+      spl.update!(quantity: pl.quantity)
+    end
+
+    # Remove licenses that no longer exist in the new plan
+    current_license_type_ids = @subscription.plan.plan_licenses.pluck(:license_type_id)
+    period.subscription_period_licenses
+          .where.not(license_type_id: current_license_type_ids)
+          .destroy_all
+  end
+
+  def extract_extra_packages(period)
+    period.subscription_period_credits
+          .where("extra_packages > 0")
+          .each_with_object({}) do |spc, hash|
+      hash[spc.credit_type_id.to_s] = spc.extra_packages
     end
   end
 

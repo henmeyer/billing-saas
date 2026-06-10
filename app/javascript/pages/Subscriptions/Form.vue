@@ -31,14 +31,20 @@
             <select v-model="form.plan_id" class="form-input">
               <option value="">Selecione um plano</option>
               <option v-for="p in plans" :key="p.id" :value="p.id">
-                {{ p.name }} ({{ p.billing_cycle === "monthly" ? "mensal" : "anual" }})
+                {{ p.name }} ({{
+                  p.billing_cycle === "monthly" ? "mensal" : "anual"
+                }})
               </option>
             </select>
           </div>
 
           <div>
             <label class="form-label">Gateway de pagamento</label>
-            <select v-model="form.gateway" class="form-input" :disabled="!!subscription.id">
+            <select
+              v-model="form.gateway"
+              class="form-input"
+              :disabled="!!subscription.id"
+            >
               <option value="">Selecione o gateway</option>
               <option v-for="g in gateways" :key="g.id" :value="g.provider">
                 {{ g.provider }}
@@ -103,7 +109,8 @@
         <div class="card-header">
           <h3 class="text-sm font-medium text-gray-900">Créditos adicionais</h3>
           <p class="text-xs text-gray-500 mt-0.5">
-            O plano inclui a quantidade base. Adicione pacotes extras se necessário.
+            O plano inclui a quantidade base. Adicione pacotes extras se
+            necessário.
           </p>
         </div>
         <div class="card-body space-y-4">
@@ -113,9 +120,12 @@
             class="flex items-center gap-4"
           >
             <div class="flex-1">
-              <p class="text-sm font-medium text-gray-700">{{ credit.credit_type_label }}</p>
+              <p class="text-sm font-medium text-gray-700">
+                {{ credit.credit_type_label }}
+              </p>
               <p class="text-xs text-gray-400">
-                Base inclusa: {{ fmtNum(credit.base_quantity) }} {{ credit.unit }}s/mês
+                Base inclusa: {{ fmtNum(credit.quantity) }}
+                {{ credit.credit_type_unit }}s/mês
               </p>
             </div>
 
@@ -124,24 +134,25 @@
                 type="button"
                 @click="decrementPackage(credit.credit_type_id)"
                 :disabled="(extraPackages[credit.credit_type_id] || 0) <= 0"
-                class="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center
-                       text-gray-500 hover:border-brand-500 hover:text-brand-600
-                       disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >−</button>
+                class="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-brand-500 hover:text-brand-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                −
+              </button>
 
               <div class="text-center w-32">
                 <p class="text-sm font-semibold text-gray-900">
                   {{ fmtNum(totalQuantity(credit)) }}
                 </p>
-                <p class="text-xs text-gray-400">{{ credit.unit }}s/mês</p>
+                <p class="text-xs text-gray-400">{{ credit.credit_type_unit }}s/mês</p>
               </div>
 
               <button
                 type="button"
                 @click="incrementPackage(credit.credit_type_id)"
-                class="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center
-                       text-gray-500 hover:border-brand-500 hover:text-brand-600 transition-colors"
-              >+</button>
+                class="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:border-brand-500 hover:text-brand-600 transition-colors"
+              >
+                +
+              </button>
 
               <div class="text-right w-24">
                 <p class="text-xs text-gray-500">
@@ -161,26 +172,34 @@
           <h3 class="text-sm font-medium text-gray-900">Resumo da cobrança</h3>
         </div>
         <div class="card-body space-y-3 text-sm">
-          <div v-if="selectedPlan.pricing_model !== 'flat'" class="flex justify-between">
+          <div
+            v-if="selectedPlan.pricing_model !== 'flat'"
+            class="flex justify-between"
+          >
             <span class="text-gray-500">
               Modelo: <strong>{{ pricingModelLabel }}</strong>
             </span>
             <span class="text-gray-500">
-              Métrica: <strong>{{ selectedPlan.pricing_metric_label || '—' }}</strong>
+              Métrica:
+              <strong>{{ selectedPlan.pricing_metric_label || "—" }}</strong>
             </span>
           </div>
 
           <div v-if="selectedPlan.pricing_model !== 'flat'">
             <label class="form-label text-xs">
-              Quantidade atual de {{ selectedPlan.pricing_metric_label || 'unidades' }}
+              Quantidade atual de
+              {{ selectedPlan.pricing_metric_label || "unidades" }}
             </label>
             <input
               v-model.number="form.initial_quantity"
-              type="number" min="0"
+              type="number"
+              min="0"
               class="form-input w-32"
               placeholder="0"
             />
-            <p class="form-hint">Quantidade do cliente no momento da assinatura</p>
+            <p class="form-hint">
+              Quantidade do cliente no momento da assinatura
+            </p>
           </div>
 
           <div class="flex justify-between">
@@ -196,26 +215,43 @@
               class="flex justify-between"
             >
               <span class="text-gray-500">
-                {{ extraPackages[credit.credit_type_id] || 0 }}×
-                pacote {{ credit.credit_type_label }}
-                ({{ fmtNum(credit.extra_unit_size) }} {{ credit.unit }}s)
+                {{ extraPackages[credit.credit_type_id] || 0 }}× pacote
+                {{ credit.credit_type_label }} ({{
+                  fmtNum(credit.extra_unit_size)
+                }}
+                {{ credit.credit_type_unit }}s)
               </span>
-              <span class="text-gray-700">+ {{ fmtCents(extraCost(credit)) }}</span>
+              <span class="text-gray-700"
+                >+ {{ fmtCents(extraCost(credit)) }}</span
+              >
             </div>
 
-            <div v-if="totalExtrasCents > 0" class="flex justify-between pt-2 border-t border-gray-200">
+            <div
+              v-if="totalExtrasCents > 0"
+              class="flex justify-between pt-2 border-t border-gray-200"
+            >
               <span class="font-medium text-gray-900">Total mensal</span>
-              <span class="font-semibold text-lg text-gray-900">{{ totalMonthlyFormatted }}</span>
+              <span class="font-semibold text-lg text-gray-900">{{
+                totalMonthlyFormatted
+              }}</span>
             </div>
           </template>
 
-          <div v-if="selectedPlan.pricing_model === 'volume' && activeTier" class="text-xs text-gray-400">
+          <div
+            v-if="selectedPlan.pricing_model === 'volume' && activeTier"
+            class="text-xs text-gray-400"
+          >
             Faixa aplicada: {{ activeTier.label }} →
-            {{ selectedCurrency.symbol }} {{ (activeTier.unit_amount_cents / 100).toFixed(2) }}/un
+            {{ selectedCurrency.symbol }}
+            {{ (activeTier.unit_amount_cents / 100).toFixed(2) }}/un
           </div>
 
-          <div v-if="!priceAvailable && selectedPlan.pricing_model === 'flat'" class="text-xs text-amber-600">
-            ⚠ Este plano não tem preço cadastrado para {{ selectedCurrency.code }}.
+          <div
+            v-if="!priceAvailable && selectedPlan.pricing_model === 'flat'"
+            class="text-xs text-amber-600"
+          >
+            ⚠ Este plano não tem preço cadastrado para
+            {{ selectedCurrency.code }}.
           </div>
         </div>
       </div>
@@ -265,16 +301,20 @@ const props = defineProps({
 });
 
 const form = useForm({
-  plan_id:                 props.subscription.plan_id     || "",
-  gateway:                 props.subscription.gateway     || "",
-  currency_id:             props.subscription.currency_id || props.default_currency_id || "",
+  plan_id: props.subscription.plan_id || "",
+  gateway: props.subscription.gateway || "",
+  currency_id:
+    props.subscription.currency_id || props.default_currency_id || "",
   gateway_subscription_id: props.subscription.gateway_subscription_id || "",
-  status:                  props.subscription.status      || "active",
-  started_at:              props.subscription.started_at  || new Date().toISOString().split("T")[0],
-  initial_quantity:        1,
+  status: props.subscription.status || "active",
+  started_at:
+    props.subscription.started_at || new Date().toISOString().split("T")[0],
+  initial_quantity: props.subscription.current_quantity || 1,
 });
 
-const extraPackages = reactive({ ...(props.subscription.extra_packages || {}) });
+const extraPackages = reactive({
+  ...(props.subscription.current_extra_packages || {}),
+});
 
 const selectedPlan = computed(() =>
   props.plans.find((p) => p.id === Number(form.plan_id)),
@@ -284,23 +324,29 @@ const selectedCurrency = computed(() =>
   props.currencies.find((c) => c.id === Number(form.currency_id)),
 );
 
-const creditsWithExtras = computed(() =>
-  selectedPlan.value?.credits?.filter((c) => c.allow_extras) || [],
+const creditsWithExtras = computed(
+  () => selectedPlan.value?.credits?.filter((c) => c.allow_extras) || [],
 );
 
 const priceAvailable = computed(() => {
   if (!selectedPlan.value || !selectedCurrency.value) return false;
-  return selectedPlan.value.prices?.some((p) => p.currency_id === selectedCurrency.value.id);
+  return selectedPlan.value.prices?.some(
+    (p) => p.currency_id === selectedCurrency.value.id,
+  );
 });
 
-const pricingModelLabel = computed(() => ({
-  flat:     "Fixo",
-  per_unit: "Por unidade",
-  volume:   "Volume",
-}[selectedPlan.value?.pricing_model] || ""));
+const pricingModelLabel = computed(
+  () =>
+    ({
+      flat: "Fixo",
+      per_unit: "Por unidade",
+      volume: "Volume",
+    })[selectedPlan.value?.pricing_model] || "",
+);
 
 const activeTier = computed(() => {
-  if (selectedPlan.value?.pricing_model !== "volume" || !selectedCurrency.value) return null;
+  if (selectedPlan.value?.pricing_model !== "volume" || !selectedCurrency.value)
+    return null;
   const qty = form.initial_quantity || 1;
   return selectedPlan.value.pricing_tiers
     ?.filter((t) => t.currency_id === selectedCurrency.value.id)
@@ -309,14 +355,24 @@ const activeTier = computed(() => {
 
 const basePriceCents = computed(() => {
   if (!selectedPlan.value || !selectedCurrency.value) return 0;
-  const qty      = form.initial_quantity || 1;
-  const priceMap = selectedPlan.value.prices?.find((p) => p.currency_id === selectedCurrency.value.id);
-  const tierMap  = selectedPlan.value.pricing_tiers?.filter((t) => t.currency_id === selectedCurrency.value.id) || [];
 
-  if (selectedPlan.value.pricing_model === "flat") return priceMap?.amount_cents || 0;
-  if (selectedPlan.value.pricing_model === "per_unit") return (priceMap?.amount_cents || 0) * qty;
+  const qty = form.initial_quantity || 1;
+  const priceMap = selectedPlan.value.prices?.find(
+    (p) => p.currency_id === selectedCurrency.value.id,
+  );
+  const tierMap =
+    selectedPlan.value.pricing_tiers?.filter(
+      (t) => t.currency_id === selectedCurrency.value.id,
+    ) || [];
+
+  if (selectedPlan.value.pricing_model === "flat")
+    return priceMap?.amount_cents ?? 0;
+  if (selectedPlan.value.pricing_model === "per_unit")
+    return (priceMap?.amount_cents ?? 0) * qty;
   if (selectedPlan.value.pricing_model === "volume") {
-    const tier = tierMap.find((t) => qty >= t.from_unit && (!t.to_unit || qty <= t.to_unit));
+    const tier = tierMap.find(
+      (t) => qty >= t.from_unit && (!t.to_unit || qty <= t.to_unit),
+    );
     return tier ? tier.unit_amount_cents * qty : 0;
   }
   return 0;
@@ -337,7 +393,7 @@ const decrementPackage = (creditTypeId) => {
 
 const totalQuantity = (credit) => {
   const n = extraPackages[credit.credit_type_id] || 0;
-  return credit.base_quantity + n * credit.extra_unit_size;
+  return credit.quantity + n * credit.extra_unit_size;
 };
 
 const extraCost = (credit) => {
@@ -354,10 +410,13 @@ const totalMonthlyFormatted = computed(() => {
   return `${selectedCurrency.value.symbol} ${((basePriceCents.value + totalExtrasCents.value) / 100).toFixed(2)}`;
 });
 
-const fmtCents = (v) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-    (v || 0) / 100,
-  );
+const fmtCents = (v) => {
+  const currencyCode = selectedCurrency.value?.code || "BRL";
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: currencyCode,
+  }).format((v || 0) / 100);
+};
 
 const fmtNum = (v) => new Intl.NumberFormat("pt-BR").format(v || 0);
 
@@ -365,7 +424,9 @@ const submit = () => {
   const base = `/customers/${props.customer.id}/subscriptions`;
   const url = props.subscription.id ? `${base}/${props.subscription.id}` : base;
   const method = props.subscription.id ? "put" : "post";
-  form.transform((data) => ({ ...data, extra_packages: extraPackages }))[method](url);
+  form
+    .transform((data) => ({ ...data, extra_packages: extraPackages }))
+    [method](url);
 };
 
 const cancelSubscription = () => {

@@ -61,10 +61,23 @@
                 {{ subLabel(subscription.status) }}
               </Badge>
             </div>
-            <div>
-              <p class="text-xs text-gray-500">Valor</p>
-              <p class="text-sm text-gray-700">{{ fmt(subscription.price) }}/mês</p>
+
+            <!-- Preço do período atual -->
+            <div class="bg-gray-50 rounded-lg px-3 py-2.5">
+              <div class="flex justify-between text-sm mb-1">
+                <span class="text-gray-500">Valor base</span>
+                <span class="text-gray-700">{{ fmt(subscription.base_price_cents / 100) }}/mês</span>
+              </div>
+              <div v-if="subscription.has_extras" class="flex justify-between text-sm mb-1">
+                <span class="text-gray-500">Extras contratados</span>
+                <span class="text-gray-700">+ {{ fmt(subscription.period_extras_cents / 100) }}</span>
+              </div>
+              <div class="flex justify-between text-sm font-medium border-t border-gray-200 mt-1.5 pt-1.5">
+                <span class="text-gray-700">Total mensal</span>
+                <span class="text-gray-900">{{ fmt(subscription.period_amount_cents / 100) }}</span>
+              </div>
             </div>
+
             <div>
               <p class="text-xs text-gray-500">Gateway</p>
               <p class="text-sm text-gray-700">{{ subscription.gateway }}</p>
@@ -72,6 +85,27 @@
             <div v-if="subscription.current_period_end">
               <p class="text-xs text-gray-500">Próxima renovação</p>
               <p class="text-sm text-gray-700">{{ subscription.current_period_end }}</p>
+            </div>
+            <div v-if="periodLicenses.length" class="mt-3 pt-3 border-t border-gray-100">
+              <p class="text-xs font-medium text-gray-500 mb-2">Licenças contratadas</p>
+              <div class="space-y-1">
+                <div
+                  v-for="lic in periodLicenses"
+                  :key="lic.license_type_key"
+                  class="flex justify-between text-sm"
+                >
+                  <span class="text-gray-600">{{ lic.license_type_label }}</span>
+                  <div class="text-right">
+                    <span class="font-medium text-gray-900">
+                      {{ lic.unlimited ? '∞' : fmtNum(lic.quantity) }}
+                      {{ lic.license_type_unit }}(s)
+                    </span>
+                    <span v-if="!lic.unlimited && lic.used != null" class="text-xs text-gray-400 ml-1">
+                      ({{ lic.used }} em uso)
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="flex gap-2 pt-3 border-t border-gray-100">
               <Link
@@ -92,16 +126,24 @@
             <h3 class="text-sm font-medium text-gray-900">Créditos — período atual</h3>
           </div>
           <div class="card-body space-y-4">
-            <ProgressBar
-              v-for="s in snapshots"
-              :key="s.credit_type_key"
-              :label="s.credit_type_label"
-              :used="s.used"
-              :limit="s.limit"
-              :balance="s.balance"
-              :percent="s.usage_percent"
-              :unit="s.credit_type_unit"
-            />
+            <div v-for="s in snapshots" :key="s.credit_type_key">
+              <ProgressBar
+                :label="s.credit_type_label"
+                :used="s.used"
+                :limit="s.limit"
+                :balance="s.balance"
+                :percent="s.usage_percent"
+                :unit="s.credit_type_unit"
+              />
+              <div
+                v-if="periodCreditFor(s.credit_type_key)?.extras > 0"
+                class="text-xs text-gray-400 mt-1 ml-0.5"
+              >
+                Base: {{ fmtNum(periodCreditFor(s.credit_type_key).base) }} +
+                Extras: {{ fmtNum(periodCreditFor(s.credit_type_key).extras) }}
+                ({{ periodCreditFor(s.credit_type_key).extra_packages }} pacote(s))
+              </div>
+            </div>
           </div>
         </div>
 
@@ -187,9 +229,15 @@ const props = defineProps({
   charges: Array,
   snapshots: Array,
   available_products: Array,
+  period_credits: Array,
+  period_licenses: Array,
 });
 
 const availableProducts = props.available_products || [];
+const periodCredits  = props.period_credits  || [];
+const periodLicenses = props.period_licenses || [];
+
+const periodCreditFor = (key) => periodCredits.find((pc) => pc.credit_type_key === key);
 
 const addProduct = (productId) => {
   router.post(`/customers/${props.customer.id}/customer_products`, {

@@ -27,6 +27,18 @@ class Subscription < ApplicationRecord
     plan.price_for(effective_currency)
   end
 
+  def base_price_in_reais
+    base_price_cents / 100.0
+  end
+
+  def current_period_amount
+    current_period&.amount_cents || base_price_cents
+  end
+
+  def current_period_amount_in_reais
+    current_period_amount / 100.0
+  end
+
   def gateway_adapter
     Gateways::Base.for(gateway)
   end
@@ -38,11 +50,13 @@ class Subscription < ApplicationRecord
   end
 
   def change_plan!(new_plan, changed_by:, reason: "admin_change")
-    old_plan = plan
+    old_plan  = plan
+    new_price = new_plan.price_for(effective_currency)
+
     gateway_adapter.update_subscription(
       gateway_subscription_id,
       new_plan,
-      amount_cents: new_plan.price_for(effective_currency)
+      amount_cents: new_price
     )
 
     transaction do
@@ -52,7 +66,7 @@ class Subscription < ApplicationRecord
         reason:        reason,
         changed_by_id: changed_by.id
       )
-      update!(plan: new_plan)
+      update!(plan: new_plan, base_price_cents: new_price)
     end
 
     WebhookDispatchJob.perform_later(customer, "plan.changed", {

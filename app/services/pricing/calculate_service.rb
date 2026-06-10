@@ -9,19 +9,20 @@ class Pricing::CalculateService
     keyword_init: true
   )
 
-  def self.call(plan:, customer:, currency:, extra_packages: {})
-    new(plan:, customer:, currency:, extra_packages:).call
+  def self.call(plan:, customer:, currency:, extra_packages: {}, initial_quantity: nil)
+    new(plan:, customer:, currency:, extra_packages:, initial_quantity:).call
   end
 
-  def initialize(plan:, customer:, currency:, extra_packages: {})
-    @plan           = plan
-    @customer       = customer
-    @currency       = currency
-    @extra_packages = extra_packages
+  def initialize(plan:, customer:, currency:, extra_packages: {}, initial_quantity: nil)
+    @plan             = plan
+    @customer         = customer
+    @currency         = currency
+    @extra_packages   = extra_packages
+    @initial_quantity = initial_quantity
   end
 
   def call
-    quantity    = @plan.current_quantity_for(@customer)
+    quantity    = @initial_quantity || @plan.current_quantity_for(@customer)
     base_amount = @plan.calculate_price(quantity, @currency)
     extras      = calculate_extras
 

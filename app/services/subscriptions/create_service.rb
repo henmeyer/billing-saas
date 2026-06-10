@@ -4,7 +4,7 @@ class Subscriptions::CreateService
   def self.call(**args) = new(**args).call
 
   def initialize(customer:, plan_id:, gateway:, currency_id: nil, started_at: Time.current,
-                 gateway_subscription_id: nil, extra_packages: {})
+                 gateway_subscription_id: nil, extra_packages: {}, initial_quantity: nil)
     @customer                = customer
     @plan                    = Plan.find(plan_id)
     @gateway                 = gateway
@@ -12,6 +12,7 @@ class Subscriptions::CreateService
     @started_at              = started_at
     @gateway_subscription_id = gateway_subscription_id
     @extra_packages          = extra_packages
+    @initial_quantity        = initial_quantity&.to_i.presence
   end
 
   def call
@@ -19,13 +20,16 @@ class Subscriptions::CreateService
       period_start = @started_at.to_time
       period_end   = period_start + 1.month
 
-      pricing   = Pricing::CalculateService.call(
-        plan:           @plan,
-        customer:       @customer,
-        currency:       @currency,
-        extra_packages: @extra_packages
+      pricing      = Pricing::CalculateService.call(
+        plan:             @plan,
+        customer:         @customer,
+        currency:         @currency,
+        extra_packages:   @extra_packages,
+        initial_quantity: @initial_quantity
       )
-      gw_sub_id = @gateway_subscription_id.presence || create_gateway_subscription(pricing.amount_cents)
+      gw_sub_id    = @gateway_subscription_id.presence || create_gateway_subscription(pricing.amount_cents)
+      base_price   = @plan.calculate_price(pricing.quantity, @currency)
+      extras_total = [pricing.amount_cents - base_price, 0].max
 
       subscription = @customer.subscriptions.create!(
         plan:                    @plan,
@@ -36,15 +40,20 @@ class Subscriptions::CreateService
         started_at:              period_start,
         current_period_start:    period_start,
         current_period_end:      period_end,
+        base_price_cents:        base_price,
+        currency_code:           @currency.code,
         metadata:                { extra_packages: @extra_packages }
       )
 
       period = subscription.subscription_periods.create!(
-        period_start: period_start,
-        period_end:   period_end
+        period_start:        period_start,
+        period_end:          period_end,
+        amount_cents:        pricing.amount_cents,
+        base_amount_cents:   base_price,
+        extras_amount_cents: extras_total
       )
 
-      create_credit_snapshots(period, pricing.extras_breakdown)
+      create_period_records(period, pricing.extras_breakdown)
 
       WebhookDispatchJob.perform_later(
         @customer, "subscription.activated",
@@ -59,16 +68,41 @@ class Subscriptions::CreateService
 
   private
 
-  def create_credit_snapshots(period, extras_breakdown)
-    @plan.plan_credits.each do |pc|
-      extra_item = extras_breakdown&.find { |e| e[:credit_type_id] == pc.credit_type_id }
-      total_quantity = extra_item ? extra_item[:total_quantity] : pc.quantity
+  def create_period_records(period, extras_breakdown)
+    create_period_credits(period, extras_breakdown)
+    create_period_licenses(period)
+  end
+
+  def create_period_credits(period, extras_breakdown)
+    @plan.plan_credits.includes(:credit_type).each do |pc|
+      extra_item  = extras_breakdown&.find { |e| e[:credit_type_id] == pc.credit_type_id }
+      base_qty    = pc.quantity
+      extra_qty   = extra_item&.dig(:extra_quantity)  || 0
+      n_packages  = extra_item&.dig(:extra_packages)  || 0
+      total_qty   = base_qty + extra_qty
+
+      period.subscription_period_credits.create!(
+        credit_type:    pc.credit_type,
+        quantity:       total_qty,
+        base:           base_qty,
+        extras:         extra_qty,
+        extra_packages: n_packages
+      )
 
       period.credit_snapshots.create!(
         credit_type: pc.credit_type,
         used:        0,
-        limit:       total_quantity,
+        limit:       total_qty,
         synced_at:   Time.current
+      )
+    end
+  end
+
+  def create_period_licenses(period)
+    @plan.plan_licenses.includes(:license_type).each do |pl|
+      period.subscription_period_licenses.create!(
+        license_type: pl.license_type,
+        quantity:     pl.quantity
       )
     end
   end

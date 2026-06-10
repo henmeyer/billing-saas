@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_09_160001) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_09_180001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -360,12 +360,40 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_160001) do
     t.index ["pricing_license_type_id"], name: "index_products_on_pricing_license_type_id"
   end
 
+  create_table "subscription_period_credits", force: :cascade do |t|
+    t.bigint "subscription_period_id", null: false
+    t.bigint "credit_type_id", null: false
+    t.integer "quantity", null: false
+    t.integer "base", null: false
+    t.integer "extras", default: 0, null: false
+    t.integer "extra_packages", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["credit_type_id"], name: "index_subscription_period_credits_on_credit_type_id"
+    t.index ["subscription_period_id", "credit_type_id"], name: "idx_sub_period_credits_unique", unique: true
+    t.index ["subscription_period_id"], name: "index_subscription_period_credits_on_subscription_period_id"
+  end
+
+  create_table "subscription_period_licenses", force: :cascade do |t|
+    t.bigint "subscription_period_id", null: false
+    t.bigint "license_type_id", null: false
+    t.integer "quantity", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["license_type_id"], name: "index_subscription_period_licenses_on_license_type_id"
+    t.index ["subscription_period_id", "license_type_id"], name: "idx_sub_period_licenses_unique", unique: true
+    t.index ["subscription_period_id"], name: "index_subscription_period_licenses_on_subscription_period_id"
+  end
+
   create_table "subscription_periods", force: :cascade do |t|
     t.bigint "subscription_id", null: false
     t.datetime "period_start", null: false
     t.datetime "period_end", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "amount_cents", default: 0, null: false
+    t.integer "base_amount_cents", default: 0, null: false
+    t.integer "extras_amount_cents", default: 0, null: false
     t.index ["subscription_id", "period_start"], name: "index_subscription_periods_on_subscription_id_and_period_start", unique: true
     t.index ["subscription_id"], name: "index_subscription_periods_on_subscription_id"
   end
@@ -398,6 +426,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_160001) do
     t.datetime "updated_at", null: false
     t.bigint "currency_id"
     t.jsonb "metadata", default: {}, null: false
+    t.integer "base_price_cents", default: 0, null: false
+    t.string "currency_code", default: "BRL", null: false
     t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["gateway", "gateway_subscription_id"], name: "index_subscriptions_on_gateway_and_gateway_subscription_id", unique: true, where: "(gateway_subscription_id IS NOT NULL)"
@@ -491,6 +521,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_09_160001) do
   add_foreign_key "products", "credit_types"
   add_foreign_key "products", "credit_types", column: "pricing_credit_type_id"
   add_foreign_key "products", "license_types", column: "pricing_license_type_id"
+  add_foreign_key "subscription_period_credits", "credit_types"
+  add_foreign_key "subscription_period_credits", "subscription_periods"
+  add_foreign_key "subscription_period_licenses", "license_types"
+  add_foreign_key "subscription_period_licenses", "subscription_periods"
   add_foreign_key "subscription_periods", "subscriptions"
   add_foreign_key "subscription_plan_changes", "plans", column: "from_plan_id"
   add_foreign_key "subscription_plan_changes", "plans", column: "to_plan_id"

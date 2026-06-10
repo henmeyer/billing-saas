@@ -140,8 +140,18 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
       period_start: sub.current_period_start
     ) { |p| p.period_end = sub.current_period_end }
 
-    # Snapshots de créditos no período
+    # Quantidades contratadas de créditos + snapshots
     data[:plan].plan_credits.includes(:credit_type).each do |pc|
+      SubscriptionPeriodCredit.find_or_create_by!(
+        subscription_period: period,
+        credit_type:         pc.credit_type
+      ) do |spc|
+        spc.quantity       = pc.quantity
+        spc.base           = pc.quantity
+        spc.extras         = 0
+        spc.extra_packages = 0
+      end
+
       used = (pc.quantity * rand(0.1..0.85)).to_i
       CreditSnapshot.find_or_create_by!(
         subscription_period: period,
@@ -151,6 +161,14 @@ plan: enterprise, health: 98, gateway_sub: "sub_epsilon_001" }
         s.limit     = pc.quantity
         s.synced_at = Time.current
       end
+    end
+
+    # Quantidades contratadas de licenças
+    data[:plan].plan_licenses.includes(:license_type).each do |pl|
+      SubscriptionPeriodLicense.find_or_create_by!(
+        subscription_period: period,
+        license_type:        pl.license_type
+      ) { |spl| spl.quantity = pl.quantity }
     end
 
     # Cobranças históricas (3 meses)

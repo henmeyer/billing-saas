@@ -101,18 +101,20 @@ class PlansController < ApplicationController
 
   def serialize_plan(plan)
     {
-      id:              plan.id,
-      name:            plan.name,
-      description:     plan.description,
-      billing_cycle:   plan.billing_cycle,
-      trial_days:      plan.trial_days,
-      active:          plan.active,
+      id:                      plan.id,
+      name:                    plan.name,
+      description:             plan.description,
+      billing_cycle:           plan.billing_cycle,
+      trial_days:              plan.trial_days,
+      active:                  plan.active,
       pricing_model:           plan.pricing_model,
       pricing_license_type_id: plan.pricing_license_type_id,
       pricing_credit_type_id:  plan.pricing_credit_type_id,
       licenses:                serialize_plan_licenses(plan),
       credits:                 serialize_plan_credits(plan),
-      features:                plan.plan_features.map { |pf| { feature_type_id: pf.feature_type_id, enabled: pf.enabled } },
+      features:                plan.plan_features.map { |pf|
+        { feature_type_id: pf.feature_type_id, enabled: pf.enabled }
+      },
       integration_ids:         plan.plan_integrations.pluck(:integration_id),
       prices:                  serialize_plan_prices(plan),
       pricing_tiers:           serialize_plan_pricing_tiers(plan)
@@ -120,18 +122,24 @@ class PlansController < ApplicationController
   end
 
   def serialize_plan_licenses(plan)
-    plan.plan_licenses.map do |pl|
-      { license_type_id: pl.license_type_id, quantity: pl.quantity, label: pl.license_type&.label }
+    plan.plan_licenses.includes(:license_type).map do |pl|
+      {
+        license_type_id:    pl.license_type_id,
+        license_type_key:   pl.license_type&.key,
+        license_type_label: pl.license_type&.label,
+        license_type_unit:  pl.license_type&.unit,
+        quantity:           pl.quantity
+      }
     end
   end
 
   def serialize_plan_credits(plan)
-    plan.plan_credits.map do |pc|
+    plan.plan_credits.includes(:credit_type).map do |pc|
       {
         credit_type_id:         pc.credit_type_id,
-        credit_type_label:      pc.credit_type&.label,
         credit_type_key:        pc.credit_type&.key,
-        unit:                   pc.credit_type&.unit,
+        credit_type_label:      pc.credit_type&.label,
+        credit_type_unit:       pc.credit_type&.unit,
         quantity:               pc.quantity,
         rollover:               pc.rollover,
         allow_extras:           pc.allow_extras,

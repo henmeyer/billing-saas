@@ -67,7 +67,7 @@
               <td>
                 <p class="text-sm text-gray-900">{{ s.plan_name }}</p>
                 <p class="text-xs text-gray-400">
-                  {{ fmt(s.price) }}/{{ s.billing_cycle === "monthly" ? "mês" : "ano" }}
+                  {{ fmt(s.base_price_cents / 100) }}/{{ s.billing_cycle === "monthly" ? "mês" : "ano" }}
                 </p>
               </td>
               <td>

@@ -1,27 +1,31 @@
 class Api::V1::LicensesController < Api::V1::BaseController
   def show
     return unless (customer = find_customer!)
-    subscription = customer.active_subscription
 
-    unless subscription
+    subscription = customer.active_subscription
+    period       = customer.current_period
+
+    unless subscription && period
       render json: { error: "Sem assinatura ativa" }, status: :unprocessable_entity
       return
     end
 
     license_usage = customer.metadata["license_usage"] || {}
 
-    licenses = subscription.plan.plan_licenses.includes(:license_type).to_h do |pl|
-      used = license_usage[pl.license_type.key].to_i
+    licenses = period.subscription_period_licenses
+                     .includes(:license_type)
+                     .map do |spl|
+      used = license_usage[spl.license_type.key].to_i
       [
-        pl.license_type.key,
+        spl.license_type.key,
         {
-          allocated: pl.quantity,
+          allocated: spl.unlimited? ? nil : spl.quantity,
           used:      used,
-          available: pl.unlimited? ? nil : [pl.quantity - used, 0].max,
-          unlimited: pl.unlimited?
+          available: spl.unlimited? ? nil : [spl.quantity - used, 0].max,
+          unlimited: spl.unlimited?
         }
       ]
-    end
+    end.to_h
 
     render json: { customer_id: params[:external_id], licenses: }
   end

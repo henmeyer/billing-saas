@@ -29,12 +29,16 @@ class CustomersController < ApplicationController
       }
     end
 
+    period = @customer.current_period
+
     render inertia: "Customers/Show", props: {
       customer:           serialize_customer(@customer),
       subscription:       subscription ? serialize_subscription(subscription) : nil,
       charges:            charges.map { |charge| serialize_charge(charge) },
       snapshots:          snapshots.map { |snap| serialize_snapshot(snap) },
-      available_products: available_products
+      available_products: available_products,
+      period_credits:     serialize_period_credits(period),
+      period_licenses:    serialize_period_licenses(period)
     }
   end
 
@@ -113,15 +117,21 @@ class CustomersController < ApplicationController
   end
 
   def serialize_subscription(sub)
+    period = sub.current_period
     {
-      id:                 sub.id,
-      status:             sub.status,
-      gateway:            sub.gateway,
-      plan_name:          sub.plan.name,
-      price:              sub.price_in_currency / 100.0,
-      currency_code:      sub.effective_currency&.code,
-      current_period_end: sub.current_period_end&.strftime("%d/%m/%Y"),
-      started_at:         sub.started_at&.strftime("%d/%m/%Y")
+      id:                     sub.id,
+      status:                 sub.status,
+      gateway:                sub.gateway,
+      plan_name:              sub.plan.name,
+      base_price_cents:       sub.base_price_cents,
+      period_amount_cents:    period&.amount_cents || sub.base_price_cents,
+      period_base_cents:      period&.base_amount_cents || sub.base_price_cents,
+      period_extras_cents:    period&.extras_amount_cents || 0,
+      has_extras:             (period&.extras_amount_cents || 0).positive?,
+      currency_code:          sub.currency_code,
+      current_period_end:     sub.current_period_end&.strftime("%d/%m/%Y"),
+      started_at:             sub.started_at&.strftime("%d/%m/%Y"),
+      current_extra_packages: period ? extract_extra_packages(period) : {}
     }
   end
 
@@ -152,5 +162,48 @@ class CustomersController < ApplicationController
       balance:           snap.balance,
       usage_percent:     snap.usage_percent
     }
+  end
+
+  def serialize_period_credits(period)
+    return [] unless period
+
+    period.subscription_period_credits.includes(:credit_type).map do |spc|
+      {
+        credit_type_id:    spc.credit_type_id,
+        credit_type_key:   spc.credit_type.key,
+        credit_type_label: spc.credit_type.label,
+        credit_type_unit:  spc.credit_type.unit,
+        quantity:          spc.quantity,
+        base:              spc.base,
+        extras:            spc.extras,
+        extra_packages:    spc.extra_packages
+      }
+    end
+  end
+
+  def serialize_period_licenses(period)
+    return [] unless period
+
+    period.subscription_period_licenses.includes(:license_type).map do |spl|
+      used = @customer.metadata.dig("license_usage", spl.license_type.key).to_i
+      {
+        license_type_id:    spl.license_type_id,
+        license_type_key:   spl.license_type.key,
+        license_type_label: spl.license_type.label,
+        license_type_unit:  spl.license_type.unit,
+        quantity:           spl.quantity,
+        unlimited:          spl.unlimited?,
+        used:               used,
+        available:          spl.unlimited? ? nil : [spl.quantity - used, 0].max
+      }
+    end
+  end
+
+  def extract_extra_packages(period)
+    period.subscription_period_credits
+          .where("extra_packages > 0")
+          .each_with_object({}) do |spc, hash|
+      hash[spc.credit_type_id.to_s] = spc.extra_packages
+    end
   end
 end
