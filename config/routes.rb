@@ -95,6 +95,23 @@ Rails.application.routes.draw do
       get  "/customers/:external_id/licenses",        to: "licenses#show"
       post "/customers/:external_id/licenses/report", to: "licenses#report"
       get  "/customers/:external_id/subscription",    to: "subscriptions#show"
+      post "/portal/sessions",                        to: "portal_sessions#create"
     end
+  end
+
+  # Portal do cliente externo
+  get    "/portal_expired", to: "portal/sessions#expired", as: :portal_expired
+
+  scope "/portal/:token", module: "portal" do
+    get "/",           to: "dashboard#show",   as: :portal_dashboard
+    resources :plans,  only: [:index] do
+      member { put :update }
+    end
+    resources :products, only: [:index, :create]
+    get  "/checkout/:charge_id",        to: "checkouts#show",   as: :portal_checkout
+    get  "/checkout/:charge_id/status", to: "checkouts#status", as: :portal_checkout_status
+    resources :invoices, only: [:index]
+    resource  :subscription, only: [:update, :destroy]
+    delete "/logout", to: "sessions#destroy", as: :portal_logout
   end
 end

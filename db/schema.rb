@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_10_130002) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_10_140001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -223,6 +223,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_10_130002) do
     t.datetime "last_error_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "portal_config", default: {"allow_cancel" => false, "allow_plan_change" => true, "allow_buy_products" => true, "allow_adjust_extras" => true, "show_invoice_history" => true}, null: false
+    t.string "portal_logo_url"
+    t.string "portal_primary_color", default: "#6366f1"
     t.index ["account_id"], name: "index_integrations_on_account_id"
   end
 
@@ -342,6 +345,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_10_130002) do
     t.index ["account_id"], name: "index_plans_on_account_id"
     t.index ["pricing_credit_type_id"], name: "index_plans_on_pricing_credit_type_id"
     t.index ["pricing_license_type_id"], name: "index_plans_on_pricing_license_type_id"
+  end
+
+  create_table "portal_sessions", force: :cascade do |t|
+    t.bigint "customer_id", null: false
+    t.bigint "integration_id", null: false
+    t.string "token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "accessed_at"
+    t.string "ip_address"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_portal_sessions_on_customer_id"
+    t.index ["integration_id"], name: "index_portal_sessions_on_integration_id"
+    t.index ["token_digest"], name: "index_portal_sessions_on_token_digest", unique: true
   end
 
   create_table "product_prices", force: :cascade do |t|
@@ -548,6 +565,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_10_130002) do
   add_foreign_key "plans", "accounts"
   add_foreign_key "plans", "credit_types", column: "pricing_credit_type_id"
   add_foreign_key "plans", "license_types", column: "pricing_license_type_id"
+  add_foreign_key "portal_sessions", "customers"
+  add_foreign_key "portal_sessions", "integrations"
   add_foreign_key "product_prices", "currencies"
   add_foreign_key "product_prices", "products"
   add_foreign_key "product_pricing_tiers", "currencies"

@@ -15,7 +15,7 @@ module Gateways
     def create_subscription(customer, plan, amount_cents:)  = raise NotImplementedError
     def cancel_subscription(sub_id)                         = raise NotImplementedError
     def update_subscription(sub_id, new_plan, amount_cents:) = raise NotImplementedError
-    def create_charge(customer, amount_cents) = raise NotImplementedError
+    def create_charge(customer, amount_cents, **opts) = raise NotImplementedError
 
     def self.for(provider)
       case provider.to_s

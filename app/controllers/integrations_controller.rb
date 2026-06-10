@@ -37,6 +37,7 @@ class IntegrationsController < ApplicationController
         available_events: Integration::AVAILABLE_EVENTS,
         license_types:    serialize_license_types,
         credit_types:     serialize_credit_types,
+        feature_types:    serialize_feature_types,
         errors:           integration.errors.as_json
       }
     end
@@ -63,6 +64,7 @@ class IntegrationsController < ApplicationController
         available_events: Integration::AVAILABLE_EVENTS,
         license_types:    serialize_license_types,
         credit_types:     serialize_credit_types,
+        feature_types:    serialize_feature_types,
         errors:           @integration.errors.as_json
       }
     end
@@ -80,7 +82,18 @@ class IntegrationsController < ApplicationController
   end
 
   def integration_params
-    params.require(:integration).permit(:name, :url, :active, :retry_count, events: [])
+    params.require(:integration).permit(
+      :name, :url, :active, :retry_count,
+      :portal_logo_url, :portal_primary_color,
+      events: [],
+      portal_config: %i[
+        allow_plan_change
+        allow_buy_products
+        allow_adjust_extras
+        show_invoice_history
+        allow_cancel
+      ]
+    )
   end
 
   def sync_field_configs(integration)
@@ -111,13 +124,16 @@ class IntegrationsController < ApplicationController
 
   def serialize_integration(integration)
     {
-      id:               integration.id,
-      name:             integration.name,
-      url:              integration.url,
-      events:           integration.events,
-      active:           integration.active,
-      retry_count:      integration.retry_count,
-      last_error_at:    integration.last_error_at&.strftime("%d/%m/%Y %H:%M"),
+      id:                   integration.id,
+      name:                 integration.name,
+      url:                  integration.url,
+      events:               integration.events,
+      active:               integration.active,
+      retry_count:          integration.retry_count,
+      last_error_at:        integration.last_error_at&.strftime("%d/%m/%Y %H:%M"),
+      portal_config:        integration.portal_config,
+      portal_logo_url:      integration.portal_logo_url,
+      portal_primary_color: integration.portal_primary_color,
       license_type_ids: integration.integration_field_configs
                                    .where(field_type: "license")
                                    .pluck(:license_type_id),

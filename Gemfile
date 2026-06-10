@@ -23,6 +23,7 @@ gem "inertia_rails"
 # Jobs
 gem "redis", ">= 4.0.1"
 gem "sidekiq"
+gem "sidekiq-cron"
 
 # HTTP client (para Asaas)
 gem "httparty"

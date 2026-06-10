@@ -228,6 +228,29 @@ RSpec.configure do |config|
             }
           },
 
+          # --- Portal schemas ---
+          PortalSessionResponse: {
+            type: 'object',
+            properties: {
+              url: {
+                type:        'string',
+                description: 'URL do portal com token embutido. Redirecione o cliente para esta URL.',
+                example:     'https://billing.app/portal/abc123def456ghi789...'
+              },
+              expires_in: {
+                type:        'integer',
+                description: 'Tempo de vida do link em segundos (900 = 15 minutos)',
+                example:     900
+              },
+              expires_at: {
+                type:        'string',
+                format:      'date-time',
+                description: 'Data/hora exata de expiração do link (ISO 8601)',
+                example:     '2026-06-10T15:30:00Z'
+              }
+            }
+          },
+
           # --- Webhook schemas ---
           WebhookCustomer: {
             type: 'object',

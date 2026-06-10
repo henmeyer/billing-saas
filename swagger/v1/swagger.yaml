@@ -7,12 +7,23 @@ info:
 
     ## Autenticação
 
-    Todas as requisições precisam do header:
+    Use a **API Key da integração**, não a API Key de conta.
+
     ```
-    Authorization: Bearer {sua_api_key}
+    Authorization: Bearer billing_int_sua_chave
     ```
 
-    As API Keys são geradas no painel em **Configurações → API Keys**.
+    As API Keys de integração são geradas em:
+    **Configurações → Integrações → [sua integração] → API Keys**
+
+    > ⚠ API Keys de conta (`billing_...`) não funcionam nesta API.
+    > Elas servem apenas para autenticar no painel.
+
+    ## Namespace de clientes
+
+    O `external_id` é resolvido dentro do contexto da sua integração.
+    O mesmo `external_id: "1"` em duas integrações diferentes
+    corresponde a clientes diferentes.
 
     ## Idempotência
 
@@ -247,6 +258,23 @@ components:
           type: string
           format: date-time
           example: '2026-01-01T00:00:00Z'
+    PortalSessionResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL do portal com token embutido. Redirecione o cliente para
+            esta URL.
+          example: https://billing.app/portal/abc123def456ghi789...
+        expires_in:
+          type: integer
+          description: Tempo de vida do link em segundos (900 = 15 minutos)
+          example: 900
+        expires_at:
+          type: string
+          format: date-time
+          description: Data/hora exata de expiração do link (ISO 8601)
+          example: '2026-06-10T15:30:00Z'
     WebhookCustomer:
       type: object
       properties:
@@ -730,6 +758,80 @@ paths:
           application/json:
             schema:
               "$ref": "#/components/schemas/LicenseReportRequest"
+        required: true
+  "/api/v1/portal/sessions":
+    post:
+      summary: Gerar magic link do portal
+      tags:
+      - Portal
+      security:
+      - BearerAuth: []
+      description: |
+        Gera um link temporário (15 minutos) para o cliente acessar o portal
+        de autoatendimento.
+
+        Use a API Key da integração — o portal mostrará apenas a assinatura
+        vinculada a esta integração.
+
+        ## Fluxo típico
+
+        1. Cliente clica "Gerenciar assinatura" no seu sistema
+        2. Seu backend chama este endpoint com o `external_id` do cliente
+        3. Retorna uma URL expirável (15 min)
+        4. Redirecione o cliente para essa URL (ou abra em nova aba)
+        5. O cliente acessa o portal com sessão via cookie
+
+        ## Configuração do portal
+
+        O administrador configura, por integração, quais funcionalidades
+        ficam disponíveis no portal:
+
+        - **allow_plan_change** — trocar de plano (upgrade/downgrade)
+        - **allow_buy_products** — comprar pacotes de créditos
+        - **allow_adjust_extras** — ajustar créditos extras da assinatura
+        - **show_invoice_history** — ver histórico de faturas
+        - **allow_cancel** — cancelar assinatura
+
+        Essas opções são configuráveis em:
+        **Configurações → Integrações → [sua integração] → Portal do cliente**
+
+        ## Branding
+
+        O portal suporta personalização visual por integração:
+        logo e cor primária, configuráveis no painel de administração.
+      parameters: []
+      responses:
+        '200':
+          description: Magic link gerado com sucesso
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PortalSessionResponse"
+        '401':
+          description: Token inválido ou expirado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: Cliente não encontrado nesta integração
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - external_id
+              properties:
+                external_id:
+                  type: string
+                  description: ID do cliente no seu sistema (conforme cadastrado na
+                    integração)
+                  example: EXT123
         required: true
   "/api/v1/customers/{external_id}/subscription":
     parameters:

@@ -1,5 +1,12 @@
 #!/bin/bash -e
 
+# Install gems if Gemfile changed
+if [ "Gemfile.lock" -nt "/usr/local/bundle/.bundle_installed" ] || [ ! -f "/usr/local/bundle/.bundle_installed" ]; then
+  echo "💎 Installing gems..."
+  bundle install
+  touch /usr/local/bundle/.bundle_installed
+fi
+
 # Install node_modules if missing or outdated
 if [ ! -d "node_modules/.package-lock.json" ] || [ "package-lock.json" -nt "node_modules/.package-lock.json" ]; then
   echo "📦 Installing node packages..."

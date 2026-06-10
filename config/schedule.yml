@@ -1,0 +1,4 @@
+portal_cleanup_expired_sessions:
+  cron: "0 * * * *" # A cada hora
+  class: "Portal::CleanupExpiredSessionsJob"
+  description: "Remove portal sessions expiradas"
