@@ -140,6 +140,21 @@
               </p>
             </div>
 
+            <div
+              v-if="form.gateway === 'dlocal_go' && !subscription.id"
+              class="rounded-md bg-blue-50 border border-blue-200 p-3"
+            >
+              <div class="flex gap-2">
+                <span class="text-blue-500">ℹ</span>
+                <p class="text-xs text-blue-700">
+                  O cliente será redirecionado ao checkout do dLocal Go para
+                  pagar. Ele pode escolher Pix, cartão, boleto ou outro método
+                  disponível. Nas renovações, um novo link de pagamento será
+                  gerado.
+                </p>
+              </div>
+            </div>
+
             <div v-if="!subscription.id">
               <label class="form-label">
                 ID da assinatura no gateway

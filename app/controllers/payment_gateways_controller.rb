@@ -1,6 +1,6 @@
 class PaymentGatewaysController < ApplicationController
   before_action :require_admin!
-  before_action :set_gateway, only: [:edit, :update, :destroy]
+  before_action :set_gateway, only: [:edit, :update, :destroy, :test]
 
   def index
     render inertia: "PaymentGateways/Index", props: {
@@ -60,6 +60,15 @@ class PaymentGatewaysController < ApplicationController
   def destroy
     @gateway.update!(active: false)
     redirect_to payment_gateways_path, notice: "Gateway desativado."
+  end
+
+  def test
+    adapter = Gateways::Base.for(@gateway.provider)
+    result  = adapter.test_connection
+
+    render json: result
+  rescue => e
+    render json: { success: false, message: e.message }
   end
 
   private

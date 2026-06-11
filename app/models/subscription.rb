@@ -8,7 +8,7 @@ class Subscription < ApplicationRecord
   has_many :charges
   has_many :subscription_plan_changes
 
-  STATUSES = %w[active past_due cancelled trialing].freeze
+  STATUSES = %w[active past_due cancelled trialing pending].freeze
   GATEWAYS = %w[stripe asaas dlocal_go].freeze
 
   validates :status,  inclusion: { in: STATUSES }
@@ -86,7 +86,7 @@ class Subscription < ApplicationRecord
     return unless customer_id && integration_id
 
     existing = Subscription.where(customer_id: customer_id, integration_id: integration_id)
-                           .where(status: %w[active trialing past_due])
+                           .where(status: %w[active trialing past_due pending])
     existing = existing.where.not(id: id) if persisted?
 
     if existing.exists?

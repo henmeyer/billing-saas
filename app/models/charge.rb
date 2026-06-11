@@ -5,7 +5,8 @@ class Charge < ApplicationRecord
   STATUSES = %w[pending paid failed refunded].freeze
   GATEWAYS = %w[stripe asaas dlocal_go].freeze
 
-  validates :status,       inclusion: { in: STATUSES }
+  enum :status, STATUSES.zip(STATUSES).to_h, validate: true
+
   validates :gateway,      inclusion: { in: GATEWAYS }
   validates :amount_cents, numericality: { greater_than: 0 }
 

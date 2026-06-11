@@ -72,11 +72,28 @@ module Gateways
       response.parsed_response
     end
 
+    def get(path)
+      HTTParty.get("#{@base_url}#{path}", headers: headers)
+    end
+
     def headers
       {
         "access_token" => @api_key,
         "Content-Type" => "application/json"
       }
+    end
+
+    public
+
+    def test_connection
+      response = get("/finance/balance")
+      if response.success?
+        { success: true, message: "Conexão com Asaas OK" }
+      else
+        { success: false, message: "Falha na autenticação: #{response.parsed_response}" }
+      end
+    rescue => e
+      { success: false, message: "Erro: #{e.message}" }
     end
   end
 end

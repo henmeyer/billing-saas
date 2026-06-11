@@ -10,18 +10,18 @@ com API de integração para sistemas externos via webhooks.
 
 ## Stack
 
-| Camada        | Tecnologia                           |
-| ------------- | ------------------------------------ |
-| Backend       | Ruby on Rails 8                      |
-| Frontend      | Vue 3 + Inertia.js + Vite-Rails      |
-| Banco         | PostgreSQL via Supabase (só o banco) |
-| Jobs          | Sidekiq + Redis                      |
-| Gateways      | Asaas + Stripe (pattern adapter)     |
-| IA            | Claude Haiku (4 pontos específicos)  |
-| Infra         | Hetzner VPS + Kamal                  |
-| Auth          | Devise                               |
-| Multi-tenancy | acts_as_tenant                       |
-| Storage       | Cloudflare R2 via Active Storage     |
+| Camada        | Tecnologia                                   |
+| ------------- | -------------------------------------------- |
+| Backend       | Ruby on Rails 8                              |
+| Frontend      | Vue 3 + Inertia.js + Vite-Rails              |
+| Banco         | PostgreSQL via Supabase (só o banco)         |
+| Jobs          | Sidekiq + Redis                              |
+| Gateways      | Asaas + Stripe + dLocal Go (pattern adapter) |
+| IA            | Claude Haiku (4 pontos específicos)          |
+| Infra         | Hetzner VPS + Kamal                          |
+| Auth          | Devise                                       |
+| Multi-tenancy | acts_as_tenant                               |
+| Storage       | Cloudflare R2 via Active Storage             |
 
 ---
 
@@ -85,7 +85,18 @@ com API de integração para sistemas externos via webhooks.
 - Dados específicos por gateway em `gateway_data:jsonb`
 - Stripe: precisa de `product_id` + `price_id`
 - Asaas: só valor e ciclo
-- dLocal Go: usa a gem `dlocal_go` com subscriptions nativas — `plan_id` obrigatório em `gateway_data["dlocal_go"]["plan_id"]`
+
+#### dLocal Go — regras:
+
+- Primeiro pagamento: checkout com `allow_recurring: true` (redirect para o cliente)
+- `checkout_id` salvo em `customer.gateway_data["dlocal_go"]["checkout_id"]`
+- Renovações: `create_recurring_charge` com `checkout_id` (automático, sem redirect)
+- Compras avulsas: `create_charge` normal (redirect para checkout)
+- `cancel_subscription`: noop (não existe subscription no gateway)
+- `update_subscription`: noop (próxima cobrança usa novo valor)
+- `Subscriptions::RenewDlocalGoJob` roda diariamente (06:00 UTC) e cobra via recurring
+- Assinatura criada com status `pending` até o primeiro pagamento ser confirmado via webhook
+- NUNCA usar subscription/plan endpoints nativos do dLocal Go
 
 ### Assinaturas
 
@@ -118,7 +129,7 @@ com API de integração para sistemas externos via webhooks.
 
 ### Webhooks
 
-- Entrada: `/webhooks/asaas`, `/webhooks/stripe`, `/webhooks/omnichannel`
+- Entrada: `/webhooks/asaas`, `/webhooks/stripe`, `/webhooks/dlocal_go`, `/webhooks/omnichannel`
 - Saída: tabela `integrations`, disparo via Sidekiq
 - Payload assinado com HMAC-SHA256
 - Retry exponencial: 1min → 5min → 30min → 2h → 8h
@@ -174,6 +185,7 @@ app/
     webhooks/base_controller.rb
     webhooks/asaas_controller.rb
     webhooks/stripe_controller.rb
+    webhooks/dlocal_go_controller.rb
     webhooks/omnichannel_controller.rb
     users/registrations_controller.rb
     dashboard_controller.rb
@@ -196,7 +208,7 @@ app/
   services/
     accounts/create_service.rb
     seeds/default_types_service.rb
-    gateways/base.rb, stripe_adapter.rb, asaas_adapter.rb
+    gateways/base.rb, stripe_adapter.rb, asaas_adapter.rb, dlocal_go_adapter.rb
     credits/check_thresholds_service.rb
     dashboard/stats_service.rb
     webhooks/dispatch_service.rb
@@ -206,7 +218,9 @@ app/
     webhooks/dispatch_job.rb
     webhooks/process_asaas_event_job.rb
     webhooks/process_stripe_event_job.rb
+    webhooks/process_dlocal_go_event_job.rb
     webhooks/sync_credits_job.rb
+    subscriptions/renew_dlocal_go_job.rb
 
 javascript/
   components/
@@ -281,5 +295,6 @@ DATABASE_URL, REDIS_URL, RAILS_MASTER_KEY
 ANTHROPIC_API_KEY
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 ASAAS_API_KEY, ASAAS_WEBHOOK_SECRET
+DLOCAL_GO_API_KEY, DLOCAL_GO_SECRET_KEY, DLOCAL_GO_ENV
 OMNICHANNEL_WEBHOOK_SECRET
 ```

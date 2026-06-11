@@ -42,7 +42,11 @@ class SubscriptionsController < ApplicationController
     )
 
     if result.success?
-      redirect_to customer_path(@customer), notice: "Assinatura criada com sucesso."
+      if result.redirect_url.present?
+        redirect_to result.redirect_url, allow_other_host: true
+      else
+        redirect_to customer_path(@customer), notice: "Assinatura criada com sucesso."
+      end
     else
       render inertia: "Subscriptions/Form", props: {
         customer:               serialize_customer(@customer),

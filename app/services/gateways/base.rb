@@ -17,6 +17,11 @@ module Gateways
     def update_subscription(sub_id, new_plan, amount_cents:) = raise NotImplementedError
     def create_charge(customer, amount_cents, **opts) = raise NotImplementedError
 
+    # Testa conectividade com o gateway. Retorna { success: true/false, message: "..." }
+    def test_connection
+      raise NotImplementedError
+    end
+
     def self.for(provider)
       case provider.to_s
       when "stripe"    then Gateways::StripeAdapter.new

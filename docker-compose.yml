@@ -40,6 +40,7 @@ services:
       - .:/rails
       - bundle_cache:/usr/local/bundle
       - node_modules:/rails/node_modules
+    env_file: .env
     environment:
       RAILS_ENV: development
       POSTGRES_HOST: postgres
@@ -65,6 +66,7 @@ services:
       - .:/rails
       - bundle_cache:/usr/local/bundle
       - node_modules:/rails/node_modules
+    env_file: .env
     environment:
       RAILS_ENV: development
       POSTGRES_HOST: postgres

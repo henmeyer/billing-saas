@@ -1,19 +1,21 @@
+# frozen_string_literal: true
+
 class Webhooks::DlocalGoController < Webhooks::BaseController
   before_action :authenticate_and_set_tenant
 
   def receive
     payload = JSON.parse(request.body.read)
-    event   = payload["type"] || payload["event"]
+    request.body.rewind
 
-    case event
-    when "SUBSCRIPTION_ACTIVE"
-      Webhooks::ProcessDlocalGoEventJob.perform_later("subscription_activated", payload)
-    when "SUBSCRIPTION_CANCELLED"
-      Webhooks::ProcessDlocalGoEventJob.perform_later("subscription_cancelled", payload)
-    when "PAYMENT_PAID", "SUBSCRIPTION_RENEWAL_SUCCESS"
+    status = payload["status"] || payload["payment_status"]
+
+    case status
+    when "PAID", "COMPLETED", "APPROVED"
       Webhooks::ProcessDlocalGoEventJob.perform_later("payment_received", payload)
-    when "PAYMENT_REJECTED", "PAYMENT_FAILED", "PAYMENT_EXPIRED"
+    when "REJECTED", "CANCELLED", "EXPIRED", "FAILED"
       Webhooks::ProcessDlocalGoEventJob.perform_later("payment_failed", payload)
+    when "PENDING", "AUTHORIZED"
+      Rails.logger.info("[dLocal Go] Payment #{payload['id']} status: #{status}")
     end
 
     head :ok
@@ -21,25 +23,38 @@ class Webhooks::DlocalGoController < Webhooks::BaseController
 
   private
 
-  # dLocal Go assina com HMAC-SHA256 no header X-dLocalGo-Signature.
-  # Identifica o tenant via PaymentGateway de provider dlocal_go.
+  # Identifica o tenant pelo payment_id do payload.
+  # Busca a charge que contém esse gateway_charge_id para descobrir a account.
+  # Depois valida o HMAC com a secret_key do gateway daquela account.
   def authenticate_and_set_tenant
-    signature = request.headers["X-dLocalGo-Signature"]
-    body      = request.body.read
+    body = request.body.read
     request.body.rewind
 
-    gateway = PaymentGateway.find_by(provider: "dlocal_go")
+    payload    = JSON.parse(body) rescue {}
+    payment_id = payload["id"] || payload["payment_id"]
 
-    unless gateway
-      render json: { error: "Gateway não configurado" }, status: :unauthorized
+    # Encontra a charge pelo ID do pagamento — sem tenant (multi-tenant)
+    charge = Charge.unscoped.where(gateway: "dlocal_go")
+                   .find_by(gateway_charge_id: payment_id)
+
+    unless charge
+      Rails.logger.warn("[dLocal Go] Webhook recebido para payment_id=#{payment_id} não encontrado")
+      head :ok # Retorna 200 para não ficar em retry
       return
     end
 
-    ActsAsTenant.current_tenant = gateway.account
-    expected = OpenSSL::HMAC.hexdigest("SHA256", gateway.secret_key, body)
+    account = charge.customer.account
+    ActsAsTenant.current_tenant = account
 
-    unless ActiveSupport::SecurityUtils.secure_compare(expected, signature.to_s)
-      render json: { error: "Assinatura inválida" }, status: :unauthorized
+    # Valida HMAC se a signature estiver presente
+    signature = request.headers["X-dLocalGo-Signature"]
+    if signature.present?
+      gateway  = account.payment_gateways.find_by(provider: "dlocal_go")
+      expected = OpenSSL::HMAC.hexdigest("SHA256", gateway.secret_key, body)
+
+      unless ActiveSupport::SecurityUtils.secure_compare(expected, signature)
+        render json: { error: "Assinatura inválida" }, status: :unauthorized
+      end
     end
   end
 end

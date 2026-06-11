@@ -1,5 +1,5 @@
 class Subscriptions::CreateService
-  Result = Struct.new(:success?, :subscription, :errors)
+  Result = Struct.new(:success?, :subscription, :errors, :redirect_url, keyword_init: true)
 
   def self.call(**args) = new(**args).call
 
@@ -18,7 +18,7 @@ class Subscriptions::CreateService
 
   def call
     errors = validate_integration
-    return Result.new(false, nil, errors) if errors.any?
+    return Result.new("success?": false, subscription: nil, errors: errors, redirect_url: nil) if errors.any?
 
     ActiveRecord::Base.transaction do
       period_start = @started_at.to_time
@@ -31,9 +31,14 @@ class Subscriptions::CreateService
         extra_packages:   @extra_packages,
         initial_quantity: @initial_quantity
       )
-      gw_sub_id    = @gateway_subscription_id.presence || create_gateway_subscription(pricing.amount_cents)
-      base_price   = @plan.calculate_price(pricing.quantity, @currency)
-      extras_total = [pricing.amount_cents - base_price, 0].max
+
+      gateway_result = @gateway_subscription_id.present? ? nil : create_gateway_subscription(pricing.amount_cents)
+      gw_sub_id      = @gateway_subscription_id.presence || extract_sub_id(gateway_result)
+      base_price     = @plan.calculate_price(pricing.quantity, @currency)
+      extras_total   = [pricing.amount_cents - base_price, 0].max
+
+      # dLocal Go: pending até o primeiro pagamento ser confirmado via webhook
+      initial_status = @gateway == "dlocal_go" ? "pending" : "active"
 
       subscription = @customer.subscriptions.create!(
         plan:                    @plan,
@@ -41,7 +46,7 @@ class Subscriptions::CreateService
         gateway:                 @gateway,
         currency:                @currency,
         gateway_subscription_id: gw_sub_id,
-        status:                  "active",
+        status:                  initial_status,
         started_at:              period_start,
         current_period_start:    period_start,
         current_period_end:      period_end,
@@ -60,17 +65,37 @@ class Subscriptions::CreateService
 
       create_period_records(period, pricing.extras_breakdown)
 
-      WebhookDispatchJob.perform_later(
-        @customer, "subscription.activated",
-        { plan: { id: @plan.id, name: @plan.name } }
-      )
+      # dLocal Go: salva charge pendente (webhook vai ativar)
+      redirect_url = nil
+      if @gateway == "dlocal_go" && gateway_result.respond_to?(:checkout_id) && gateway_result.checkout_id
+        subscription.charges.create!(
+          customer:          @customer,
+          gateway:           "dlocal_go",
+          gateway_charge_id: gateway_result.checkout_id,
+          amount_cents:      pricing.amount_cents,
+          status:            "pending",
+          redirect_url:      gateway_result.redirect_url
+        )
+        redirect_url = gateway_result.redirect_url
+      end
 
-      Result.new(true, subscription, [])
+      # Webhook de ativação será disparado pelo ProcessDlocalGoEventJob
+      # após confirmação do pagamento (para dLocal Go)
+      unless @gateway == "dlocal_go"
+        WebhookDispatchJob.perform_later(
+          @customer, "subscription.activated",
+          { plan: { id: @plan.id, name: @plan.name } }
+        )
+      end
+
+      Result.new("success?": true, subscription: subscription, errors: [], redirect_url: redirect_url)
     end
   rescue ActiveRecord::RecordNotUnique
-    Result.new(false, nil, ["Já existe assinatura ativa para este cliente nesta integração"])
+    Result.new("success?": false, subscription: nil,
+               errors: ["Já existe assinatura ativa para este cliente nesta integração"], redirect_url: nil)
   rescue StandardError => e
-    Result.new(false, nil, [e.message])
+    Rails.logger.error("[CreateService] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}")
+    Result.new("success?": false, subscription: nil, errors: [e.message], redirect_url: nil)
   end
 
   private
@@ -138,9 +163,18 @@ class Subscriptions::CreateService
   def create_gateway_subscription(amount_cents)
     adapter = Gateways::Base.for(@gateway)
     adapter.create_customer(@customer) unless @customer.gateway_data[@gateway].present?
-    result = adapter.create_subscription(@customer, @plan, amount_cents: amount_cents)
-    result["id"] || result.id
+    adapter.create_subscription(@customer, @plan, amount_cents: amount_cents)
   rescue Gateways::Base::GatewayError
-    "manual_#{SecureRandom.hex(8)}"
+    OpenStruct.new(id: "manual_#{SecureRandom.hex(8)}")
+  end
+
+  def extract_sub_id(gateway_result)
+    return gateway_result if gateway_result.is_a?(String)
+
+    if @gateway == "dlocal_go"
+      gateway_result.id
+    else
+      gateway_result.respond_to?(:id) ? gateway_result.id : (gateway_result["id"] || "manual_#{SecureRandom.hex(8)}")
+    end
   end
 end

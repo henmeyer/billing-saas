@@ -167,12 +167,13 @@ class CustomersController < ApplicationController
 
   def serialize_charge(charge)
     {
-      id:       charge.id,
-      amount:   charge.amount_cents / 100.0,
-      status:   charge.status,
-      gateway:  charge.gateway,
-      due_date: charge.due_date&.strftime("%d/%m/%Y"),
-      paid_at:  charge.paid_at&.strftime("%d/%m/%Y")
+      id:           charge.id,
+      amount:       charge.amount_cents / 100.0,
+      status:       charge.status,
+      gateway:      charge.gateway,
+      due_date:     charge.due_date&.strftime("%d/%m/%Y"),
+      paid_at:      charge.paid_at&.strftime("%d/%m/%Y"),
+      redirect_url: charge.redirect_url
     }
   end
 

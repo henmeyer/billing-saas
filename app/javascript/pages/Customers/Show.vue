@@ -264,6 +264,7 @@
                   <th>Valor</th>
                   <th>Gateway</th>
                   <th>Status</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -277,6 +278,16 @@
                     <Badge :variant="chargeVariant(c.status)">{{
                       chargeLabel(c.status)
                     }}</Badge>
+                  </td>
+                  <td>
+                    <button
+                      v-if="c.redirect_url && c.status === 'pending'"
+                      class="text-xs text-brand-600 hover:text-brand-800 font-medium whitespace-nowrap"
+                      @click="copyUrl(c.redirect_url)"
+                      :title="c.redirect_url"
+                    >
+                      📋 Copiar link
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -354,4 +365,10 @@ const chargeLabel = (s) =>
     pending: "Pendente",
     refunded: "Reembolsado",
   })[s] || s;
+
+const copyUrl = (url) => {
+  navigator.clipboard.writeText(url).then(() => {
+    alert("Link copiado!");
+  });
+};
 </script>

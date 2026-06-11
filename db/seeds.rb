@@ -92,6 +92,142 @@ ActsAsTenant.with_tenant(account) do
 
   puts "  ✓ Licenças e créditos dos planos configurados"
 
+  # ── Planos Nexloo (baseados na oferta real) ───────────────────────────────────
+
+  # Tipos de licença adicionais
+  whatsapp_lic = LicenseType.find_or_create_by!(key: "whatsapp_connections") do |lt|
+    lt.label = "Conexões de WhatsApp"
+    lt.unit  = "conexão"
+  end
+  email_lic = LicenseType.find_or_create_by!(key: "email_accounts") do |lt|
+    lt.label = "Contas de E-mail"
+    lt.unit  = "conta"
+  end
+  telegram_lic = LicenseType.find_or_create_by!(key: "telegram_connections") do |lt|
+    lt.label = "Conexões de Telegram"
+    lt.unit  = "conexão"
+  end
+
+  # Tipos de crédito adicionais
+  conversas = CreditType.find_or_create_by!(key: "conversations") do |ct|
+    ct.label       = "Conversas"
+    ct.unit        = "conversa"
+    ct.reset_cycle = "billing_cycle"
+  end
+  disparos = CreditType.find_or_create_by!(key: "whatsapp_broadcasts") do |ct|
+    ct.label       = "Disparos de WhatsApp"
+    ct.unit        = "disparo"
+    ct.reset_cycle = "billing_cycle"
+  end
+
+  # Features adicionais
+  ft_ai_agent  = FeatureType.find_or_create_by!(key: "ai_agent")         { |ft| ft.label = "Agente de IA" }
+  ft_typebot   = FeatureType.find_or_create_by!(key: "typebot_flows")    { |ft| ft.label = "Typebot / Fluxos" }
+  ft_facebook  = FeatureType.find_or_create_by!(key: "facebook_instagram") { |ft| ft.label = "Facebook / Instagram" }
+  ft_tiktok    = FeatureType.find_or_create_by!(key: "tiktok_connection") { |ft| ft.label = "Conexão de TikTok" }
+  ft_crm       = FeatureType.find_or_create_by!(key: "crm_kanban")       { |ft| ft.label = "CRM Kanban" }
+
+  # ── Plano Start ──────────────────────────────────────────────────────────────
+  plan_start = Plan.find_or_create_by!(name: "Start") do |p|
+    p.billing_cycle = "monthly"
+    p.pricing_model = "flat"
+    p.trial_days    = 7
+    p.active        = true
+    p.description   = "Para quem deseja organizar o atendimento humano."
+  end
+  PlanPrice.find_or_create_by!(plan: plan_start, currency: brl) { |pp| pp.amount_cents = 14_900 }
+
+  # ── Plano Plantonista ────────────────────────────────────────────────────────
+  plan_plantonista = Plan.find_or_create_by!(name: "Plantonista") do |p|
+    p.billing_cycle = "monthly"
+    p.pricing_model = "flat"
+    p.trial_days    = 7
+    p.active        = true
+    p.description   = "Para quem deseja automatizar o atendimento."
+  end
+  PlanPrice.find_or_create_by!(plan: plan_plantonista, currency: brl) { |pp| pp.amount_cents = 34_900 }
+
+  # ── Plano Pro+ ──────────────────────────────────────────────────────────────
+  plan_pro_plus = Plan.find_or_create_by!(name: "Pro+") do |p|
+    p.billing_cycle = "monthly"
+    p.pricing_model = "flat"
+    p.trial_days    = 7
+    p.active        = true
+    p.description   = "Para quem deseja automatizar e escalar atendimentos."
+  end
+  PlanPrice.find_or_create_by!(plan: plan_pro_plus, currency: brl) { |pp| pp.amount_cents = 59_900 }
+
+  puts "  ✓ Planos Nexloo criados: Start / Plantonista / Pro+"
+
+  # Licenças — ilimitadas (0) em todos os planos
+  [plan_start, plan_plantonista, plan_pro_plus].each do |plan|
+    PlanLicense.find_or_create_by!(plan: plan, license_type: whatsapp_lic) { |pl| pl.quantity = 0 }
+    PlanLicense.find_or_create_by!(plan: plan, license_type: user_lic)     { |pl| pl.quantity = 0 }
+    PlanLicense.find_or_create_by!(plan: plan, license_type: email_lic)    { |pl| pl.quantity = 0 }
+    PlanLicense.find_or_create_by!(plan: plan, license_type: telegram_lic) { |pl| pl.quantity = 0 }
+  end
+
+  # Créditos — Conversas (com extras: R$ 89,90/1000)
+  PlanCredit.find_or_create_by!(plan: plan_start, credit_type: conversas) do |pc|
+    pc.quantity               = 1_000
+    pc.allow_extras           = true
+    pc.extra_unit_size        = 1_000
+    pc.extra_unit_price_cents = 8_990
+  end
+  PlanCredit.find_or_create_by!(plan: plan_plantonista, credit_type: conversas) do |pc|
+    pc.quantity               = 2_000
+    pc.allow_extras           = true
+    pc.extra_unit_size        = 1_000
+    pc.extra_unit_price_cents = 8_990
+  end
+  PlanCredit.find_or_create_by!(plan: plan_pro_plus, credit_type: conversas) do |pc|
+    pc.quantity               = 6_000
+    pc.allow_extras           = true
+    pc.extra_unit_size        = 1_000
+    pc.extra_unit_price_cents = 8_990
+  end
+
+  # Créditos — Disparos de WhatsApp (com extras: R$ 49,90/1000)
+  # Start não inclui disparos
+  PlanCredit.find_or_create_by!(plan: plan_plantonista, credit_type: disparos) do |pc|
+    pc.quantity               = 500
+    pc.allow_extras           = true
+    pc.extra_unit_size        = 1_000
+    pc.extra_unit_price_cents = 4_990
+  end
+  PlanCredit.find_or_create_by!(plan: plan_pro_plus, credit_type: disparos) do |pc|
+    pc.quantity               = 1_000
+    pc.allow_extras           = true
+    pc.extra_unit_size        = 1_000
+    pc.extra_unit_price_cents = 4_990
+  end
+
+  # Features por plano
+  # Start: CRM sim, IA não, Typebot não, Facebook não, TikTok não
+  PlanFeature.find_or_create_by!(plan: plan_start, feature_type: ft_crm)      { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_start, feature_type: ft_ai_agent) { |pf| pf.enabled = false }
+  PlanFeature.find_or_create_by!(plan: plan_start, feature_type: ft_typebot)  { |pf| pf.enabled = false }
+  PlanFeature.find_or_create_by!(plan: plan_start, feature_type: ft_facebook) { |pf| pf.enabled = false }
+  PlanFeature.find_or_create_by!(plan: plan_start, feature_type: ft_tiktok)   { |pf| pf.enabled = false }
+
+  # Plantonista: CRM sim, IA sim, Typebot sim, Facebook sim, TikTok não
+  PlanFeature.find_or_create_by!(plan: plan_plantonista, feature_type: ft_crm)      { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_plantonista, feature_type: ft_ai_agent) { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_plantonista, feature_type: ft_typebot)  { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_plantonista, feature_type: ft_facebook) { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_plantonista, feature_type: ft_tiktok)   { |pf| pf.enabled = false }
+
+  # Pro+: tudo habilitado
+  PlanFeature.find_or_create_by!(plan: plan_pro_plus, feature_type: ft_crm)      { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_pro_plus, feature_type: ft_ai_agent) { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_pro_plus, feature_type: ft_typebot)  { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_pro_plus, feature_type: ft_facebook) { |pf| pf.enabled = true }
+  PlanFeature.find_or_create_by!(plan: plan_pro_plus, feature_type: ft_tiktok)   { |pf| pf.enabled = true }
+
+  # Vincular planos Nexloo à integração (feito junto com os outros após integração ser criada)
+
+  puts "  ✓ Licenças, créditos e features dos planos Nexloo configurados"
+
   # ── Gateway de pagamento (mock) ───────────────────────────────────────────────
   PaymentGateway.find_or_create_by!(provider: "stripe") do |gw|
     gw.api_key_enc = Rails.application.message_verifier(:gateway).generate("sk_test_demo")
@@ -108,7 +244,7 @@ ActsAsTenant.with_tenant(account) do
   puts "  ✓ Integração criada: #{integration.name}"
 
   # Vincular planos à integração via plan_integrations
-  [starter, pro, enterprise].each do |plan|
+  [starter, pro, enterprise, plan_start, plan_plantonista, plan_pro_plus].each do |plan|
     PlanIntegration.find_or_create_by!(plan: plan, integration: integration)
   end
   puts "  ✓ Planos vinculados à integração"

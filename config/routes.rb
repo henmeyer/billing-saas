@@ -1,4 +1,5 @@
 require "sidekiq/web"
+require 'sidekiq/cron/web'
 
 Rails.application.routes.draw do
   mount Rswag::Ui::Engine => "/api-docs"
@@ -44,7 +45,11 @@ Rails.application.routes.draw do
     end
   end
   resources :api_keys, only: [:index, :create, :destroy]
-  resources :payment_gateways
+  resources :payment_gateways do
+    member do
+      post :test
+    end
+  end
   resources :products
 
   resources :imports, only: [:index, :create, :show] do

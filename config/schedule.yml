@@ -2,3 +2,13 @@ portal_cleanup_expired_sessions:
   cron: "0 * * * *" # A cada hora
   class: "Portal::CleanupExpiredSessionsJob"
   description: "Remove portal sessions expiradas"
+
+renew_dlocal_go:
+  cron: "0 6 * * *" # Diariamente às 06:00 UTC
+  class: "Subscriptions::RenewDlocalGoJob"
+  description: "Renova assinaturas dLocal Go vencendo hoje"
+
+sync_dlocal_go_payments:
+  cron: "*/15 * * * *" # A cada 15 minutos
+  class: "Subscriptions::SyncDlocalGoPaymentsJob"
+  description: "Reconcilia pagamentos pendentes do dLocal Go consultando a API"

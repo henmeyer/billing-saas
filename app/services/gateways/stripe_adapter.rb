@@ -61,5 +61,14 @@ module Gateways
     rescue Stripe::StripeError => e
       raise GatewayError.new(e.message, code: e.code)
     end
+
+    def test_connection
+      Stripe::Balance.retrieve
+      { success: true, message: "Conexão com Stripe OK" }
+    rescue Stripe::AuthenticationError => e
+      { success: false, message: "API key inválida: #{e.message}" }
+    rescue Stripe::StripeError => e
+      { success: false, message: "Erro Stripe: #{e.message}" }
+    end
   end
 end
