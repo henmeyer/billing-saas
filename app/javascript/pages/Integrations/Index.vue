@@ -61,5 +61,5 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 defineProps({ integrations: Array });
 
-const deactivate = (id) => router.delete(`/integrations/${id}`);
+const deactivate = (id) => router.delete(`/integrations/${id}`, { preserveState: false });
 </script>

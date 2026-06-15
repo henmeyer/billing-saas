@@ -1,5 +1,5 @@
 class CustomersController < ApplicationController
-  before_action :set_customer, only: [:show, :edit, :update]
+  before_action :set_customer, only: [:show, :edit, :update, :destroy]
 
   def index
     customers = Customer.includes(:subscriptions, :currency)
@@ -73,7 +73,7 @@ class CustomersController < ApplicationController
 
   def edit
     render inertia: "Customers/Form", props: {
-      customer:     serialize_customer(@customer),
+      customer:     serialize_customer_for_form(@customer),
       currencies:   serialize_currencies,
       integrations: serialize_integrations,
       errors:       {}
@@ -92,6 +92,13 @@ class CustomersController < ApplicationController
         errors:       @customer.errors.as_json
       }
     end
+  end
+
+  def destroy
+    @customer.destroy!
+    redirect_to customers_path, notice: "Cliente removido."
+  rescue ActiveRecord::InvalidForeignKey
+    redirect_to customers_path, alert: "Não é possível remover — cliente possui assinaturas ou cobranças vinculadas."
   end
 
   private
@@ -122,6 +129,27 @@ class CustomersController < ApplicationController
 
   def serialize_integrations
     Integration.active.map { |itg| { id: itg.id, name: itg.name, url: itg.url } }
+  end
+
+  def serialize_customer_for_form(customer)
+    {
+      id:          customer.id,
+      name:        customer.name,
+      email:       customer.email,
+      document:    customer.document,
+      phone:       customer.phone,
+      status:      customer.status,
+      notes:       customer.notes,
+      currency_id: customer.currency_id,
+      identities:  customer.customer_identities.includes(:integration).map { |ci|
+        {
+          id:               ci.id,
+          integration_id:   ci.integration_id,
+          integration_name: ci.integration.name,
+          external_id:      ci.external_id
+        }
+      }
+    }
   end
 
   def serialize_customer(customer)

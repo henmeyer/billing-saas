@@ -43,6 +43,7 @@ Rails.application.routes.draw do
         get :logs
       end
     end
+    resources :webhook_logs, only: [:index], controller: "integrations/webhook_logs"
   end
   resources :api_keys, only: [:index, :create, :destroy]
   resources :payment_gateways do

@@ -11,7 +11,7 @@ class LicenseTypesController < ApplicationController
   def new
     render inertia: "LicenseTypes/Form", props: {
       license_type: {},
-      errors: {}
+      errors:       {}
     }
   end
 
@@ -22,7 +22,7 @@ class LicenseTypesController < ApplicationController
     else
       render inertia: "LicenseTypes/Form", props: {
         license_type: license_type_params,
-        errors: lt.errors.as_json
+        errors:       lt.errors.as_json
       }
     end
   end
@@ -30,7 +30,7 @@ class LicenseTypesController < ApplicationController
   def edit
     render inertia: "LicenseTypes/Form", props: {
       license_type: serialize(@license_type),
-      errors: {}
+      errors:       {}
     }
   end
 
@@ -40,7 +40,7 @@ class LicenseTypesController < ApplicationController
     else
       render inertia: "LicenseTypes/Form", props: {
         license_type: serialize(@license_type),
-        errors: @license_type.errors.as_json
+        errors:       @license_type.errors.as_json
       }
     end
   end

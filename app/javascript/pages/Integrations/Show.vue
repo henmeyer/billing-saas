@@ -605,11 +605,94 @@ valid = f"sha256={sig}" == request.headers.get("X-Billing-Signature")</pre
         </div>
       </div>
     </div>
+
+    <!-- Logs completos de webhook -->
+    <div class="card mt-6">
+      <div class="card-header flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-medium text-gray-900">Logs de webhook</h3>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Todos os webhooks disparados para esta integração.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select v-model="logFilter" class="form-input text-xs py-1 w-auto">
+            <option value="all">Todos</option>
+            <option value="delivered">Entregues</option>
+            <option value="failed">Falhou</option>
+            <option value="pending">Pendentes</option>
+          </select>
+          <button
+            @click="loadAllLogs"
+            class="text-xs text-brand-600 hover:text-brand-700"
+          >
+            Atualizar
+          </button>
+        </div>
+      </div>
+      <div
+        v-if="!allLogs.length"
+        class="card-body text-center text-sm text-gray-400 py-6"
+      >
+        Nenhum webhook disparado ainda.
+      </div>
+      <div v-else class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+        <div
+          v-for="log in filteredLogs"
+          :key="log.id"
+          class="px-6 py-3 flex items-center justify-between"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span
+                :class="[
+                  'w-2 h-2 rounded-full flex-shrink-0',
+                  log.status === 'delivered'
+                    ? 'bg-green-400'
+                    : log.status === 'pending'
+                      ? 'bg-yellow-400'
+                      : 'bg-red-400',
+                ]"
+              />
+              <span class="text-sm font-mono text-gray-700 truncate">
+                {{ log.event }}
+              </span>
+              <span
+                v-if="log.is_test"
+                class="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-medium"
+              >
+                teste
+              </span>
+            </div>
+            <div
+              class="flex items-center gap-3 mt-0.5 ml-4 text-xs text-gray-400"
+            >
+              <span>{{ log.created_at }}</span>
+              <span v-if="log.customer_name">{{ log.customer_name }}</span>
+              <span v-if="log.attempts > 1">{{ log.attempts }} tentativas</span>
+            </div>
+          </div>
+          <div class="text-right text-xs text-gray-500 flex-shrink-0 ml-4">
+            <p
+              v-if="log.status_code"
+              :class="
+                log.status_code >= 200 && log.status_code < 300
+                  ? 'text-green-600'
+                  : 'text-red-600'
+              "
+            >
+              HTTP {{ log.status_code }}
+            </p>
+            <p>{{ log.duration_ms }}ms</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { Link, router, useForm, usePage } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
@@ -672,6 +755,7 @@ const revokeKey = (id) => {
   router.delete(
     `/integrations/${props.integration.id}/integration_api_keys/${id}`,
     {
+      preserveState: false,
       onSuccess: () => {
         const key = localApiKeys.value.find((k) => k.id === id);
         if (key) key.active = false;
@@ -727,5 +811,29 @@ const loadLogs = async () => {
   }
 };
 
-onMounted(loadLogs);
+// All webhook logs (not just tests)
+const allLogs = ref([]);
+const logFilter = ref("all");
+
+const filteredLogs = computed(() => {
+  if (logFilter.value === "all") return allLogs.value;
+  return allLogs.value.filter((l) => l.status === logFilter.value);
+});
+
+const loadAllLogs = async () => {
+  try {
+    const res = await fetch(
+      `/integrations/${props.integration.id}/webhook_logs`,
+    );
+    const data = await res.json();
+    allLogs.value = data.logs;
+  } catch (e) {
+    console.error("Erro ao carregar logs:", e);
+  }
+};
+
+onMounted(() => {
+  loadLogs();
+  loadAllLogs();
+});
 </script>

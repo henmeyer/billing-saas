@@ -113,5 +113,5 @@ const createKey = () => {
   );
 };
 
-const revokeKey = (id) => router.delete(`/api_keys/${id}`);
+const revokeKey = (id) => router.delete(`/api_keys/${id}`, { preserveState: false });
 </script>

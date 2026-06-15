@@ -77,7 +77,7 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 defineProps({ products: Array });
 
-const deactivate = (id) => router.delete(`/products/${id}`);
+const deactivate = (id) => router.delete(`/products/${id}`, { preserveState: false });
 
 const fmt = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);

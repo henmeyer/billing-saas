@@ -80,11 +80,16 @@ class Subscriptions::SyncDlocalGoPaymentsJob < ApplicationJob
                    end
 
     ActiveRecord::Base.transaction do
+      # 1. Sempre atualiza status para active e datas do período
       subscription.update!(
         status:               "active",
         current_period_start: period_start,
         current_period_end:   period_end
       )
+
+      # 2. Cria período apenas se não existe (idempotente)
+      existing_period = subscription.subscription_periods.find_by(period_start: period_start)
+      return if existing_period
 
       new_period = subscription.subscription_periods.create!(
         period_start:        period_start,

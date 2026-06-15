@@ -69,5 +69,5 @@ const props = defineProps({
 const superAdmins = props.super_admins || [];
 const currentId   = props.current_id;
 
-const remove = (id) => router.delete(`/superadmin/super_admins/${id}`);
+const remove = (id) => router.delete(`/superadmin/super_admins/${id}`, { preserveState: false });
 </script>

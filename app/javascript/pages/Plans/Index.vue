@@ -79,11 +79,11 @@
               Editar
             </Link>
             <ConfirmButton
-              :message="`Arquivar o plano ${plan.name}?`"
+              :message="`Deletar o plano ${plan.name}?`"
               btn-class="btn-danger btn-sm flex-1 justify-center"
-              @confirm="archivePlan(plan.id)"
+              @confirm="deletePlan(plan.id)"
             >
-              Arquivar
+              Deletar
             </ConfirmButton>
           </div>
         </div>
@@ -100,7 +100,7 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 defineProps({ plans: Array });
 
-const archivePlan = (id) => router.delete(`/plans/${id}`);
+const deletePlan = (id) => router.delete(`/plans/${id}`, { preserveState: false });
 
 const planPrice = (plan) => {
   const prices = plan.prices || [];

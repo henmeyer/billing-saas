@@ -134,7 +134,6 @@
               </p>
             </div>
             <div class="w-48">
-              {{ identities }}
               <input
                 v-model="identities[integration.id]"
                 type="text"

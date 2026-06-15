@@ -63,7 +63,7 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 const props = defineProps({ credit_types: Array });
 const creditTypes = props.credit_types || [];
 
-const destroy = (id) => router.delete(`/credit_types/${id}`);
+const destroy = (id) => router.delete(`/credit_types/${id}`, { preserveState: false });
 
 const resetLabel = (cycle) =>
   ({ billing_cycle: "Por ciclo", monthly: "Mensal", never: "Nunca" })[cycle] || cycle;

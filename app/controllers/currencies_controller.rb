@@ -57,14 +57,14 @@ class CurrenciesController < ApplicationController
     params.require(:currency).permit(:code, :name, :symbol, :default, :active)
   end
 
-  def serialize(c)
+  def serialize(currency)
     {
-      id:      c.id,
-      code:    c.code,
-      name:    c.name,
-      symbol:  c.symbol,
-      default: c.default,
-      active:  c.active
+      id:      currency.id,
+      code:    currency.code,
+      name:    currency.name,
+      symbol:  currency.symbol,
+      default: currency.default,
+      active:  currency.active
     }
   end
 end

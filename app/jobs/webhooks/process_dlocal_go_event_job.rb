@@ -23,7 +23,6 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
 
   private
 
-  # Identifica se é pagamento de subscription pelo order_id
   # Formatos: "sub_CUSTOMER_ID_TIMESTAMP" ou "renew_CUSTOMER_ID_TIMESTAMP"
   def find_subscription(order_id)
     return unless order_id.match?(/^(sub|renew)_\d+_/)
@@ -35,30 +34,49 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     return unless customer
 
     ActsAsTenant.current_tenant = customer.account
-    # Busca assinatura ativa OU pending (primeiro pagamento ainda não confirmado)
-    customer.subscriptions.where(gateway: "dlocal_go")
+
+    customer.subscriptions
+            .where(gateway: "dlocal_go")
             .where(status: %w[active trialing past_due pending])
-            .order(created_at: :desc).first
+            .order(created_at: :desc)
+            .first
   end
 
   def process_subscription_payment(subscription, payload, payment_id)
+    customer     = subscription.customer
     amount_cents = extract_amount(payload)
 
     # Idempotência
     return if subscription.charges.exists?(gateway_charge_id: payment_id)
 
+    # Salva checkout_id para cobranças recorrentes futuras (crucial no primeiro pagamento)
+    checkout_id = payload["id"] || payload["checkout_id"]
+    if checkout_id.present?
+      customer.gateway_data["dlocal_go"] ||= {}
+      customer.gateway_data["dlocal_go"]["checkout_id"] = checkout_id
+      customer.save!
+    end
+
+    was_pending  = subscription.status == "pending"
     period_start = Time.current.beginning_of_day
     period_end   = next_period(subscription)
 
     ActiveRecord::Base.transaction do
-      subscription.charges.create!(
-        customer:          subscription.customer,
-        gateway:           "dlocal_go",
-        gateway_charge_id: payment_id,
-        amount_cents:      amount_cents,
-        status:            "paid",
-        paid_at:           Time.current
-      )
+      # Atualiza charge pendente se existir, ou cria nova
+      charge = subscription.charges.find_by(gateway_charge_id: payment_id, status: "pending")
+
+      if charge
+        charge.update!(status: "paid", paid_at: Time.current)
+      else
+        subscription.charges.create!(
+          customer:          customer,
+          gateway:           "dlocal_go",
+          gateway_charge_id: payment_id,
+          amount_cents:      amount_cents,
+          status:            "paid",
+          paid_at:           Time.current
+        )
+      end
 
       subscription.update!(
         status:               "active",
@@ -66,28 +84,47 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
         current_period_end:   period_end
       )
 
-      new_period = subscription.subscription_periods.create!(
-        period_start:        period_start,
-        period_end:          period_end,
-        amount_cents:        amount_cents,
-        base_amount_cents:   subscription.base_price_cents,
-        extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
-      )
-
-      replicate_period_data(subscription, new_period)
+      if was_pending
+        # Primeiro pagamento: atualiza o período criado pelo CreateService
+        period = subscription.subscription_periods.last
+        if period
+          period.update!(
+            amount_cents:        amount_cents,
+            base_amount_cents:   subscription.base_price_cents,
+            extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
+          )
+        end
+      else
+        # Renovação: cria novo período apenas se não existe (idempotente)
+        existing_period = subscription.subscription_periods.find_by(period_start: period_start)
+        unless existing_period
+          new_period = subscription.subscription_periods.create!(
+            period_start:        period_start,
+            period_end:          period_end,
+            amount_cents:        amount_cents,
+            base_amount_cents:   subscription.base_price_cents,
+            extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
+          )
+          replicate_period_data(subscription, new_period)
+        end
+      end
     end
 
-    WebhookDispatchJob.perform_later(
-      subscription.customer,
-      "payment.received",
-      { amount_cents: amount_cents, gateway: "dlocal_go", charge_id: payment_id }
-    )
-
-    WebhookDispatchJob.perform_later(
-      subscription.customer,
-      "subscription.renewed",
-      { period_end: period_end }
-    )
+    if was_pending
+      WebhookDispatchJob.perform_later(
+        customer, "subscription.activated",
+        { plan: { id: subscription.plan.id, name: subscription.plan.name } }
+      )
+    else
+      WebhookDispatchJob.perform_later(
+        customer, "payment.received",
+        { amount_cents: amount_cents, gateway: "dlocal_go", charge_id: payment_id }
+      )
+      WebhookDispatchJob.perform_later(
+        customer, "subscription.renewed",
+        { period_end: period_end.iso8601 }
+      )
+    end
   end
 
   def process_standalone_payment(payload, payment_id)
@@ -101,13 +138,13 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     ActsAsTenant.current_tenant = customer.account
 
     charge = customer.charges.find_by(gateway_charge_id: payment_id)
+    charge ||= customer.charges.find_by(status: "pending", gateway: "dlocal_go")
     return unless charge
 
     charge.update!(status: "paid", paid_at: Time.current)
 
     WebhookDispatchJob.perform_later(
-      customer,
-      "payment.received",
+      customer, "payment.received",
       { amount_cents: charge.amount_cents, gateway: "dlocal_go", charge_id: payment_id }
     )
   end
@@ -115,8 +152,7 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
   def process_payment_failed(subscription, payload)
     subscription.update!(status: "past_due")
     WebhookDispatchJob.perform_later(
-      subscription.customer,
-      "payment.failed",
+      subscription.customer, "payment.failed",
       { gateway: "dlocal_go", status: payload["status"],
         reason: payload["status_detail"] || payload["message"] }
     )

@@ -34,8 +34,10 @@ class Webhooks::DlocalGoController < Webhooks::BaseController
     payment_id = payload["id"] || payload["payment_id"]
 
     # Encontra a charge pelo ID do pagamento — sem tenant (multi-tenant)
-    charge = Charge.unscoped.where(gateway: "dlocal_go")
-                   .find_by(gateway_charge_id: payment_id)
+    charge = ActsAsTenant.without_tenant do
+      Charge.where(gateway: "dlocal_go")
+            .find_by(gateway_charge_id: payment_id)
+    end
 
     unless charge
       Rails.logger.warn("[dLocal Go] Webhook recebido para payment_id=#{payment_id} não encontrado")
@@ -43,7 +45,7 @@ class Webhooks::DlocalGoController < Webhooks::BaseController
       return
     end
 
-    account = charge.customer.account
+    account = ActsAsTenant.without_tenant { charge.customer.account }
     ActsAsTenant.current_tenant = account
 
     # Valida HMAC se a signature estiver presente

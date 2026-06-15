@@ -58,5 +58,5 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 const props = defineProps({ feature_types: Array });
 const featureTypes = props.feature_types || [];
 
-const destroy = (id) => router.delete(`/feature_types/${id}`);
+const destroy = (id) => router.delete(`/feature_types/${id}`, { preserveState: false });
 </script>

@@ -96,21 +96,9 @@
               <p class="text-xs text-gray-400">{{ cur.symbol }}</p>
             </div>
             <div class="flex-1">
-              <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
-                  {{ cur.symbol }}
-                </span>
-                <input
-                  v-model.number="prices[cur.id]"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="form-input pl-8"
-                  placeholder="0,00"
-                />
-              </div>
+              <MoneyInput v-model="prices[cur.id]" placeholder="0,00" />
               <p v-if="prices[cur.id] > 0" class="form-hint mt-1">
-                {{ cur.symbol }} {{ fmtDecimal(prices[cur.id]) }}
+                {{ cur.symbol }} {{ fmtDecimal(prices[cur.id] / 100) }}
               </p>
             </div>
           </div>
@@ -131,6 +119,7 @@
 import { computed, reactive } from "vue";
 import { Link, useForm } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
+import MoneyInput from "@/components/Shared/MoneyInput.vue";
 
 const props = defineProps({
   product:      Object,
@@ -150,12 +139,12 @@ const form = useForm({
   credit_quantity: props.product.credit_quantity || 0,
 });
 
-// Armazena em reais (decimais); converte para centavos no submit
+// Armazena em centavos
 const prices = reactive(
   Object.fromEntries(
     currencies.map((cur) => {
       const existing = props.product.prices?.find((p) => p.currency_id === cur.id);
-      return [cur.id, existing ? existing.amount_cents / 100 : null];
+      return [cur.id, existing ? existing.amount_cents : null];
     }),
   ),
 );
@@ -169,7 +158,7 @@ const submit = () => {
   const method = props.product.id ? "put" : "post";
 
   const pricesToCents = Object.fromEntries(
-    Object.entries(prices).map(([id, val]) => [id, val != null ? Math.round(val * 100) : null]),
+    Object.entries(prices).map(([id, val]) => [id, val != null ? Math.round(val) : null]),
   );
 
   form.transform((data) => ({ ...data, prices: pricesToCents }))[method](url);

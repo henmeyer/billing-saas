@@ -70,5 +70,5 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 defineProps({ currencies: Array });
 
-const deactivate = (id) => router.delete(`/currencies/${id}`);
+const deactivate = (id) => router.delete(`/currencies/${id}`, { preserveState: false });
 </script>

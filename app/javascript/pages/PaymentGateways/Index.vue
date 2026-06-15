@@ -61,5 +61,5 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 const props = defineProps({ gateways: Array });
 const gateways = props.gateways || [];
 
-const destroy = (id) => router.delete(`/payment_gateways/${id}`);
+const destroy = (id) => router.delete(`/payment_gateways/${id}`, { preserveState: false });
 </script>

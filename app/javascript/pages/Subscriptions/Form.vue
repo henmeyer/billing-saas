@@ -227,7 +227,7 @@
                 </p>
                 <p class="text-xs text-gray-400">
                   Base inclusa: {{ fmtNum(credit.quantity) }}
-                  {{ credit.credit_type_unit }}s/mês
+                  {{ credit.credit_type_unit }}/mês
                 </p>
               </div>
 
@@ -246,7 +246,7 @@
                     {{ fmtNum(totalQuantity(credit)) }}
                   </p>
                   <p class="text-xs text-gray-400">
-                    {{ credit.credit_type_unit }}s/mês
+                    {{ credit.credit_type_unit }}/mês
                   </p>
                 </div>
 
@@ -308,42 +308,35 @@
               </p>
             </div>
 
-            <div class="flex justify-between">
-              <span class="text-gray-600">Plano base</span>
-              <span class="font-medium text-gray-900">{{
+            <div class="flex justify-between text-sm text-gray-500">
+              <span>Plano base</span>
+              <span>{{ fmtCents(basePriceCents) }}</span>
+            </div>
+
+            <div
+              v-for="credit in creditsWithExtras"
+              :key="credit.credit_type_id"
+              v-show="(extraPackages[credit.credit_type_id] || 0) > 0"
+              class="flex justify-between text-sm"
+            >
+              <span class="text-gray-500">
+                {{ extraPackages[credit.credit_type_id] || 0 }}× pacote
+                {{ credit.credit_type_label }} ({{
+                  fmtNum(credit.extra_unit_size)
+                }}
+                {{ credit.credit_type_unit }})
+              </span>
+              <span class="text-gray-700"
+                >+ {{ fmtCents(extraCost(credit)) }}</span
+              >
+            </div>
+
+            <div class="flex justify-between pt-2 border-t border-gray-200">
+              <span class="font-medium text-gray-900">Total mensal</span>
+              <span class="font-semibold text-lg text-gray-900">{{
                 calculatedPrice
               }}</span>
             </div>
-
-            <template>
-              <div
-                v-for="credit in creditsWithExtras"
-                :key="credit.credit_type_id"
-                v-show="(extraPackages[credit.credit_type_id] || 0) > 0"
-                class="flex justify-between"
-              >
-                <span class="text-gray-500">
-                  {{ extraPackages[credit.credit_type_id] || 0 }}× pacote
-                  {{ credit.credit_type_label }} ({{
-                    fmtNum(credit.extra_unit_size)
-                  }}
-                  {{ credit.credit_type_unit }}s)
-                </span>
-                <span class="text-gray-700"
-                  >+ {{ fmtCents(extraCost(credit)) }}</span
-                >
-              </div>
-
-              <div
-                v-if="totalExtrasCents > 0"
-                class="flex justify-between pt-2 border-t border-gray-200"
-              >
-                <span class="font-medium text-gray-900">Total mensal</span>
-                <span class="font-semibold text-lg text-gray-900">{{
-                  totalMonthlyFormatted
-                }}</span>
-              </div>
-            </template>
 
             <div
               v-if="selectedPlan.pricing_model === 'volume' && activeTier"
@@ -535,7 +528,8 @@ const basePriceCents = computed(() => {
 
 const calculatedPrice = computed(() => {
   if (!selectedPlan.value || !selectedCurrency.value) return "—";
-  return `${selectedCurrency.value.symbol} ${(basePriceCents.value / 100).toFixed(2)}`;
+  const total = basePriceCents.value + totalExtrasCents.value;
+  return `${selectedCurrency.value.symbol} ${(total / 100).toFixed(2)}`;
 });
 
 const incrementPackage = (creditTypeId) => {
@@ -570,7 +564,7 @@ const fmtCents = (v) => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: currencyCode,
-  }).format(v || 0);
+  }).format((v || 0) / 100);
 };
 
 const fmtNum = (v) => new Intl.NumberFormat("pt-BR").format(v || 0);

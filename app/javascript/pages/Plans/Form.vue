@@ -191,25 +191,12 @@
               <p class="text-xs text-gray-400">{{ cur.symbol }}</p>
             </div>
             <div class="flex-1">
-              <div class="relative">
-                <span
-                  class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none"
-                >
-                  {{ cur.symbol }}
-                </span>
-                <input
-                  v-model.number="prices[cur.id]"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="form-input pl-8"
-                  :placeholder="
-                    cur.default ? 'Obrigatório' : 'Deixe vazio para não aceitar'
-                  "
-                />
-              </div>
+              <MoneyInput
+                v-model="prices[cur.id]"
+                :placeholder="cur.default ? 'Obrigatório' : 'Deixe vazio para não aceitar'"
+              />
               <p v-if="prices[cur.id] > 0" class="form-hint mt-1">
-                {{ fmtPrice(prices[cur.id], cur) }}/{{
+                {{ fmtPrice(prices[cur.id]) }}/{{
                   form.pricing_model === "per_unit"
                     ? pricingMetricLabel || "unidade"
                     : form.billing_cycle === "monthly"
@@ -288,19 +275,11 @@
                   pricingMetricLabel
                 }}</span>
               </div>
-              <div class="relative w-36">
-                <span
-                  class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400"
-                >
-                  {{ activeCurrency?.symbol }}
-                </span>
-                <input
-                  v-model.number="tier.unit_amount_cents"
-                  type="number"
-                  min="0"
-                  step="1"
-                  class="w-full pl-6 rounded-lg border-gray-300 text-sm focus:ring-brand-500"
+              <div class="w-36">
+                <MoneyInput
+                  v-model="tier.unit_amount_cents"
                   placeholder="Preço/un"
+                  input-class="text-sm"
                 />
               </div>
               <span class="text-xs text-gray-400">/ un</span>
@@ -446,7 +425,9 @@
               <!-- Cabeçalho -->
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-medium text-gray-700">{{ ct.label }}</p>
+                  <p class="text-sm font-medium text-gray-700">
+                    {{ ct.label }}
+                  </p>
                   <p class="text-xs text-gray-400 font-mono">{{ ct.key }}</p>
                 </div>
               </div>
@@ -454,16 +435,21 @@
               <!-- Quantidade base + rollover -->
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="text-xs text-gray-500 mb-1 block">Quantidade base incluída</label>
+                  <label class="text-xs text-gray-500 mb-1 block"
+                    >Quantidade base incluída</label
+                  >
                   <input
                     v-model.number="credits[ct.id].quantity"
-                    type="number" min="0"
+                    type="number"
+                    min="0"
                     class="form-input text-sm"
                     :placeholder="`Ex: 2000 ${ct.unit}s/mês`"
                   />
                 </div>
                 <div class="flex items-center gap-2 pt-5">
-                  <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <label
+                    class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer"
+                  >
                     <input
                       v-model="credits[ct.id].rollover"
                       type="checkbox"
@@ -476,7 +462,9 @@
 
               <!-- Extras pagos -->
               <div class="border-t border-gray-100 pt-3">
-                <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-3">
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-3"
+                >
                   <input
                     v-model="credits[ct.id].allow_extras"
                     type="checkbox"
@@ -485,35 +473,43 @@
                   <span class="font-medium">Permitir compra de extras</span>
                 </label>
 
-                <div v-if="credits[ct.id].allow_extras" class="grid grid-cols-2 gap-3 pl-6">
+                <div
+                  v-if="credits[ct.id].allow_extras"
+                  class="grid grid-cols-2 gap-3 pl-6"
+                >
                   <div>
-                    <label class="text-xs text-gray-500 mb-1 block">Tamanho do pacote extra</label>
+                    <label class="text-xs text-gray-500 mb-1 block"
+                      >Tamanho do pacote extra</label
+                    >
                     <div class="relative">
                       <input
                         v-model.number="credits[ct.id].extra_unit_size"
-                        type="number" min="1"
+                        type="number"
+                        min="1"
                         class="form-input text-sm"
                         placeholder="1000"
                       />
-                      <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                        {{ ct.unit }}s
+                      <span
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"
+                      >
+                        {{ ct.unit }}
                       </span>
                     </div>
                   </div>
                   <div>
-                    <label class="text-xs text-gray-500 mb-1 block">Preço por pacote (centavos)</label>
-                    <div class="relative">
-                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">R$</span>
-                      <input
-                        v-model.number="credits[ct.id].extra_unit_price_cents"
-                        type="number" min="0"
-                        class="form-input text-sm pl-8"
-                        placeholder="8990"
-                      />
-                    </div>
+                    <label class="text-xs text-gray-500 mb-1 block"
+                      >Preço por pacote</label
+                    >
+                    <MoneyInput
+                      v-model="credits[ct.id].extra_unit_price_cents"
+                      placeholder="0,00"
+                      input-class="text-sm"
+                    />
                     <p class="text-xs text-gray-400 mt-0.5">
-                      = {{ fmtCents(credits[ct.id].extra_unit_price_cents) }}
-                      por {{ fmtNum(credits[ct.id].extra_unit_size) }} {{ ct.unit }}s
+                      =
+                      {{ fmtCents(credits[ct.id].extra_unit_price_cents) }} por
+                      {{ fmtNum(credits[ct.id].extra_unit_size) }}
+                      {{ ct.unit }}
                     </p>
                   </div>
                 </div>
@@ -581,6 +577,7 @@ import { ref, reactive, computed } from "vue";
 import { Link, useForm } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
+import MoneyInput from "@/components/Shared/MoneyInput.vue";
 
 const props = defineProps({
   plan: Object,
@@ -647,10 +644,10 @@ const credits = reactive(
       return [
         ct.id,
         {
-          quantity:               existing?.quantity               ?? 0,
-          rollover:               existing?.rollover               ?? false,
-          allow_extras:           existing?.allow_extras           ?? false,
-          extra_unit_size:        existing?.extra_unit_size        ?? 1000,
+          quantity: existing?.quantity ?? 0,
+          rollover: existing?.rollover ?? false,
+          allow_extras: existing?.allow_extras ?? false,
+          extra_unit_size: existing?.extra_unit_size ?? 1000,
           extra_unit_price_cents: existing?.extra_unit_price_cents ?? 0,
         },
       ];
@@ -674,7 +671,7 @@ const prices = reactive(
   Object.fromEntries(
     currencies.map((cur) => {
       const existing = props.plan.prices?.find((p) => p.currency_id === cur.id);
-      return [cur.id, existing ? existing.amount_cents / 100 : null];
+      return [cur.id, existing ? existing.amount_cents : null];
     }),
   ),
 );
@@ -732,7 +729,7 @@ const simulatedQty = ref(5);
 const simulatePrice = (currency) => {
   const qty = simulatedQty.value || 1;
   if (form.pricing_model === "per_unit") {
-    return (((prices[currency.id] || 0) * 100 * qty) / 100).toFixed(2);
+    return (((prices[currency.id] || 0) * qty) / 100).toFixed(2);
   }
   if (form.pricing_model === "volume") {
     const currTiers = tiers[currency.id] || [];
@@ -740,17 +737,17 @@ const simulatePrice = (currency) => {
       (t) => qty >= t.from_unit && (!t.to_unit || qty <= t.to_unit),
     );
     if (!tier) return "—";
-    return (tier.unit_amount_cents * qty).toFixed(2);
+    return ((tier.unit_amount_cents * qty) / 100).toFixed(2);
   }
-  return (prices[currency.id] || 0).toFixed(2);
+  return ((prices[currency.id] || 0) / 100).toFixed(2);
 };
 
-const fmtPrice = (value) => {
-  if (!value) return "";
+const fmtPrice = (cents) => {
+  if (!cents) return "";
   return new Intl.NumberFormat("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(cents / 100);
 };
 
 const fmtCents = (v) =>
@@ -765,10 +762,7 @@ const submit = () => {
   const method = props.plan.id ? "put" : "post";
 
   const pricesToCents = Object.fromEntries(
-    Object.entries(prices).map(([id, val]) => [
-      id,
-      val != null ? Math.round(val * 100) : null,
-    ]),
+    Object.entries(prices).map(([id, val]) => [id, val != null ? Math.round(val) : null]),
   );
 
   const allTiers = Object.entries(tiers).flatMap(([currencyId, currTiers]) =>

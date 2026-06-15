@@ -290,6 +290,82 @@ components:
         email:
           type: string
           example: admin@empresax.com
+    WebhookSubscriptionData:
+      type: object
+      description: Dados da assinatura ativa do cliente no momento do evento
+      properties:
+        id:
+          type: integer
+          example: 1
+        plan_id:
+          type: integer
+          example: 1
+        plan_name:
+          type: string
+          example: Starter
+        status:
+          type: string
+          enum:
+          - active
+          - pending
+          - past_due
+          - cancelled
+          - trialing
+          example: active
+        billing_cycle:
+          type: string
+          enum:
+          - monthly
+          - yearly
+          example: monthly
+        base_price_cents:
+          type: integer
+          description: Preço base da assinatura em centavos
+          example: 14900
+        currency_code:
+          type: string
+          example: BRL
+        current_period_end:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-07-12T00:00:00Z'
+        started_at:
+          type: string
+          format: date-time
+          example: '2026-06-12T00:00:00Z'
+    WebhookCreditEntry:
+      type: object
+      description: Saldo de um tipo de crédito no período atual
+      properties:
+        limit:
+          type: integer
+          description: Limite total no período (base + extras)
+          example: 4000
+        base:
+          type: integer
+          description: Créditos incluídos no plano base
+          example: 2000
+        extras:
+          type: integer
+          description: Créditos extras adquiridos no período
+          example: 2000
+        extra_packages:
+          type: integer
+          description: Número de pacotes extras adquiridos
+          example: 2
+        used:
+          type: integer
+          description: Total consumido no período
+          example: 0
+        balance:
+          type: integer
+          description: Saldo disponível (limit - used)
+          example: 4000
+        usage_percent:
+          type: number
+          description: Percentual de uso (0–100)
+          example: 0.0
     WebhookBase:
       type: object
       required:
@@ -321,14 +397,54 @@ components:
           example: false
         customer:
           "$ref": "#/components/schemas/WebhookCustomer"
+        subscription:
+          nullable: true
+          allOf:
+          - "$ref": "#/components/schemas/WebhookSubscriptionData"
+          description: Assinatura ativa do cliente vinculada a esta integração. null
+            quando o cliente não possui assinatura ativa.
         features:
           type: object
-          description: Features habilitadas no plano atual do cliente
+          description: Features habilitadas no plano atual do cliente. Chave = key
+            do feature_type, valor = booleano.
           additionalProperties:
             type: boolean
           example:
             ai_enabled: true
-            export_reports: false
+            typebot_enabled: false
+            whatsapp_unlimited: true
+        credits:
+          type: object
+          description: Saldo de créditos do período atual por tipo. Chave = key do
+            credit_type. Vazio quando não há assinatura ativa.
+          additionalProperties:
+            "$ref": "#/components/schemas/WebhookCreditEntry"
+          example:
+            conversations:
+              limit: 4000
+              base: 2000
+              extras: 2000
+              extra_packages: 2
+              used: 0
+              balance: 4000
+              usage_percent: 0.0
+        licenses:
+          type: object
+          description: Licenças do período atual por tipo. Chave = key do license_type.
+            Vazio quando não há assinatura ativa.
+          additionalProperties:
+            "$ref": "#/components/schemas/LicenseInfo"
+          example:
+            user_licenses:
+              allocated: null
+              used: 3
+              available: null
+              unlimited: true
+            inbox_licenses:
+              allocated: 10
+              used: 4
+              available: 6
+              unlimited: false
         data:
           type: object
           description: Dados específicos do evento
