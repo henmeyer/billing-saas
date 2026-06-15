@@ -57,6 +57,30 @@
         <NavLink href="/superadmin/accounts" icon="sa_accounts" label="Contas" />
         <NavLink href="/superadmin/users" icon="sa_users" label="Usuários" />
         <NavLink href="/superadmin/super_admins" icon="sa_admins" label="SuperAdmins" />
+        <a
+          href="/sidekiq"
+          target="_blank"
+          class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
+                 text-gray-400 hover:bg-white/5 hover:text-gray-200
+                 transition-all duration-150 group"
+        >
+          <span class="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0
+                   01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0
+                   00-2-2m-2-4h.01M17 16h.01" />
+            </svg>
+          </span>
+          <span class="truncate">Sidekiq</span>
+          <svg
+            class="w-3 h-3 text-gray-500 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
       </template>
     </div>
 

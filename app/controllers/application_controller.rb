@@ -5,26 +5,30 @@ class ApplicationController < ActionController::Base
 
   inertia_share do
     {
-      auth: {
-        user: current_user ? {
-          id:           current_user.id,
-          name:         current_user.name,
-          email:        current_user.email,
-          role:         current_account_user&.role,
-          superadmin:   current_user.superadmin?,
-          impersonating: impersonating?,
-        } : nil,
-        account: current_account ? {
-          id:   current_account.id,
-          name: current_account.name,
-          slug: current_account.slug,
-        } : nil,
-        accounts: current_user && !current_user.superadmin? ? user_accounts_list : [],
+      auth:  {
+        user:     if current_user
+                    {
+                      id:            current_user.id,
+                      name:          current_user.name,
+                      email:         current_user.email,
+                      role:          current_account_user&.role,
+                      superadmin:    current_user.superadmin?,
+                      impersonating: impersonating?
+                    }
+                  end,
+        account:  if current_account
+                    {
+                      id:   current_account.id,
+                      name: current_account.name,
+                      slug: current_account.slug
+                    }
+                  end,
+        accounts: current_user && !current_user.superadmin? ? user_accounts_list : []
       },
       flash: {
         notice: flash[:notice],
         alert:  flash[:alert],
-        token:  flash[:token],
+        token:  flash[:token]
       }
     }
   end
@@ -32,27 +36,27 @@ class ApplicationController < ActionController::Base
   private
 
   def set_tenant
-    return if current_user&.superadmin? && current_account.nil?
+    return if current_account.nil?
+
     set_current_tenant(current_account)
   end
 
   def current_account
-    @current_account ||= begin
-      if session[:current_account_id]
-        if current_user&.superadmin?
-          Account.find_by(id: session[:current_account_id])
-        else
-          current_user.accounts.find_by(id: session[:current_account_id])
-        end
-      elsif !current_user&.superadmin?
-        current_user&.accounts&.first
-      end
-    end
+    @current_account ||= if session[:current_account_id]
+                           if current_user&.superadmin?
+                             Account.find_by(id: session[:current_account_id])
+                           else
+                             current_user.accounts.find_by(id: session[:current_account_id])
+                           end
+                         else
+                           current_user&.accounts&.first
+                         end
   end
   helper_method :current_account
 
   def current_account_user
     return nil if current_user&.superadmin?
+
     @current_account_user ||= AccountUser.find_by(
       user:    current_user,
       account: current_account
@@ -66,15 +70,15 @@ class ApplicationController < ActionController::Base
   helper_method :impersonating?
 
   def require_superadmin!
-    unless current_user&.superadmin?
-      redirect_to root_path, alert: "Acesso negado."
-    end
+    return if current_user&.superadmin?
+
+    redirect_to root_path, alert: "Acesso negado."
   end
 
   def require_admin!
-    unless current_user&.superadmin? || current_account_user&.admin?
-      redirect_to root_path, alert: "Acesso negado."
-    end
+    return if current_user&.superadmin? || current_account_user&.admin?
+
+    redirect_to root_path, alert: "Acesso negado."
   end
 
   def user_accounts_list

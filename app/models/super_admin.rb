@@ -1,7 +1,12 @@
 class SuperAdmin < User
   # STI — Rails salva type: "SuperAdmin" na tabela users
-  # Não pertence a nenhuma account específica
-  # Pode acessar qualquer account via ActsAsTenant.with_tenant(account)
+  # Pode ter account_users normalmente (membro de contas)
+  # A diferença é: tem acesso ao painel admin e pode impersonar
 
   def superadmin? = true
+  def admin?      = true
+
+  def needs_account_selection?
+    accounts.empty?
+  end
 end

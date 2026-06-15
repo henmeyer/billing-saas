@@ -7,13 +7,18 @@
         </Link>
         <h2 class="page-title">{{ user.name }}</h2>
       </div>
-      <ConfirmButton
-        :message="`Entrar como ${user.name}?`"
-        btn-class="btn-secondary"
-        @confirm="impersonate"
-      >
-        Impersonar
-      </ConfirmButton>
+      <div class="flex gap-2">
+        <Link :href="`/superadmin/users/${user.id}/edit`" class="btn-secondary">
+          Editar
+        </Link>
+        <ConfirmButton
+          :message="`Entrar como ${user.name}?`"
+          btn-class="btn-secondary"
+          @confirm="impersonate"
+        >
+          Impersonar
+        </ConfirmButton>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">

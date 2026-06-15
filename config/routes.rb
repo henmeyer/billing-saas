@@ -71,7 +71,7 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :users, only: %i[index show new create] do
+    resources :users, only: %i[index show new create edit update] do
       member do
         post :impersonate
       end
