@@ -16,7 +16,7 @@ class Subscriptions::RenewDlocalGoJob < ApplicationJob
       renew(subscription)
     rescue Gateways::Base::GatewayError => e
       handle_gateway_error(subscription, e)
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error(
         "[RenewDlocalGo] Erro ao renovar sub #{subscription.id}: #{e.message}"
       )
@@ -58,9 +58,9 @@ class Subscriptions::RenewDlocalGoJob < ApplicationJob
       amount_cents:      pricing.amount_cents,
       status:            "pending",
       redirect_url:      result["redirect_url"],
-      charge_data: {
-        "order_id"     => result["order_id"],
-        "renewal"      => true
+      charge_data:       {
+        "order_id" => result["order_id"],
+        "renewal"  => true
       }
     )
 
@@ -79,7 +79,7 @@ class Subscriptions::RenewDlocalGoJob < ApplicationJob
 
     Rails.logger.info(
       "[RenewDlocalGo] Payment criado para sub #{subscription.id}: " \
-      "#{result['id']} — #{currency.code} #{pricing.amount_cents / 100.0}"
+      "#{result["id"]} — #{currency.code} #{pricing.amount_cents / 100.0}"
     )
   end
 

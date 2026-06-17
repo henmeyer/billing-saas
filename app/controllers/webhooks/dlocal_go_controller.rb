@@ -15,7 +15,7 @@ class Webhooks::DlocalGoController < Webhooks::BaseController
     when "REJECTED", "CANCELLED", "EXPIRED", "FAILED"
       Webhooks::ProcessDlocalGoEventJob.perform_later("payment_failed", payload)
     when "PENDING", "AUTHORIZED"
-      Rails.logger.info("[dLocal Go] Payment #{payload['id']} status: #{status}")
+      Rails.logger.info("[dLocal Go] Payment #{payload["id"]} status: #{status}")
     end
 
     head :ok
@@ -50,13 +50,13 @@ class Webhooks::DlocalGoController < Webhooks::BaseController
 
     # Valida HMAC se a signature estiver presente
     signature = request.headers["X-dLocalGo-Signature"]
-    if signature.present?
-      gateway  = account.payment_gateways.find_by(provider: "dlocal_go")
-      expected = OpenSSL::HMAC.hexdigest("SHA256", gateway.secret_key, body)
+    return unless signature.present?
 
-      unless ActiveSupport::SecurityUtils.secure_compare(expected, signature)
-        render json: { error: "Assinatura inválida" }, status: :unauthorized
-      end
-    end
+    gateway  = account.payment_gateways.find_by(provider: "dlocal_go")
+    expected = OpenSSL::HMAC.hexdigest("SHA256", gateway.secret_key, body)
+
+    return if ActiveSupport::SecurityUtils.secure_compare(expected, signature)
+
+    render json: { error: "Assinatura inválida" }, status: :unauthorized
   end
 end

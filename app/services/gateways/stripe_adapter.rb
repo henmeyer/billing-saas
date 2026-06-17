@@ -23,17 +23,17 @@ module Gateways
 
     def create_subscription(customer, plan, amount_cents: nil)
       price_id = if amount_cents
-        price = Stripe::Price.create(
-          currency:    "brl",
-          unit_amount: amount_cents,
-          recurring:   { interval: plan.billing_cycle == "yearly" ? "year" : "month" },
-          product:     plan.gateway_data.dig("stripe", "product_id")
-        )
-        price.id
-      else
-        plan.gateway_data.dig("stripe", "price_id") ||
-          raise(GatewayError, "Plano não configurado no Stripe (falta price_id)")
-      end
+                   price = Stripe::Price.create(
+                     currency:    "brl",
+                     unit_amount: amount_cents,
+                     recurring:   { interval: plan.billing_cycle == "yearly" ? "year" : "month" },
+                     product:     plan.gateway_data.dig("stripe", "product_id")
+                   )
+                   price.id
+                 else
+                   plan.gateway_data.dig("stripe", "price_id") ||
+                     raise(GatewayError, "Plano não configurado no Stripe (falta price_id)")
+                 end
 
       Stripe::Subscription.create(
         customer: customer.gateway_data.dig("stripe", "customer_id"),

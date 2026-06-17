@@ -18,10 +18,10 @@ class Portal::InvoicesController < Portal::BaseController
   private
 
   def require_invoice_history!
-    unless portal_config["show_invoice_history"]
-      redirect_to portal_dashboard_path(token: portal_token),
-                  alert: "Histórico não disponível."
-    end
+    return if portal_config["show_invoice_history"]
+
+    redirect_to portal_dashboard_path(token: portal_token),
+                alert: "Histórico não disponível."
   end
 
   def serialize(c)

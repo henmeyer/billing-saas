@@ -7,6 +7,6 @@ class DashboardController < ApplicationController
     stats = Dashboard::StatsService.call(current_account)
     stats = stats.except(*FINANCIAL_KEYS) unless policy(:dashboard).full_stats?
 
-    render inertia: 'Dashboard/Index', props: { stats: }
+    render inertia: "Dashboard/Index", props: { stats: }
   end
 end

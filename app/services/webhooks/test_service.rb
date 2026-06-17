@@ -10,17 +10,17 @@ class Webhooks::TestService
       trial_ends_at:  -> { 3.days.from_now.iso8601 },
       days_remaining: 3
     },
-    "plan.changed" => {
+    "plan.changed"              => {
       previous_plan: { id: 0, name: "Plano Anterior" },
       new_plan:      { id: 0, name: "Plano Novo" }
     },
-    "payment.received" => {
-      amount_cents: 19700,
+    "payment.received"          => {
+      amount_cents: 19_700,
       gateway:      "asaas",
       charge_id:    -> { "test_pay_#{SecureRandom.hex(8)}" }
     },
-    "payment.failed" => {
-      amount_cents: 19700,
+    "payment.failed"            => {
+      amount_cents: 19_700,
       gateway:      "asaas",
       attempt:      1
     },
@@ -31,18 +31,18 @@ class Webhooks::TestService
       usage_percent: 80.0,
       threshold:     80
     },
-    "credits.depleted" => {
+    "credits.depleted"          => {
       credit_type:   "coins",
       used:          1000,
       limit:         1000,
       usage_percent: 100.0
     },
-    "credits.recharged" => {
-      credit_type:  "coins",
-      added:        1000,
-      new_balance:  2000
+    "credits.recharged"         => {
+      credit_type: "coins",
+      added:       1000,
+      new_balance: 2000
     },
-    "license.updated" => {
+    "license.updated"           => {
       license_type:      "user_licenses",
       previous_quantity: 10,
       new_quantity:      20
@@ -97,7 +97,6 @@ class Webhooks::TestService
       duration_ms:   duration,
       error:         nil
     )
-
   rescue Net::OpenTimeout, Net::ReadTimeout
     duration = (TIMEOUT * 1000).round
     log_test(payload, nil, "Timeout após #{TIMEOUT}s", duration)
@@ -109,8 +108,7 @@ class Webhooks::TestService
       duration_ms:   duration,
       error:         "Timeout — servidor não respondeu em #{TIMEOUT}s"
     )
-
-  rescue => e
+  rescue StandardError => e
     log_test(payload, nil, e.message, 0)
 
     Result.new(
@@ -131,17 +129,17 @@ class Webhooks::TestService
       timestamp:  Time.current.iso8601,
       account_id: @integration.account.id.to_s,
       test:       true,
-      customer: {
+      customer:   {
         id:          "0",
         external_id: "test_customer",
         name:        "Cliente de Teste",
         email:       "teste@exemplo.com"
       },
-      features: {
+      features:   {
         "ai_enabled"     => true,
         "export_reports" => false
       },
-      data: resolve_payload(TEST_PAYLOADS[@event] || {})
+      data:       resolve_payload(TEST_PAYLOADS[@event] || {})
     }
   end
 
@@ -167,7 +165,7 @@ class Webhooks::TestService
       response_body: response_body,
       duration_ms:   duration_ms
     )
-  rescue => e
+  rescue StandardError => e
     Rails.logger.warn("[WebhookTest] Erro ao salvar log: #{e.message}")
   end
 end

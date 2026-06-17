@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :plan do
     transient do
-      price_cents { 19700 }
+      price_cents { 19_700 }
     end
 
     account

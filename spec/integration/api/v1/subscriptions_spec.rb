@@ -1,6 +1,6 @@
-require 'swagger_helper'
+require "swagger_helper"
 
-RSpec.describe 'API de Assinatura', type: :request do
+RSpec.describe "API de Assinatura", type: :request do
   let(:account)      { create(:account) }
   let(:integration)  { create(:integration, account: account) }
   let(:customer)     { create(:customer, account: account) }
@@ -16,7 +16,7 @@ RSpec.describe 'API de Assinatura', type: :request do
   before do
     set_tenant(account)
     customer.set_identity!(integration: integration, external_id: "EXT123")
-    create(:plan_price, plan: plan, currency: currency, amount_cents: 19700)
+    create(:plan_price, plan: plan, currency: currency, amount_cents: 19_700)
     subscription
   end
 
@@ -24,14 +24,14 @@ RSpec.describe 'API de Assinatura', type: :request do
 
   let(:Authorization) { "Bearer #{raw_token}" }
 
-  path '/api/v1/customers/{external_id}/subscription' do
+  path "/api/v1/customers/{external_id}/subscription" do
     parameter name: :external_id, in: :path, type: :string,
-              required: true, example: 'EXT123'
+              required: true, example: "EXT123"
 
-    get 'Consultar assinatura ativa' do
-      tags        'Assinatura'
+    get "Consultar assinatura ativa" do
+      tags        "Assinatura"
       security    [{ BearerAuth: [] }]
-      produces    'application/json'
+      produces    "application/json"
       description <<~DESC
         Retorna os dados da assinatura ativa do cliente, incluindo
         plano, status, moeda e data de renovação.
@@ -40,23 +40,23 @@ RSpec.describe 'API de Assinatura', type: :request do
         antes de permitir operações no seu sistema.
       DESC
 
-      response '200', 'Assinatura retornada com sucesso' do
-        schema '$ref' => '#/components/schemas/SubscriptionResponse'
-        let(:external_id) { 'EXT123' }
+      response "200", "Assinatura retornada com sucesso" do
+        schema "$ref" => "#/components/schemas/SubscriptionResponse"
+        let(:external_id) { "EXT123" }
         run_test!
       end
 
-      response '401', 'Token inválido' do
-        schema '$ref' => '#/components/schemas/Error'
-        let(:Authorization) { 'Bearer invalido' }
-        let(:external_id)   { 'EXT123' }
+      response "401", "Token inválido" do
+        schema "$ref" => "#/components/schemas/Error"
+        let(:Authorization) { "Bearer invalido" }
+        let(:external_id)   { "EXT123" }
         run_test!
       end
 
-      response '404', 'Sem assinatura ativa' do
-        schema '$ref' => '#/components/schemas/Error'
-        let(:external_id) { 'EXT123' }
-        before { subscription.update!(status: 'cancelled') }
+      response "404", "Sem assinatura ativa" do
+        schema "$ref" => "#/components/schemas/Error"
+        let(:external_id) { "EXT123" }
+        before { subscription.update!(status: "cancelled") }
         run_test!
       end
     end

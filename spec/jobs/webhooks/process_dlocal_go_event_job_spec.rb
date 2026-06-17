@@ -8,12 +8,11 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
 
   let(:subscription) do
     create(:subscription, :dlocal_go,
-      customer:    customer,
-      plan:        plan,
-      integration: integration,
-      status:      "pending",
-      started_at:  Time.current
-    )
+           customer:    customer,
+           plan:        plan,
+           integration: integration,
+           status:      "pending",
+           started_at:  Time.current)
   end
 
   let(:payment_id) { "pay_#{SecureRandom.hex(8)}" }
@@ -39,11 +38,10 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
   describe "payment_received — primeiro pagamento (pending)" do
     let!(:existing_period) do
       create(:subscription_period,
-        subscription: subscription,
-        period_start: Time.current.beginning_of_day,
-        period_end:   1.month.from_now.beginning_of_day,
-        amount_cents: 0
-      )
+             subscription: subscription,
+             period_start: Time.current.beginning_of_day,
+             period_end:   1.month.from_now.beginning_of_day,
+             amount_cents: 0)
     end
 
     it "salva o checkout_id no gateway_data do customer" do
@@ -58,7 +56,7 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
 
       charge = Charge.last
       expect(charge.status).to eq("paid")
-      expect(charge.amount_cents).to eq(19700)
+      expect(charge.amount_cents).to eq(19_700)
       expect(charge.gateway_charge_id).to eq(payment_id)
     end
 
@@ -72,7 +70,7 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
         described_class.perform_now("payment_received", payload)
       }.not_to change(SubscriptionPeriod, :count)
 
-      expect(existing_period.reload.amount_cents).to eq(19700)
+      expect(existing_period.reload.amount_cents).to eq(19_700)
     end
 
     it "dispara subscription.activated com dados do plano" do
@@ -111,10 +109,9 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
         current_period_end:   Time.current.beginning_of_day
       )
       create(:subscription_period,
-        subscription: subscription,
-        period_start: 1.month.ago.beginning_of_day,
-        period_end:   Time.current.beginning_of_day
-      )
+             subscription: subscription,
+             period_start: 1.month.ago.beginning_of_day,
+             period_end:   Time.current.beginning_of_day)
     end
 
     let(:order_id) { "renew_#{customer.id}_#{Time.current.to_i}" }
@@ -136,7 +133,7 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
       expect(WebhookDispatchJob).to have_received(:perform_later).with(
         customer,
         "payment.received",
-        hash_including(amount_cents: 19700, gateway: "dlocal_go", charge_id: payment_id)
+        hash_including(amount_cents: 19_700, gateway: "dlocal_go", charge_id: payment_id)
       )
     end
 
@@ -163,8 +160,8 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
 
     let!(:existing_period) do
       create(:subscription_period, subscription: subscription,
-        period_start: 1.month.ago.beginning_of_day,
-        period_end:   1.day.ago.beginning_of_day)
+                                   period_start: 1.month.ago.beginning_of_day,
+                                   period_end:   1.day.ago.beginning_of_day)
     end
 
     it "ativa a assinatura e cria novo período" do
@@ -184,7 +181,7 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
 
     it "dispara payment.failed com reason" do
       described_class.perform_now("payment_failed",
-        payload.merge("status" => "REJECTED", "status_detail" => "Card declined"))
+                                  payload.merge("status" => "REJECTED", "status_detail" => "Card declined"))
 
       expect(WebhookDispatchJob).to have_received(:perform_later).with(
         subscription.customer,
@@ -206,7 +203,7 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
     it "não muda o status da subscription" do
       expect {
         described_class.perform_now("payment_received", payload)
-      }.not_to change { subscription.reload.status }
+      }.not_to(change { subscription.reload.status })
     end
   end
 

@@ -1,10 +1,10 @@
 class CustomersController < ApplicationController
-  before_action :set_customer, only: [:show, :edit, :update, :destroy]
+  before_action :set_customer, only: %i[show edit update destroy]
 
   def index
     customers = policy_scope(Customer).includes(:subscriptions, :currency)
-                        .order(name: :asc)
-                        .map { |customer| serialize_customer(customer) }
+                                      .order(name: :asc)
+                                      .map { |customer| serialize_customer(customer) }
 
     render inertia: "Customers/Index", props: { customers: }
   end
@@ -153,14 +153,14 @@ class CustomersController < ApplicationController
       status:      customer.status,
       notes:       customer.notes,
       currency_id: customer.currency_id,
-      identities:  customer.customer_identities.includes(:integration).map { |ci|
+      identities:  customer.customer_identities.includes(:integration).map do |ci|
         {
           id:               ci.id,
           integration_id:   ci.integration_id,
           integration_name: ci.integration.name,
           external_id:      ci.external_id
         }
-      }
+      end
     }
   end
 

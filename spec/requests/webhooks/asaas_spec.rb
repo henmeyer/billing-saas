@@ -7,7 +7,7 @@ RSpec.describe "Webhooks::Asaas", type: :request do
 
   def post_with_valid_sig(payload)
     body = payload.to_json
-    sig  = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', secret, body)}"
+    sig  = "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", secret, body)}"
     post "/webhooks/asaas",
          params:  body,
          headers: {

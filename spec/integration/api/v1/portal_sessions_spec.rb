@@ -1,6 +1,6 @@
-require 'swagger_helper'
+require "swagger_helper"
 
-RSpec.describe 'Portal do Cliente', type: :request do
+RSpec.describe "Portal do Cliente", type: :request do
   let(:account)     { create(:account) }
   let(:integration) { create(:integration, account: account) }
   let(:customer)    { create(:customer, account: account) }
@@ -19,12 +19,12 @@ RSpec.describe 'Portal do Cliente', type: :request do
 
   let(:Authorization) { "Bearer #{raw_token}" }
 
-  path '/api/v1/portal/sessions' do
-    post 'Gerar magic link do portal' do
-      tags        'Portal'
+  path "/api/v1/portal/sessions" do
+    post "Gerar magic link do portal" do
+      tags        "Portal"
       security    [{ BearerAuth: [] }]
-      consumes    'application/json'
-      produces    'application/json'
+      consumes    "application/json"
+      produces    "application/json"
       description <<~DESC
         Gera um link temporário (15 minutos) para o cliente acessar o portal
         de autoatendimento.
@@ -61,34 +61,34 @@ RSpec.describe 'Portal do Cliente', type: :request do
       DESC
 
       parameter name: :body, in: :body, required: true, schema: {
-        type: 'object',
-        required: ['external_id'],
+        type:       "object",
+        required:   ["external_id"],
         properties: {
           external_id: {
-            type:        'string',
-            description: 'ID do cliente no seu sistema (conforme cadastrado na integração)',
-            example:     'EXT123'
+            type:        "string",
+            description: "ID do cliente no seu sistema (conforme cadastrado na integração)",
+            example:     "EXT123"
           }
         }
       }
 
-      response '200', 'Magic link gerado com sucesso' do
-        schema '$ref' => '#/components/schemas/PortalSessionResponse'
-        let(:body) { { external_id: 'EXT123' } }
-        let(:external_id) { 'EXT123' }
+      response "200", "Magic link gerado com sucesso" do
+        schema "$ref" => "#/components/schemas/PortalSessionResponse"
+        let(:body) { { external_id: "EXT123" } }
+        let(:external_id) { "EXT123" }
         run_test!
       end
 
-      response '401', 'Token inválido ou expirado' do
-        schema '$ref' => '#/components/schemas/Error'
-        let(:Authorization) { 'Bearer invalido' }
-        let(:body) { { external_id: 'EXT123' } }
+      response "401", "Token inválido ou expirado" do
+        schema "$ref" => "#/components/schemas/Error"
+        let(:Authorization) { "Bearer invalido" }
+        let(:body) { { external_id: "EXT123" } }
         run_test!
       end
 
-      response '404', 'Cliente não encontrado nesta integração' do
-        schema '$ref' => '#/components/schemas/Error'
-        let(:body) { { external_id: 'NONEXISTENT' } }
+      response "404", "Cliente não encontrado nesta integração" do
+        schema "$ref" => "#/components/schemas/Error"
+        let(:body) { { external_id: "NONEXISTENT" } }
         run_test!
       end
     end

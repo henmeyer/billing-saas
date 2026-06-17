@@ -18,7 +18,7 @@ class Subscriptions::CreateService
 
   def call
     errors = validate_integration
-    return Result.new("success?": false, subscription: nil, errors: errors, redirect_url: nil) if errors.any?
+    return Result.new(success?: false, subscription: nil, errors: errors, redirect_url: nil) if errors.any?
 
     ActiveRecord::Base.transaction do
       period_start = @started_at.to_time
@@ -88,14 +88,14 @@ class Subscriptions::CreateService
         )
       end
 
-      Result.new("success?": true, subscription: subscription, errors: [], redirect_url: redirect_url)
+      Result.new(success?: true, subscription: subscription, errors: [], redirect_url: redirect_url)
     end
   rescue ActiveRecord::RecordNotUnique
-    Result.new("success?": false, subscription: nil,
+    Result.new(success?: false, subscription: nil,
                errors: ["Já existe assinatura ativa para este cliente nesta integração"], redirect_url: nil)
   rescue StandardError => e
     Rails.logger.error("[CreateService] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}")
-    Result.new("success?": false, subscription: nil, errors: [e.message], redirect_url: nil)
+    Result.new(success?: false, subscription: nil, errors: [e.message], redirect_url: nil)
   end
 
   private
@@ -110,9 +110,7 @@ class Subscriptions::CreateService
       return errors
     end
 
-    unless integration.active?
-      errors << "Integração não está ativa"
-    end
+    errors << "Integração não está ativa" unless integration.active?
 
     unless PlanIntegration.exists?(plan_id: @plan.id, integration_id: @integration_id)
       errors << "Plano não está disponível para esta integração"

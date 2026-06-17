@@ -1,15 +1,15 @@
-require 'swagger_helper'
+require "swagger_helper"
 
 # Spec puramente documentacional — não existem rotas reais para estes endpoints.
 # Os webhooks são ENVIADOS pelo sistema para URLs externas configuradas nas integrações.
 # Este arquivo gera a documentação Swagger dos payloads de webhook de saída.
-RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
+RSpec.describe "Webhooks de saída", type: :request, document_only: true do
   let(:Authorization) { nil }
 
-  path '/webhooks/callbacks' do
-    get 'Documentação dos webhooks de saída' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/callbacks" do
+    get "Documentação dos webhooks de saída" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         ## Visão geral
 
@@ -76,18 +76,18 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         Abaixo estão todos os eventos disponíveis com seus payloads.
       DESC
 
-      response '200', 'Documentação de referência' do
-        it "documentação apenas" do |example|
+      response "200", "Documentação de referência" do
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/subscription.activated' do
-    post 'subscription.activated — Assinatura ativada' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/subscription.activated" do
+    post "subscription.activated — Assinatura ativada" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando uma nova assinatura é criada e ativada.
 
@@ -95,39 +95,39 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         configurar as licenças e créditos iniciais.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookSubscriptionActivated'
-        examples 'application/json' => {
-          event:      'subscription.activated',
-          uuid:       'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-          timestamp:  '2026-06-01T14:30:00Z',
-          account_id: '1',
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookSubscriptionActivated"
+        examples "application/json" => {
+          event:      "subscription.activated",
+          uuid:       "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          timestamp:  "2026-06-01T14:30:00Z",
+          account_id: "1",
           test:       false,
-          customer: {
-            id:          '42',
-            external_id: 'EXT123',
-            name:        'Empresa X',
-            email:       'admin@empresax.com'
+          customer:   {
+            id:          "42",
+            external_id: "EXT123",
+            name:        "Empresa X",
+            email:       "admin@empresax.com"
           },
-          features: {
+          features:   {
             ai_enabled:     true,
             export_reports: false
           },
-          data: {
-            plan: { id: 1, name: 'Pro' }
+          data:       {
+            plan: { id: 1, name: "Pro" }
           }
         }
-        it "documentação apenas" do |example|
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/subscription.cancelled' do
-    post 'subscription.cancelled — Assinatura cancelada' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/subscription.cancelled" do
+    post "subscription.cancelled — Assinatura cancelada" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando uma assinatura é cancelada.
 
@@ -135,19 +135,19 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         disparar fluxo de win-back.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookSubscriptionCancelled'
-        it "documentação apenas" do |example|
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookSubscriptionCancelled"
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/subscription.past_due' do
-    post 'subscription.past_due — Pagamento em atraso' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/subscription.past_due" do
+    post "subscription.past_due — Pagamento em atraso" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando um pagamento fica em atraso.
 
@@ -155,19 +155,19 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         premium, iniciar fluxo de cobrança.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookSubscriptionPastDue'
-        it "documentação apenas" do |example|
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookSubscriptionPastDue"
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/subscription.renewed' do
-    post 'subscription.renewed — Assinatura renovada' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/subscription.renewed" do
+    post "subscription.renewed — Assinatura renovada" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando uma assinatura é renovada com sucesso.
 
@@ -175,32 +175,32 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         de créditos, registrar o novo período.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookSubscriptionRenewed'
-        examples 'application/json' => {
-          event:      'subscription.renewed',
-          uuid:       'b2c3d4e5-f6a7-8901-bcde-f12345678901',
-          timestamp:  '2026-06-01T00:00:00Z',
-          account_id: '1',
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookSubscriptionRenewed"
+        examples "application/json" => {
+          event:      "subscription.renewed",
+          uuid:       "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          timestamp:  "2026-06-01T00:00:00Z",
+          account_id: "1",
           test:       false,
-          customer: {
-            id: '42', external_id: 'EXT123',
-            name: 'Empresa X', email: 'admin@empresax.com'
+          customer:   {
+            id: "42", external_id: "EXT123",
+            name: "Empresa X", email: "admin@empresax.com"
           },
-          features: { ai_enabled: true },
-          data: { period_end: '2026-07-01T00:00:00Z' }
+          features:   { ai_enabled: true },
+          data:       { period_end: "2026-07-01T00:00:00Z" }
         }
-        it "documentação apenas" do |example|
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/subscription.trial_ending' do
-    post 'subscription.trial_ending — Trial encerrando' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/subscription.trial_ending" do
+    post "subscription.trial_ending — Trial encerrando" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado 3 dias antes do trial expirar.
 
@@ -208,19 +208,19 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         de conversão, solicitar dados de pagamento.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookSubscriptionTrialEnding'
-        it "documentação apenas" do |example|
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookSubscriptionTrialEnding"
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/plan.changed' do
-    post 'plan.changed — Plano alterado' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/plan.changed" do
+    post "plan.changed — Plano alterado" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando o cliente muda de plano (upgrade ou downgrade).
 
@@ -228,38 +228,38 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         habilitar ou desabilitar features, notificar o time de CS.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookPlanChanged'
-        examples 'application/json' => {
-          event:      'plan.changed',
-          uuid:       'c3d4e5f6-a7b8-9012-cdef-123456789012',
-          timestamp:  '2026-06-01T14:30:00Z',
-          account_id: '1',
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookPlanChanged"
+        examples "application/json" => {
+          event:      "plan.changed",
+          uuid:       "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          timestamp:  "2026-06-01T14:30:00Z",
+          account_id: "1",
           test:       false,
-          customer: {
-            id: '42', external_id: 'EXT123',
-            name: 'Empresa X', email: 'admin@empresax.com'
+          customer:   {
+            id: "42", external_id: "EXT123",
+            name: "Empresa X", email: "admin@empresax.com"
           },
-          features: {
+          features:   {
             ai_enabled:     true,
             export_reports: true
           },
-          data: {
-            previous_plan: { id: 1, name: 'Starter' },
-            new_plan:      { id: 2, name: 'Pro' }
+          data:       {
+            previous_plan: { id: 1, name: "Starter" },
+            new_plan:      { id: 2, name: "Pro" }
           }
         }
-        it "documentação apenas" do |example|
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/payment.received' do
-    post 'payment.received — Pagamento confirmado' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/payment.received" do
+    post "payment.received — Pagamento confirmado" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando um pagamento é confirmado pelo gateway.
 
@@ -267,36 +267,36 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         período de inadimplência, emitir nota fiscal.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookPaymentReceived'
-        examples 'application/json' => {
-          event:      'payment.received',
-          uuid:       'd4e5f6a7-b8c9-0123-defa-234567890123',
-          timestamp:  '2026-06-01T14:30:00Z',
-          account_id: '1',
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookPaymentReceived"
+        examples "application/json" => {
+          event:      "payment.received",
+          uuid:       "d4e5f6a7-b8c9-0123-defa-234567890123",
+          timestamp:  "2026-06-01T14:30:00Z",
+          account_id: "1",
           test:       false,
-          customer: {
-            id: '42', external_id: 'EXT123',
-            name: 'Empresa X', email: 'admin@empresax.com'
+          customer:   {
+            id: "42", external_id: "EXT123",
+            name: "Empresa X", email: "admin@empresax.com"
           },
-          features: { ai_enabled: true },
-          data: {
-            amount_cents: 19700,
-            gateway:      'asaas',
-            charge_id:    'pay_abc123'
+          features:   { ai_enabled: true },
+          data:       {
+            amount_cents: 19_700,
+            gateway:      "asaas",
+            charge_id:    "pay_abc123"
           }
         }
-        it "documentação apenas" do |example|
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/payment.failed' do
-    post 'payment.failed — Pagamento falhou' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/payment.failed" do
+    post "payment.failed — Pagamento falhou" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando uma tentativa de cobrança falha.
 
@@ -304,19 +304,19 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         cobrança, restringir acesso após N tentativas.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookPaymentFailed'
-        it "documentação apenas" do |example|
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookPaymentFailed"
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/credits.threshold_reached' do
-    post 'credits.threshold_reached — Threshold de créditos atingido' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/credits.threshold_reached" do
+    post "credits.threshold_reached — Threshold de créditos atingido" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando o uso de créditos atinge 80% ou 95% do limite.
 
@@ -326,38 +326,38 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         mostrar aviso no sistema.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookCreditsThresholdReached'
-        examples 'application/json' => {
-          event:      'credits.threshold_reached',
-          uuid:       'e5f6a7b8-c9d0-1234-efab-345678901234',
-          timestamp:  '2026-06-15T10:00:00Z',
-          account_id: '1',
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookCreditsThresholdReached"
+        examples "application/json" => {
+          event:      "credits.threshold_reached",
+          uuid:       "e5f6a7b8-c9d0-1234-efab-345678901234",
+          timestamp:  "2026-06-15T10:00:00Z",
+          account_id: "1",
           test:       false,
-          customer: {
-            id: '42', external_id: 'EXT123',
-            name: 'Empresa X', email: 'admin@empresax.com'
+          customer:   {
+            id: "42", external_id: "EXT123",
+            name: "Empresa X", email: "admin@empresax.com"
           },
-          features: { ai_enabled: true },
-          data: {
-            credit_type:   'coins',
+          features:   { ai_enabled: true },
+          data:       {
+            credit_type:   "coins",
             used:          800,
             limit:         1000,
             usage_percent: 80.0,
             threshold:     80
           }
         }
-        it "documentação apenas" do |example|
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/credits.depleted' do
-    post 'credits.depleted — Créditos esgotados' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/credits.depleted" do
+    post "credits.depleted — Créditos esgotados" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando os créditos chegam a zero.
 
@@ -365,19 +365,19 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         notificar o cliente urgentemente, oferecer recarga imediata.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookCreditsDepleted'
-        it "documentação apenas" do |example|
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookCreditsDepleted"
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/credits.recharged' do
-    post 'credits.recharged — Créditos recarregados' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/credits.recharged" do
+    post "credits.recharged — Créditos recarregados" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando créditos são adicionados manualmente
         (compra de pacote avulso) ou na renovação do plano.
@@ -386,19 +386,19 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         o cliente da recarga, atualizar saldo no sistema.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookCreditsRecharged'
-        it "documentação apenas" do |example|
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookCreditsRecharged"
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end
     end
   end
 
-  path '/webhooks/events/license.updated' do
-    post 'license.updated — Licença atualizada' do
-      tags        'Webhooks'
-      produces    'application/json'
+  path "/webhooks/events/license.updated" do
+    post "license.updated — Licença atualizada" do
+      tags        "Webhooks"
+      produces    "application/json"
       description <<~DESC
         Disparado quando a quantidade de licenças de um tipo é alterada
         (upgrade/downgrade de plano ou ajuste manual).
@@ -407,26 +407,26 @@ RSpec.describe 'Webhooks de saída', type: :request, document_only: true do
         bloquear criação de novos usuários se reduzido, notificar admin.
       DESC
 
-      response '200', 'Payload do evento' do
-        schema '$ref' => '#/components/schemas/WebhookLicenseUpdated'
-        examples 'application/json' => {
-          event:      'license.updated',
-          uuid:       'f6a7b8c9-d0e1-2345-fabc-456789012345',
-          timestamp:  '2026-06-01T14:30:00Z',
-          account_id: '1',
+      response "200", "Payload do evento" do
+        schema "$ref" => "#/components/schemas/WebhookLicenseUpdated"
+        examples "application/json" => {
+          event:      "license.updated",
+          uuid:       "f6a7b8c9-d0e1-2345-fabc-456789012345",
+          timestamp:  "2026-06-01T14:30:00Z",
+          account_id: "1",
           test:       false,
-          customer: {
-            id: '42', external_id: 'EXT123',
-            name: 'Empresa X', email: 'admin@empresax.com'
+          customer:   {
+            id: "42", external_id: "EXT123",
+            name: "Empresa X", email: "admin@empresax.com"
           },
-          features: { ai_enabled: true },
-          data: {
-            license_type:      'user_licenses',
+          features:   { ai_enabled: true },
+          data:       {
+            license_type:      "user_licenses",
             previous_quantity: 10,
             new_quantity:      20
           }
         }
-        it "documentação apenas" do |example|
+        it "documentação apenas" do |_example|
           expect(true).to be true
         end
       end

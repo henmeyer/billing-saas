@@ -40,7 +40,7 @@ class Products::PurchaseService
 
       Result.new(true, [])
     end
-  rescue => e
+  rescue StandardError => e
     Result.new(false, [e.message])
   end
 end

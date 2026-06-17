@@ -25,13 +25,14 @@ class Portal::BaseController < ActionController::Base
   end
 
   def authenticate_portal!
-    unless current_portal_session&.valid_session?
-      redirect_to portal_expired_path
-    end
+    return if current_portal_session&.valid_session?
+
+    redirect_to portal_expired_path
   end
 
   def current_portal_session
     return @current_portal_session if defined?(@current_portal_session)
+
     @current_portal_session = PortalSession.find_by_token(portal_token)
   end
 
@@ -78,8 +79,8 @@ class Portal::BaseController < ActionController::Base
   end
 
   # Helpers de redirect com token
-  def portal_redirect_path(route_name = :portal_dashboard, **opts)
-    send(:"#{route_name}_path", token: portal_token, **opts)
+  def portal_redirect_path(route_name = :portal_dashboard, **)
+    send(:"#{route_name}_path", token: portal_token, **)
   end
 
   # Evita que o token vaze no header Referer ao clicar links externos

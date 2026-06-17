@@ -5,7 +5,7 @@ class Superadmin::ImpersonationsController < ApplicationController
   def enter
     token     = params[:token].to_s
     redis_key = "impersonation:#{token}"
-    redis     = Redis.new(url: ENV["REDIS_URL"])
+    redis     = Redis.new(url: ENV.fetch("REDIS_URL", nil))
     raw       = redis.get(redis_key)
 
     unless raw

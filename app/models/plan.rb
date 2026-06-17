@@ -49,6 +49,7 @@ class Plan < ApplicationRecord
     when "volume"
       tier = tier_for(quantity, currency)
       return price_for(currency) unless tier
+
       tier.unit_amount_cents * quantity
     end
   end
@@ -63,6 +64,7 @@ class Plan < ApplicationRecord
 
   def pricing_metric_label
     return nil if pricing_model == "flat"
+
     pricing_license_type&.label || pricing_credit_type&.label
   end
 

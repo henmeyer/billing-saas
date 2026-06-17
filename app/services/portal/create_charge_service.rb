@@ -41,7 +41,7 @@ class Portal::CreateChargeService
 
     charge.charge_data["pending_credit"] = {
       "credit_type_id" => @product.credit_type_id,
-      "quantity"        => @product.credit_quantity
+      "quantity"       => @product.credit_quantity
     }
     charge.save!
 
@@ -52,7 +52,7 @@ class Portal::CreateChargeService
 
   def extract_charge_data(result)
     {
-      "pix_qr_code"   => result["pix_qr_code"] || result.dig("point_of_interaction", "qr_code"),
+      "pix_qr_code"    => result["pix_qr_code"] || result.dig("point_of_interaction", "qr_code"),
       "pix_copy_paste" => result["pix_copy_paste"] || result.dig("point_of_interaction", "qr_code_base64"),
       "boleto_url"     => result["boleto_url"] || result["ticket_url"],
       "boleto_barcode" => result["boleto_barcode"] || result["typeable_barcode"]

@@ -4,9 +4,9 @@ RSpec.describe Webhooks::TestService do
   let(:account) { create(:account) }
   let(:integration) do
     create(:integration, account: account,
-           url:    "https://exemplo.com/webhook",
-           secret: "test_secret_123",
-           events: ["payment.received", "credits.depleted"])
+                         url:     "https://exemplo.com/webhook",
+                         secret:  "test_secret_123",
+                         events:  ["payment.received", "credits.depleted"])
   end
 
   before { set_tenant(account) }
@@ -33,17 +33,17 @@ RSpec.describe Webhooks::TestService do
 
       it "inclui flag test: true no payload" do
         described_class.call(integration: integration, event: "payment.received")
-        expect(WebMock).to have_requested(:post, "https://exemplo.com/webhook")
-          .with { |req| JSON.parse(req.body)["test"] == true }
+        expect(WebMock).to(have_requested(:post, "https://exemplo.com/webhook")
+          .with { |req| JSON.parse(req.body)["test"] == true })
       end
 
       it "assina o payload com HMAC-SHA256" do
         described_class.call(integration: integration, event: "payment.received")
-        expect(WebMock).to have_requested(:post, "https://exemplo.com/webhook")
+        expect(WebMock).to(have_requested(:post, "https://exemplo.com/webhook")
           .with { |req|
-            expected = "sha256=#{OpenSSL::HMAC.hexdigest('SHA256', 'test_secret_123', req.body)}"
+            expected = "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", "test_secret_123", req.body)}"
             req.headers["X-Billing-Signature"] == expected
-          }
+          })
       end
 
       it "retorna duration_ms positivo" do
@@ -82,11 +82,11 @@ RSpec.describe Webhooks::TestService do
 
       described_class.call(integration: integration, event: "credits.depleted")
 
-      expect(WebMock).to have_requested(:post, "https://exemplo.com/webhook")
+      expect(WebMock).to(have_requested(:post, "https://exemplo.com/webhook")
         .with { |req|
           data = JSON.parse(req.body)["data"]
           data["credit_type"] == "coins" && data["usage_percent"] == 100.0
-        }
+        })
     end
   end
 end

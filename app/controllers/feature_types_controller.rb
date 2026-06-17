@@ -11,7 +11,7 @@ class FeatureTypesController < ApplicationController
   def new
     render inertia: "FeatureTypes/Form", props: {
       feature_type: {},
-      errors: {}
+      errors:       {}
     }
   end
 
@@ -22,7 +22,7 @@ class FeatureTypesController < ApplicationController
     else
       render inertia: "FeatureTypes/Form", props: {
         feature_type: feature_type_params,
-        errors: ft.errors.as_json
+        errors:       ft.errors.as_json
       }
     end
   end
@@ -30,7 +30,7 @@ class FeatureTypesController < ApplicationController
   def edit
     render inertia: "FeatureTypes/Form", props: {
       feature_type: serialize(@feature_type),
-      errors: {}
+      errors:       {}
     }
   end
 
@@ -40,7 +40,7 @@ class FeatureTypesController < ApplicationController
     else
       render inertia: "FeatureTypes/Form", props: {
         feature_type: serialize(@feature_type),
-        errors: @feature_type.errors.as_json
+        errors:       @feature_type.errors.as_json
       }
     end
   end

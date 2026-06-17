@@ -12,13 +12,13 @@ RSpec.describe Plan, type: :model do
     let(:currency) { create(:currency, account: account) }
 
     context "flat" do
-      let(:plan) { create(:plan, account: account, price_cents: 19700) }
+      let(:plan) { create(:plan, account: account, price_cents: 19_700) }
 
-      before { create(:plan_price, plan: plan, currency: currency, amount_cents: 19700) }
+      before { create(:plan_price, plan: plan, currency: currency, amount_cents: 19_700) }
 
       it "retorna o preço fixo independente da quantidade" do
-        expect(plan.calculate_price(1, currency)).to eq(19700)
-        expect(plan.calculate_price(10, currency)).to eq(19700)
+        expect(plan.calculate_price(1, currency)).to eq(19_700)
+        expect(plan.calculate_price(10, currency)).to eq(19_700)
       end
     end
 
@@ -28,8 +28,8 @@ RSpec.describe Plan, type: :model do
       before { create(:plan_price, plan: plan, currency: currency, amount_cents: 4990) }
 
       it "multiplica o preço pela quantidade" do
-        expect(plan.calculate_price(3, currency)).to eq(14970)
-        expect(plan.calculate_price(10, currency)).to eq(49900)
+        expect(plan.calculate_price(3, currency)).to eq(14_970)
+        expect(plan.calculate_price(10, currency)).to eq(49_900)
       end
     end
 
@@ -44,8 +44,8 @@ RSpec.describe Plan, type: :model do
       end
 
       it "aplica preço da faixa para todas as unidades" do
-        expect(plan.calculate_price(3, currency)).to eq(14970)  # 3 × 4990
-        expect(plan.calculate_price(8, currency)).to eq(31920)  # 8 × 3990 (faixa 2)
+        expect(plan.calculate_price(3, currency)).to eq(14_970)  # 3 × 4990
+        expect(plan.calculate_price(8, currency)).to eq(31_920)  # 8 × 3990 (faixa 2)
       end
     end
   end

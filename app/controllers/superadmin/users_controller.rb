@@ -13,7 +13,7 @@ class Superadmin::UsersController < Superadmin::BaseController
     user = User.find(params[:id])
     render inertia: "Superadmin/Users/Show", props: {
       user:     serialize(user),
-      accounts: user.accounts.map { |a|
+      accounts: user.accounts.map do |a|
         au = user.account_users.find_by(account: a)
         {
           id:     a.id,
@@ -22,7 +22,7 @@ class Superadmin::UsersController < Superadmin::BaseController
           status: a.status,
           role:   au&.role
         }
-      }
+      end
     }
   end
 
@@ -57,7 +57,7 @@ class Superadmin::UsersController < Superadmin::BaseController
 
       redirect_to superadmin_user_path(user), notice: "Usuário criado com sucesso."
     end
-  rescue => e
+  rescue StandardError => e
     render inertia: "Superadmin/Users/New", props: {
       accounts: Account.order(:name).map { |a| { id: a.id, name: a.name } },
       errors:   [e.message]
@@ -70,7 +70,7 @@ class Superadmin::UsersController < Superadmin::BaseController
     token     = SecureRandom.hex(32)
     redis_key = "impersonation:#{token}"
 
-    Redis.new(url: ENV["REDIS_URL"]).setex(
+    Redis.new(url: ENV.fetch("REDIS_URL", nil)).setex(
       redis_key,
       30.minutes.to_i,
       { superadmin_id: current_user.id, user_id: user.id }.to_json
@@ -91,7 +91,7 @@ class Superadmin::UsersController < Superadmin::BaseController
       name:           u.name,
       email:          u.email,
       accounts_count: u.accounts.count,
-      created_at:     u.created_at.strftime("%d/%m/%Y"),
+      created_at:     u.created_at.strftime("%d/%m/%Y")
     }
   end
 end

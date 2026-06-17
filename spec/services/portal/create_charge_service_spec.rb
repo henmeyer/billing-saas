@@ -9,17 +9,17 @@ RSpec.describe Portal::CreateChargeService do
   let(:plan)         { create(:plan, account: account) }
   let(:subscription) do
     create(:subscription,
-           customer: customer,
-           plan: plan,
+           customer:    customer,
+           plan:        plan,
            integration: integration,
-           gateway: "asaas",
-           status: "active")
+           gateway:     "asaas",
+           status:      "active")
   end
   let(:product) do
     create(:product,
-           account: account,
-           product_type: "credit_pack",
-           credit_type: credit_type,
+           account:         account,
+           product_type:    "credit_pack",
+           credit_type:     credit_type,
            credit_quantity: 1000)
   end
   let(:product_price) do
@@ -37,10 +37,10 @@ RSpec.describe Portal::CreateChargeService do
   describe ".call" do
     let(:gateway_result) do
       {
-        "id" => "chr_abc123",
-        "pix_qr_code" => "base64qrcode",
+        "id"             => "chr_abc123",
+        "pix_qr_code"    => "base64qrcode",
         "pix_copy_paste" => "00020126...",
-        "redirect_url" => nil
+        "redirect_url"   => nil
       }
     end
 

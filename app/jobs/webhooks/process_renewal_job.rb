@@ -53,7 +53,7 @@ class Webhooks::ProcessRenewalJob < ApplicationJob
     raw ? Time.parse(raw.to_s) : Time.current
   end
 
-  def extract_period_end(payload, subscription)
+  def extract_period_end(payload, _subscription)
     raw = payload["nextDueDate"] || payload.dig("current_period_end")
     raw ? Time.parse(raw.to_s) : (Time.current + 1.month)
   end
@@ -65,6 +65,7 @@ class Webhooks::ProcessRenewalJob < ApplicationJob
   def extract_amount(payload)
     cents = payload["value"] || payload["amount"]
     return 0 unless cents
+
     (cents.to_f * 100).to_i
   end
 

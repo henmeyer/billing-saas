@@ -11,7 +11,7 @@ class CreditTypesController < ApplicationController
   def new
     render inertia: "CreditTypes/Form", props: {
       credit_type: {},
-      errors: {}
+      errors:      {}
     }
   end
 
@@ -22,7 +22,7 @@ class CreditTypesController < ApplicationController
     else
       render inertia: "CreditTypes/Form", props: {
         credit_type: credit_type_params,
-        errors: ct.errors.as_json
+        errors:      ct.errors.as_json
       }
     end
   end
@@ -30,7 +30,7 @@ class CreditTypesController < ApplicationController
   def edit
     render inertia: "CreditTypes/Form", props: {
       credit_type: serialize(@credit_type),
-      errors: {}
+      errors:      {}
     }
   end
 
@@ -40,7 +40,7 @@ class CreditTypesController < ApplicationController
     else
       render inertia: "CreditTypes/Form", props: {
         credit_type: serialize(@credit_type),
-        errors: @credit_type.errors.as_json
+        errors:      @credit_type.errors.as_json
       }
     end
   end

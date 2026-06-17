@@ -1,6 +1,6 @@
 module TenantHelper
-  def with_tenant(account, &block)
-    ActsAsTenant.with_tenant(account, &block)
+  def with_tenant(account, &)
+    ActsAsTenant.with_tenant(account, &)
   end
 
   def set_tenant(account)

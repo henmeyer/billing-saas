@@ -10,11 +10,11 @@ RSpec.describe Pricing::CalculateService do
   describe "modelo flat" do
     let(:plan) { create(:plan, account: account, pricing_model: "flat") }
 
-    before { create(:plan_price, plan: plan, currency: currency, amount_cents: 19700) }
+    before { create(:plan_price, plan: plan, currency: currency, amount_cents: 19_700) }
 
     it "retorna preço fixo" do
       result = described_class.call(plan: plan, customer: customer, currency: currency)
-      expect(result.amount_cents).to eq(19700)
+      expect(result.amount_cents).to eq(19_700)
     end
   end
 
@@ -31,7 +31,7 @@ RSpec.describe Pricing::CalculateService do
       customer.metadata["license_usage"] = { lt.key => 5 }
       customer.save!
       result = described_class.call(plan: plan, customer: customer, currency: currency)
-      expect(result.amount_cents).to eq(24950)  # 5 × 4990
+      expect(result.amount_cents).to eq(24_950)  # 5 × 4990
       expect(result.quantity).to eq(5)
     end
   end
@@ -56,21 +56,21 @@ RSpec.describe Pricing::CalculateService do
       customer.metadata["license_usage"] = { lt.key => 3 }
       customer.save!
       result = described_class.call(plan: plan, customer: customer, currency: currency)
-      expect(result.amount_cents).to eq(14970)  # 3 × 4990
+      expect(result.amount_cents).to eq(14_970)  # 3 × 4990
     end
 
     it "aplica faixa 2 para 8 unidades (preço da faixa para TODAS)" do
       customer.metadata["license_usage"] = { lt.key => 8 }
       customer.save!
       result = described_class.call(plan: plan, customer: customer, currency: currency)
-      expect(result.amount_cents).to eq(36720)  # 8 × 4590
+      expect(result.amount_cents).to eq(36_720)  # 8 × 4590
     end
 
     it "aplica faixa ilimitada para 15 unidades" do
       customer.metadata["license_usage"] = { lt.key => 15 }
       customer.save!
       result = described_class.call(plan: plan, customer: customer, currency: currency)
-      expect(result.amount_cents).to eq(59850)  # 15 × 3990
+      expect(result.amount_cents).to eq(59_850)  # 15 × 3990
     end
   end
 end

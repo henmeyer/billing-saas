@@ -22,7 +22,7 @@ RSpec.describe "Api::V1::PortalSessions", type: :request do
   describe "POST /api/v1/portal/sessions" do
     it "creates a portal session and returns a magic link" do
       post "/api/v1/portal/sessions",
-           params: { external_id: "EXT123" },
+           params:  { external_id: "EXT123" },
            headers: headers
 
       expect(response).to have_http_status(:ok)
@@ -35,7 +35,7 @@ RSpec.describe "Api::V1::PortalSessions", type: :request do
 
     it "returns 404 if customer not found" do
       post "/api/v1/portal/sessions",
-           params: { external_id: "NONEXISTENT" },
+           params:  { external_id: "NONEXISTENT" },
            headers: headers
 
       expect(response).to have_http_status(:not_found)

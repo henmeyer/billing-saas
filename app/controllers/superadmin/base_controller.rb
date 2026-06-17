@@ -6,8 +6,8 @@ class Superadmin::BaseController < ApplicationController
   private
 
   def require_superadmin!
-    unless current_user&.superadmin?
-      redirect_to root_path, alert: "Acesso negado."
-    end
+    return if current_user&.superadmin?
+
+    redirect_to root_path, alert: "Acesso negado."
   end
 end

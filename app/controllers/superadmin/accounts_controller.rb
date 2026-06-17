@@ -1,5 +1,5 @@
 class Superadmin::AccountsController < Superadmin::BaseController
-  before_action :set_account, only: [:show, :edit, :update, :suspend, :activate]
+  before_action :set_account, only: %i[show edit update suspend activate]
 
   def index
     accounts = Account.order(created_at: :desc)
@@ -11,19 +11,19 @@ class Superadmin::AccountsController < Superadmin::BaseController
   def show
     ActsAsTenant.with_tenant(@account) do
       render inertia: "Superadmin/Accounts/Show", props: {
-        account:  serialize(@account),
-        members:  @account.account_users.includes(:user).map { |au|
+        account: serialize(@account),
+        members: @account.account_users.includes(:user).map do |au|
           {
             id:    au.user.id,
             name:  au.user.name,
             email: au.user.email,
-            role:  au.role,
+            role:  au.role
           }
-        },
-        stats: {
+        end,
+        stats:   {
           plans_count:     Plan.count,
           customers_count: Customer.count,
-          api_keys_count:  ApiKey.where(active: true).count,
+          api_keys_count:  ApiKey.where(active: true).count
         }
       }
     end
@@ -94,7 +94,7 @@ class Superadmin::AccountsController < Superadmin::BaseController
       name:       a.name,
       slug:       a.slug,
       status:     a.status,
-      created_at: a.created_at.strftime("%d/%m/%Y"),
+      created_at: a.created_at.strftime("%d/%m/%Y")
     }
   end
 end

@@ -10,7 +10,7 @@ class Currency < ApplicationRecord
   validates :name,   presence: true
   validates :symbol, presence: true
 
-  scope :active,  -> { where(active: true) }
+  scope :active, -> { where(active: true) }
 
   before_save :ensure_single_default
 
@@ -20,14 +20,14 @@ class Currency < ApplicationRecord
 
   def format(amount_cents)
     amount = amount_cents / 100.0
-    "#{symbol} #{format('%.2f', amount).gsub('.', ',')}"
+    "#{symbol} #{format("%.2f", amount).gsub(".", ",")}"
   end
 
   private
 
   def ensure_single_default
-    if default_changed? && default?
-      Currency.where(account: account).where.not(id: id).update_all(default: false)
-    end
+    return unless default_changed? && default?
+
+    Currency.where(account: account).where.not(id: id).update_all(default: false)
   end
 end

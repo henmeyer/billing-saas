@@ -1,5 +1,5 @@
 if defined?(Sidekiq)
-  Sidekiq.configure_server do |config|
+  Sidekiq.configure_server do |_config|
     schedule_file = Rails.root.join("config", "schedule.yml")
 
     if File.exist?(schedule_file)

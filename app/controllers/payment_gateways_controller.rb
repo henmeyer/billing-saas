@@ -1,6 +1,6 @@
 class PaymentGatewaysController < ApplicationController
   before_action :require_admin!
-  before_action :set_gateway, only: [:edit, :update, :destroy, :test]
+  before_action :set_gateway, only: %i[edit update destroy test]
 
   def index
     render inertia: "PaymentGateways/Index", props: {
@@ -67,7 +67,7 @@ class PaymentGatewaysController < ApplicationController
     result  = adapter.test_connection
 
     render json: result
-  rescue => e
+  rescue StandardError => e
     render json: { success: false, message: e.message }
   end
 

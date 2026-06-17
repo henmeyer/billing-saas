@@ -41,14 +41,14 @@ module Gateways
       order_id = "sub_#{customer.id}_#{Time.current.to_i}"
 
       response = @client.create_payment({
-        amount:           amount,
-        currency:         currency,
-        # country:          country || @country,
-        order_id:         order_id,
-        description:      "#{plan.name} — #{customer.name}",
-        notification_url: notification_url,
-        external_id:      order_id
-      })
+                                          amount:           amount,
+                                          currency:         currency,
+                                          # country:          country || @country,
+                                          order_id:         order_id,
+                                          description:      "#{plan.name} — #{customer.name}",
+                                          notification_url: notification_url,
+                                          external_id:      order_id
+                                        })
 
       Rails.logger.info("\n\n\n#{notification_url}\n\n\n")
 
@@ -81,14 +81,14 @@ module Gateways
       order_id = "#{prefix}_#{customer.id}_#{Time.current.to_i}"
 
       response = @client.create_payment({
-        amount:           amount_cents / 100.0,
-        currency:         currency,
-        country:          country,
-        order_id:         order_id,
-        description:      opts[:description] || "Cobrança",
-        notification_url: notification_url,
-        external_id:      order_id
-      })
+                                          amount:           amount_cents / 100.0,
+                                          currency:         currency,
+                                          country:          country,
+                                          order_id:         order_id,
+                                          description:      opts[:description] || "Cobrança",
+                                          notification_url: notification_url,
+                                          external_id:      order_id
+                                        })
 
       {
         "id"           => response.id,
@@ -152,8 +152,8 @@ module Gateways
       # Garante que a instância usa ESTAS credenciais
       client.instance_variable_set(:@api_key, api_key)
       client.instance_variable_set(:@api_secret, api_secret)
-      client.instance_variable_set(:@base_url, environment == "production" ?
-        DlocalGo::Constants::PRODUCTION_URL : DlocalGo::Constants::SANDBOX_URL)
+      client.instance_variable_set(:@base_url,
+                                   environment == "production" ? DlocalGo::Constants::PRODUCTION_URL : DlocalGo::Constants::SANDBOX_URL)
       client
     end
 

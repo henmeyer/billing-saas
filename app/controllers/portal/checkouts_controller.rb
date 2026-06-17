@@ -4,13 +4,13 @@ class Portal::CheckoutsController < Portal::BaseController
     charge = current_customer.charges.find(params[:charge_id])
 
     render inertia: "Portal/Checkout", props: {
-      charge: {
+      charge:        {
         id:             charge.id,
         amount_cents:   charge.amount_cents,
         status:         charge.status,
         gateway:        charge.gateway,
         redirect_url:   charge.redirect_url,
-        pix_qr_code:   charge.charge_data["pix_qr_code"],
+        pix_qr_code:    charge.charge_data["pix_qr_code"],
         pix_code:       charge.charge_data["pix_copy_paste"],
         boleto_url:     charge.charge_data["boleto_url"],
         boleto_barcode: charge.charge_data["boleto_barcode"],

@@ -15,7 +15,7 @@ RSpec.describe Imports::ExecuteService do
       user:      user,
       gateway:   "asaas",
       status:    "preview_ready",
-      preview: {
+      preview:   {
         "new"        => [{
           "gateway_id"   => "cus_new",
           "name"         => "Novo Cliente",

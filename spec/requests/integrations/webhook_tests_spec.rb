@@ -5,8 +5,8 @@ RSpec.describe "Integrations::WebhookTests", type: :request do
   let(:user)    { create(:user) }
   let(:integration) do
     create(:integration, account: account,
-           url:    "https://exemplo.com/webhook",
-           events: ["payment.received"])
+                         url:     "https://exemplo.com/webhook",
+                         events:  ["payment.received"])
   end
 
   before do
@@ -56,11 +56,11 @@ RSpec.describe "Integrations::WebhookTests", type: :request do
 
       before do
         create(:webhook_log,
-               integration: integration,
-               customer:    customer,
-               event:       "payment.received",
-               status:      "delivered",
-               is_test:     true,
+               integration:   integration,
+               customer:      customer,
+               event:         "payment.received",
+               status:        "delivered",
+               is_test:       true,
                response_code: 200,
                duration_ms:   150)
       end

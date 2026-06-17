@@ -4,7 +4,7 @@ FactoryBot.define do
     subscription
     gateway           { "asaas" }
     gateway_charge_id { "pay_#{SecureRandom.hex(8)}" }
-    amount_cents      { 19700 }
+    amount_cents      { 19_700 }
     status            { "paid" }
     paid_at           { Time.current }
 

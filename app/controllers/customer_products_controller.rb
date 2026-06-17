@@ -13,7 +13,4 @@ class CustomerProductsController < ApplicationController
       redirect_to customer_path(customer), alert: result.errors.join(", ")
     end
   end
-
-  private
-
 end

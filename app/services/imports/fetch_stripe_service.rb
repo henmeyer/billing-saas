@@ -22,6 +22,7 @@ class Imports::FetchStripeService
       customers.concat(response.data)
 
       break unless response.has_more
+
       last_id = response.data.last.id
     end
 
@@ -39,15 +40,17 @@ class Imports::FetchStripeService
         document:     customer.metadata["document"],
         phone:        customer.phone,
         external_ref: customer.metadata["external_id"],
-        subscription: active_sub ? {
-          gateway_subscription_id: active_sub.id,
-          status:                  "active",
-          price_id:                active_sub.items.data.first&.price&.id,
-          amount:                  active_sub.items.data.first&.price&.unit_amount,
-          currency:                active_sub.currency,
-          interval:                active_sub.items.data.first&.price&.recurring&.interval,
-          current_period_end:      Time.at(active_sub.current_period_end).iso8601
-        } : nil
+        subscription: if active_sub
+                        {
+                          gateway_subscription_id: active_sub.id,
+                          status:                  "active",
+                          price_id:                active_sub.items.data.first&.price&.id,
+                          amount:                  active_sub.items.data.first&.price&.unit_amount,
+                          currency:                active_sub.currency,
+                          interval:                active_sub.items.data.first&.price&.recurring&.interval,
+                          current_period_end:      Time.at(active_sub.current_period_end).iso8601
+                        }
+                      end
       }
     end
   end

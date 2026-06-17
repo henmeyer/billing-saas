@@ -41,7 +41,6 @@ class Imports::PreviewService
         "fetched_at" => Time.current.iso8601
       }
     )
-
   rescue StandardError => e
     @import_job.update!(
       status:        "failed",

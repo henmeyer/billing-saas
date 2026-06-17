@@ -58,7 +58,7 @@ class Superadmin::SuperAdminsController < Superadmin::BaseController
       id:         sa.id,
       name:       sa.name,
       email:      sa.email,
-      created_at: sa.created_at.strftime("%d/%m/%Y"),
+      created_at: sa.created_at.strftime("%d/%m/%Y")
     }
   end
 end

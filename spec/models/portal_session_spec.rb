@@ -22,7 +22,7 @@ RSpec.describe PortalSession, type: :model do
   describe ".generate!" do
     it "creates a session and returns raw token" do
       session, token = described_class.generate!(
-        customer: customer,
+        customer:    customer,
         integration: integration
       )
 
@@ -36,7 +36,7 @@ RSpec.describe PortalSession, type: :model do
   describe ".find_by_token" do
     it "finds a session by raw token" do
       session, token = described_class.generate!(
-        customer: customer,
+        customer:    customer,
         integration: integration
       )
 
@@ -57,7 +57,7 @@ RSpec.describe PortalSession, type: :model do
   describe "#expired?" do
     it "returns false when not expired" do
       session, _token = described_class.generate!(
-        customer: customer,
+        customer:    customer,
         integration: integration
       )
       expect(session.expired?).to be false
@@ -65,7 +65,7 @@ RSpec.describe PortalSession, type: :model do
 
     it "returns true when expired" do
       session, _token = described_class.generate!(
-        customer: customer,
+        customer:    customer,
         integration: integration
       )
       session.update_columns(expires_at: 1.minute.ago)
@@ -76,7 +76,7 @@ RSpec.describe PortalSession, type: :model do
   describe "#valid_session?" do
     it "returns true when not expired" do
       session, _token = described_class.generate!(
-        customer: customer,
+        customer:    customer,
         integration: integration
       )
       expect(session.valid_session?).to be true
@@ -86,7 +86,7 @@ RSpec.describe PortalSession, type: :model do
   describe "#touch_access!" do
     it "updates accessed_at and ip_address" do
       session, _token = described_class.generate!(
-        customer: customer,
+        customer:    customer,
         integration: integration
       )
 

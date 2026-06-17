@@ -6,10 +6,9 @@ RSpec.describe Webhooks::ProcessStripeEventJob do
   let(:plan)     { create(:plan, account: account) }
   let(:sub) do
     create(:subscription,
-      customer: customer,
-      plan: plan,
-      gateway_subscription_id: "sub_stripe_abc"
-    )
+           customer:                customer,
+           plan:                    plan,
+           gateway_subscription_id: "sub_stripe_abc")
   end
 
   before { set_tenant(account) }
@@ -18,11 +17,11 @@ RSpec.describe Webhooks::ProcessStripeEventJob do
   describe "payment_received" do
     let(:payload) do
       {
-        "subscription"  => sub.gateway_subscription_id,
-        "charge"        => "ch_xyz",
-        "amount_paid"   => 9900,
-        "period_start"  => 1.day.ago.to_i,
-        "period_end"    => 29.days.from_now.to_i
+        "subscription" => sub.gateway_subscription_id,
+        "charge"       => "ch_xyz",
+        "amount_paid"  => 9900,
+        "period_start" => 1.day.ago.to_i,
+        "period_end"   => 29.days.from_now.to_i
       }
     end
 
@@ -52,10 +51,10 @@ RSpec.describe Webhooks::ProcessStripeEventJob do
   describe "payment_failed" do
     it "marca a subscription como past_due" do
       described_class.perform_now("payment_failed", {
-        "subscription" => sub.gateway_subscription_id,
-        "amount_due"   => 9900,
-        "attempt_count" => 1
-      })
+                                    "subscription"  => sub.gateway_subscription_id,
+                                    "amount_due"    => 9900,
+                                    "attempt_count" => 1
+                                  })
       expect(sub.reload.status).to eq("past_due")
     end
   end
@@ -63,8 +62,8 @@ RSpec.describe Webhooks::ProcessStripeEventJob do
   describe "subscription_cancelled" do
     it "cancela a subscription" do
       described_class.perform_now("subscription_cancelled", {
-        "id" => sub.gateway_subscription_id
-      })
+                                    "id" => sub.gateway_subscription_id
+                                  })
       expect(sub.reload.status).to eq("cancelled")
     end
   end

@@ -19,6 +19,7 @@ class Portal::SubscriptionsController < Portal::BaseController
     sub.plan.plan_credits.where(allow_extras: true).each do |pc|
       n = (extra_packages[pc.credit_type_id.to_s] || 0).to_i
       next unless n > 0
+
       extras_total += pc.extra_unit_price_cents * n
     end
 

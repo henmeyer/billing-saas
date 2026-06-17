@@ -18,8 +18,8 @@ gem "devise"
 gem "pundit"
 
 # Frontend
-gem "vite_rails"
 gem "inertia_rails"
+gem "vite_rails"
 
 # Jobs
 gem "redis", ">= 4.0.1"
@@ -30,8 +30,8 @@ gem "sidekiq-cron"
 gem "httparty"
 
 # Gateways
-gem "stripe"
 gem "dlocal_go"
+gem "stripe"
 
 # IA
 gem "anthropic"
@@ -54,10 +54,10 @@ group :development, :test do
 end
 
 group :test do
-  gem "shoulda-matchers"
-  gem "webmock"
-  gem "vcr"
   gem "pundit-matchers"
+  gem "shoulda-matchers"
+  gem "vcr"
+  gem "webmock"
 end
 
 group :development do

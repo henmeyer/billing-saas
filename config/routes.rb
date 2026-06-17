@@ -1,5 +1,5 @@
 require "sidekiq/web"
-require 'sidekiq/cron/web'
+require "sidekiq/cron/web"
 
 Rails.application.routes.draw do
   mount Rswag::Ui::Engine => "/api-docs"
@@ -108,10 +108,10 @@ Rails.application.routes.draw do
   end
 
   # Portal do cliente externo
-  get    "/portal_expired", to: "portal/sessions#expired", as: :portal_expired
+  get "/portal_expired", to: "portal/sessions#expired", as: :portal_expired
 
   scope "/portal/:token", module: "portal" do
-    get "/",           to: "dashboard#show",   as: :portal_dashboard
+    get "/",           to: "dashboard#show", as: :portal_dashboard
     resources :plans,  only: [:index] do
       member { put :update }
     end

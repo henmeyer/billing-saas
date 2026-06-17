@@ -11,9 +11,9 @@ RSpec.describe Subscriptions::CreateService do
 
   before do
     set_tenant(account)
-    create(:plan_price, plan: plan, currency: currency, amount_cents: 19700)
+    create(:plan_price, plan: plan, currency: currency, amount_cents: 19_700)
     create(:payment_gateway, account: account, provider: "asaas")
-    create(:plan_credit,  plan: plan, credit_type: credit_type,  quantity: 1000)
+    create(:plan_credit,  plan: plan, credit_type: credit_type, quantity: 1000)
     create(:plan_license, plan: plan, license_type: license_type, quantity: 20)
     create(:plan_integration, plan: plan, integration: integration)
   end
@@ -51,7 +51,7 @@ RSpec.describe Subscriptions::CreateService do
         currency_id:    currency.id
       )
       sub = result.subscription
-      expect(sub.base_price_cents).to eq(19700)
+      expect(sub.base_price_cents).to eq(19_700)
       expect(sub.currency_code).to eq(currency.code)
     end
 
@@ -64,8 +64,8 @@ RSpec.describe Subscriptions::CreateService do
         currency_id:    currency.id
       )
       period = result.subscription.subscription_periods.last
-      expect(period.amount_cents).to eq(19700)
-      expect(period.base_amount_cents).to eq(19700)
+      expect(period.amount_cents).to eq(19_700)
+      expect(period.base_amount_cents).to eq(19_700)
       expect(period.extras_amount_cents).to eq(0)
     end
 

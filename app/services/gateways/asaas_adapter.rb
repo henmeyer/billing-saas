@@ -92,7 +92,7 @@ module Gateways
       else
         { success: false, message: "Falha na autenticação: #{response.parsed_response}" }
       end
-    rescue => e
+    rescue StandardError => e
       { success: false, message: "Erro: #{e.message}" }
     end
   end

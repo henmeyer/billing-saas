@@ -29,38 +29,38 @@ RSpec.describe Subscription, type: :model do
     context "when an active subscription already exists for the same customer+integration" do
       before do
         create(:subscription,
-               customer: customer,
+               customer:    customer,
                integration: integration,
-               plan: plan,
-               status: "active")
+               plan:        plan,
+               status:      "active")
       end
 
       it "rejects creating another active subscription" do
         duplicate = build(:subscription,
-                          customer: customer,
+                          customer:    customer,
                           integration: integration,
-                          plan: plan,
-                          status: "active")
+                          plan:        plan,
+                          status:      "active")
         expect(duplicate).not_to be_valid
         expect(duplicate.errors[:integration_id]).to include("já possui assinatura ativa nesta integração")
       end
 
       it "rejects creating a trialing subscription" do
         duplicate = build(:subscription,
-                          customer: customer,
+                          customer:    customer,
                           integration: integration,
-                          plan: plan,
-                          status: "trialing")
+                          plan:        plan,
+                          status:      "trialing")
         expect(duplicate).not_to be_valid
         expect(duplicate.errors[:integration_id]).to include("já possui assinatura ativa nesta integração")
       end
 
       it "rejects creating a past_due subscription" do
         duplicate = build(:subscription,
-                          customer: customer,
+                          customer:    customer,
                           integration: integration,
-                          plan: plan,
-                          status: "past_due")
+                          plan:        plan,
+                          status:      "past_due")
         expect(duplicate).not_to be_valid
         expect(duplicate.errors[:integration_id]).to include("já possui assinatura ativa nesta integração")
       end
@@ -69,17 +69,17 @@ RSpec.describe Subscription, type: :model do
     context "when a cancelled subscription exists for the same customer+integration" do
       before do
         create(:subscription, :cancelled,
-               customer: customer,
+               customer:    customer,
                integration: integration,
-               plan: plan)
+               plan:        plan)
       end
 
       it "allows creating a new active subscription" do
         new_sub = build(:subscription,
-                        customer: customer,
+                        customer:    customer,
                         integration: integration,
-                        plan: plan,
-                        status: "active")
+                        plan:        plan,
+                        status:      "active")
         expect(new_sub).to be_valid
       end
     end
@@ -89,18 +89,18 @@ RSpec.describe Subscription, type: :model do
 
       before do
         create(:subscription,
-               customer: customer,
+               customer:    customer,
                integration: other_integration,
-               plan: plan,
-               status: "active")
+               plan:        plan,
+               status:      "active")
       end
 
       it "allows creating an active subscription for a different integration" do
         new_sub = build(:subscription,
-                        customer: customer,
+                        customer:    customer,
                         integration: integration,
-                        plan: plan,
-                        status: "active")
+                        plan:        plan,
+                        status:      "active")
         expect(new_sub).to be_valid
       end
     end
@@ -136,10 +136,10 @@ RSpec.describe Subscription, type: :model do
 
     it "raises error when trying to change integration_id after creation" do
       subscription = create(:subscription,
-                            customer: customer,
-                            plan: plan,
+                            customer:    customer,
+                            plan:        plan,
                             integration: integration,
-                            status: "active")
+                            status:      "active")
 
       expect {
         subscription.update!(integration_id: other_integration.id)

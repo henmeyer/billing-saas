@@ -11,7 +11,7 @@ class Rack::Attack
     req.ip if req.path.start_with?("/api/")
   end
 
-  self.throttled_responder = lambda do |req|
+  self.throttled_responder = lambda do |_req|
     [429, { "Content-Type" => "application/json" },
      [{ error: "Muitas requisições. Tente novamente em breve." }.to_json]]
   end

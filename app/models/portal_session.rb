@@ -24,6 +24,7 @@ class PortalSession < ApplicationRecord
 
   def self.find_by_token(raw_token)
     return nil if raw_token.blank?
+
     find_by(token_digest: Digest::SHA256.hexdigest(raw_token))
   end
 

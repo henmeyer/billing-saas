@@ -24,7 +24,6 @@ class Imports::ExecuteService
     end
 
     @import_job.update!(status: "done", result: @result)
-
   rescue StandardError => e
     @import_job.update!(
       status:        "failed",
@@ -40,11 +39,11 @@ class Imports::ExecuteService
     email = data["email"] || data[:email]
     ActiveRecord::Base.transaction do
       customer = Customer.create!(
-        name:        data["name"]     || data[:name],
-        email:       email,
-        document:    data["document"] || data[:document],
-        phone:       data["phone"]    || data[:phone],
-        status:      "active",
+        name:         data["name"] || data[:name],
+        email:        email,
+        document:     data["document"] || data[:document],
+        phone:        data["phone"]    || data[:phone],
+        status:       "active",
         gateway_data: {
           @import_job.gateway => { "customer_id" => data["gateway_id"] || data[:gateway_id] }
         }
@@ -73,11 +72,11 @@ class Imports::ExecuteService
     when "update"
       customer = Customer.find(data["existing_id"] || data[:existing_id])
       customer.update!(
-        document: data["document"] || data[:document] || customer.document,
-        phone:    data["phone"]    || data[:phone]    || customer.phone,
+        document:     data["document"] || data[:document] || customer.document,
+        phone:        data["phone"]    || data[:phone]    || customer.phone,
         gateway_data: customer.gateway_data.deep_merge({
-          @import_job.gateway => { "customer_id" => data["gateway_id"] || data[:gateway_id] }
-        })
+                                                         @import_job.gateway => { "customer_id" => data["gateway_id"] || data[:gateway_id] }
+                                                       })
       )
       import_subscription(customer, data["subscription"] || data[:subscription], update_existing: true)
       @result[:updated] += 1

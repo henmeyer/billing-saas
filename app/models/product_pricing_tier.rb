@@ -2,7 +2,7 @@ class ProductPricingTier < ApplicationRecord
   belongs_to :product
   belongs_to :currency
 
-  validates :from_unit,         presence: true,
+  validates :from_unit,         presence:     true,
                                 numericality: { greater_than: 0 }
   validates :unit_amount_cents, numericality: { greater_than_or_equal_to: 0 }
   validates :position,          presence: true

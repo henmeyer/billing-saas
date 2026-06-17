@@ -35,10 +35,10 @@ class Portal::ProductsController < Portal::BaseController
   private
 
   def require_buy_products!
-    unless portal_config["allow_buy_products"]
-      redirect_to portal_dashboard_path(token: portal_token),
-                  alert: "Compra de produtos não disponível."
-    end
+    return if portal_config["allow_buy_products"]
+
+    redirect_to portal_dashboard_path(token: portal_token),
+                alert: "Compra de produtos não disponível."
   end
 
   def serialize(p)

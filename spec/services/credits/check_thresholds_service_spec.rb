@@ -9,11 +9,10 @@ RSpec.describe Credits::CheckThresholdsService do
   let(:credit_type) { create(:credit_type, account: account) }
   let(:snapshot) do
     create(:credit_snapshot,
-      subscription_period: period,
-      credit_type: credit_type,
-      used: used,
-      limit: 1000
-    )
+           subscription_period: period,
+           credit_type:         credit_type,
+           used:                used,
+           limit:               1000)
   end
 
   before { ActsAsTenant.current_tenant = account }
@@ -72,11 +71,10 @@ RSpec.describe Credits::CheckThresholdsService do
 
     before do
       create(:credit_alert,
-        customer: customer,
-        credit_type: credit_type,
-        threshold: 80,
-        period_start: sub.current_period_start
-      )
+             customer:     customer,
+             credit_type:  credit_type,
+             threshold:    80,
+             period_start: sub.current_period_start)
     end
 
     it "não duplica o alerta" do

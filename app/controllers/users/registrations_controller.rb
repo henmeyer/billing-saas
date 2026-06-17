@@ -3,7 +3,7 @@ class Users::RegistrationsController < Devise::RegistrationsController
   skip_before_action :set_tenant
 
   def new
-    render inertia: 'Auth/Register', props: { errors: [] }
+    render inertia: "Auth/Register", props: { errors: [] }
   end
 
   def create
@@ -19,9 +19,9 @@ class Users::RegistrationsController < Devise::RegistrationsController
 
     if result.success?
       sign_in(result.user)
-      redirect_to root_path, notice: 'Conta criada com sucesso!'
+      redirect_to root_path, notice: "Conta criada com sucesso!"
     else
-      render inertia: 'Auth/Register', props: { errors: result.errors }
+      render inertia: "Auth/Register", props: { errors: result.errors }
     end
   end
 end

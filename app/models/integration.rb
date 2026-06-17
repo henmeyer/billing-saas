@@ -55,23 +55,23 @@ class Integration < ApplicationRecord
 
   # Portal config helpers
   def portal_allow_plan_change?
-    portal_config['allow_plan_change'] != false
+    portal_config["allow_plan_change"] != false
   end
 
   def portal_allow_buy_products?
-    portal_config['allow_buy_products'] != false
+    portal_config["allow_buy_products"] != false
   end
 
   def portal_allow_adjust_extras?
-    portal_config['allow_adjust_extras'] != false
+    portal_config["allow_adjust_extras"] != false
   end
 
   def portal_show_invoice_history?
-    portal_config['show_invoice_history'] != false
+    portal_config["show_invoice_history"] != false
   end
 
   def portal_allow_cancel?
-    portal_config['allow_cancel'] == true
+    portal_config["allow_cancel"] == true
   end
 
   private

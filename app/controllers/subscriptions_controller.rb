@@ -17,15 +17,15 @@ class SubscriptionsController < ApplicationController
     authorize Subscription
 
     render inertia: "Subscriptions/Form", props: {
-      customer:               serialize_customer(@customer),
-      subscription:           {},
-      plans:                  serialize_plans,
-      gateways:               serialize_gateways,
-      currencies:             serialize_currencies,
-      default_currency_id:    @customer.effective_currency&.id,
-      available_integrations: serialize_available_integrations,
+      customer:                serialize_customer(@customer),
+      subscription:            {},
+      plans:                   serialize_plans,
+      gateways:                serialize_gateways,
+      currencies:              serialize_currencies,
+      default_currency_id:     @customer.effective_currency&.id,
+      available_integrations:  serialize_available_integrations,
       selected_integration_id: params[:integration_id]&.to_i,
-      errors:                 {}
+      errors:                  {}
     }
   end
 
@@ -152,7 +152,7 @@ class SubscriptionsController < ApplicationController
   def current_quantity_for(sub)
     plan = sub.plan
     case plan.pricing_model
-    when "flat"     then 1
+    when "flat" then 1
     when "per_unit"
       unit_price = plan.unit_price_for(sub.effective_currency)
       unit_price.zero? ? 1 : (sub.base_price_cents.to_f / unit_price).round

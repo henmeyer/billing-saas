@@ -15,7 +15,7 @@ class Subscriptions::SyncDlocalGoPaymentsJob < ApplicationJob
     Account.where(id: account_ids).find_each do |account|
       ActsAsTenant.with_tenant(account) do
         sync_pending_charges
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error("[SyncDlocalGo] Erro na account #{account.id}: #{e.message}")
       end
     end
@@ -32,7 +32,7 @@ class Subscriptions::SyncDlocalGoPaymentsJob < ApplicationJob
           .includes(:customer, :subscription)
           .find_each do |charge|
       check_payment(charge, adapter)
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error(
         "[SyncDlocalGo] Erro ao verificar charge #{charge.id}: #{e.message}"
       )

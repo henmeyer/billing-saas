@@ -3,11 +3,11 @@ class PlansController < ApplicationController
 
   def index
     plans = policy_scope(Plan).active
-                .includes(:plan_licenses, :plan_credits, :plan_prices,
-                          plan_licenses: :license_type, plan_credits: :credit_type,
-                          plan_prices: :currency)
-                .order(name: :asc)
-                .map { |p| serialize_plan(p) }
+                              .includes(:plan_licenses, :plan_credits, :plan_prices,
+                                        plan_licenses: :license_type, plan_credits: :credit_type,
+                                        plan_prices: :currency)
+                              .order(name: :asc)
+                              .map { |p| serialize_plan(p) }
 
     render inertia: "Plans/Index", props: { plans: }
   end
@@ -121,9 +121,9 @@ class PlansController < ApplicationController
       pricing_credit_type_id:  plan.pricing_credit_type_id,
       licenses:                serialize_plan_licenses(plan),
       credits:                 serialize_plan_credits(plan),
-      features:                plan.plan_features.map { |pf|
+      features:                plan.plan_features.map do |pf|
         { feature_type_id: pf.feature_type_id, enabled: pf.enabled }
-      },
+      end,
       integration_ids:         plan.plan_integrations.pluck(:integration_id),
       prices:                  serialize_plan_prices(plan),
       pricing_tiers:           serialize_plan_pricing_tiers(plan)

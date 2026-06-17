@@ -93,7 +93,7 @@ class WebhookDispatchJob < ApplicationJob
       uuid:         SecureRandom.uuid,
       timestamp:    Time.current.iso8601,
       account_id:   customer.account_id.to_s,
-      customer: {
+      customer:     {
         id:          customer.id.to_s,
         external_id: external_id,
         name:        customer.name,

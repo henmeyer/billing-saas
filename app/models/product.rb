@@ -33,6 +33,7 @@ class Product < ApplicationRecord
     when "volume"
       tier = product_pricing_tiers.where(currency: currency).ordered.find { |t| t.covers?(quantity) }
       return price_for(currency) unless tier
+
       tier.unit_amount_cents * quantity
     end
   end

@@ -89,8 +89,8 @@ class Subscription < ApplicationRecord
                            .where(status: %w[active trialing past_due pending])
     existing = existing.where.not(id: id) if persisted?
 
-    if existing.exists?
-      errors.add(:integration_id, "já possui assinatura ativa nesta integração")
-    end
+    return unless existing.exists?
+
+    errors.add(:integration_id, "já possui assinatura ativa nesta integração")
   end
 end

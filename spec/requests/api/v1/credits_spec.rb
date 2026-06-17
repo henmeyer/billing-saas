@@ -10,7 +10,7 @@ RSpec.describe "Api::V1::Credits", type: :request do
   let(:credit_type) { create(:credit_type, account: account, key: "api_calls") }
 
   let(:raw_token) do
-    key, token = IntegrationApiKey.generate!(integration: integration, name: "test")
+    _, token = IntegrationApiKey.generate!(integration: integration, name: "test")
     token
   end
 

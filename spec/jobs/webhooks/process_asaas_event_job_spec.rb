@@ -6,10 +6,9 @@ RSpec.describe Webhooks::ProcessAsaasEventJob do
   let(:plan)     { create(:plan, account: account) }
   let(:sub) do
     create(:subscription, :asaas,
-      customer: customer,
-      plan: plan,
-      gateway_subscription_id: "sub_asaas_123"
-    )
+           customer:                customer,
+           plan:                    plan,
+           gateway_subscription_id: "sub_asaas_123")
   end
 
   before { set_tenant(account) }
@@ -62,8 +61,8 @@ RSpec.describe Webhooks::ProcessAsaasEventJob do
   describe "payment_overdue" do
     it "marca a subscription como past_due" do
       described_class.perform_now("payment_overdue", {
-        "payment" => { "subscription" => sub.gateway_subscription_id }
-      })
+                                    "payment" => { "subscription" => sub.gateway_subscription_id }
+                                  })
       expect(sub.reload.status).to eq("past_due")
     end
   end
@@ -71,8 +70,8 @@ RSpec.describe Webhooks::ProcessAsaasEventJob do
   describe "subscription_cancelled" do
     it "cancela a subscription" do
       described_class.perform_now("subscription_cancelled", {
-        "subscription" => { "id" => sub.gateway_subscription_id }
-      })
+                                    "subscription" => { "id" => sub.gateway_subscription_id }
+                                  })
       expect(sub.reload.status).to eq("cancelled")
       expect(sub.reload.cancelled_at).to be_present
     end
@@ -82,8 +81,8 @@ RSpec.describe Webhooks::ProcessAsaasEventJob do
     it "retorna sem erro" do
       expect {
         described_class.perform_now("payment_received", {
-          "payment" => { "subscription" => "sub_inexistente" }
-        })
+                                      "payment" => { "subscription" => "sub_inexistente" }
+                                    })
       }.not_to raise_error
     end
   end

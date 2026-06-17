@@ -96,7 +96,7 @@ class IntegrationsController < ApplicationController
     params.require(:integration).permit(
       :name, :url, :active, :retry_count,
       :portal_logo_url, :portal_primary_color,
-      events: [],
+      events:        [],
       portal_config: %i[
         allow_plan_change
         allow_buy_products
@@ -145,15 +145,15 @@ class IntegrationsController < ApplicationController
       portal_config:        integration.portal_config,
       portal_logo_url:      integration.portal_logo_url,
       portal_primary_color: integration.portal_primary_color,
-      license_type_ids: integration.integration_field_configs
-                                   .where(field_type: "license")
-                                   .pluck(:license_type_id),
-      credit_type_ids:  integration.integration_field_configs
-                                   .where(field_type: "credit")
-                                   .pluck(:credit_type_id),
-      feature_type_ids: integration.integration_field_configs
-                                   .where(field_type: "feature")
-                                   .pluck(:feature_type_id)
+      license_type_ids:     integration.integration_field_configs
+                                       .where(field_type: "license")
+                                       .pluck(:license_type_id),
+      credit_type_ids:      integration.integration_field_configs
+                                       .where(field_type: "credit")
+                                       .pluck(:credit_type_id),
+      feature_type_ids:     integration.integration_field_configs
+                                       .where(field_type: "feature")
+                                       .pluck(:feature_type_id)
     }
   end
 
