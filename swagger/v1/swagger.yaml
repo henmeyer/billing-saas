@@ -39,16 +39,16 @@ info:
     name: Suporte
     email: suporte@billing.com
 servers:
-- url: "{protocol}://{host}"
-  description: Servidor configurável
-  variables:
-    protocol:
-      default: https
-      enum:
-      - https
-      - http
-    host:
-      default: app.billing.com
+  - url: "{protocol}://{host}"
+    description: Servidor configurável
+    variables:
+      protocol:
+        default: https
+        enum:
+          - https
+          - http
+      host:
+        default: app.billing.com
 components:
   securitySchemes:
     BearerAuth:
@@ -90,7 +90,7 @@ components:
         synced_at:
           type: string
           format: date-time
-          example: '2026-06-01T10:00:00Z'
+          example: "2026-06-01T10:00:00Z"
     CreditsResponse:
       type: object
       properties:
@@ -107,22 +107,22 @@ components:
               limit: 1000
               balance: 700
               usage_percent: 30.0
-              synced_at: '2026-06-01T10:00:00Z'
+              synced_at: "2026-06-01T10:00:00Z"
             ai_tokens:
               used: 50000
               limit: 200000
               balance: 150000
               usage_percent: 25.0
-              synced_at: '2026-06-01T10:00:00Z'
+              synced_at: "2026-06-01T10:00:00Z"
     CreditReportRequest:
       type: object
       required:
-      - credit_type
-      - used
+        - credit_type
+        - used
       properties:
         credit_type:
           type: string
-          description: 'Chave do tipo de crédito (ex: coins, ai_tokens)'
+          description: "Chave do tipo de crédito (ex: coins, ai_tokens)"
           example: coins
         used:
           type: integer
@@ -144,8 +144,8 @@ components:
         status:
           type: string
           enum:
-          - ok
-          - depleted
+            - ok
+            - depleted
           example: ok
     LicenseInfo:
       type: object
@@ -190,7 +190,7 @@ components:
     LicenseReportRequest:
       type: object
       required:
-      - licenses
+        - licenses
       properties:
         licenses:
           type: object
@@ -242,10 +242,10 @@ components:
         status:
           type: string
           enum:
-          - active
-          - past_due
-          - cancelled
-          - trialing
+            - active
+            - past_due
+            - cancelled
+            - trialing
           example: active
         gateway:
           type: string
@@ -253,17 +253,18 @@ components:
         current_period_end:
           type: string
           format: date-time
-          example: '2026-07-01T00:00:00Z'
+          example: "2026-07-01T00:00:00Z"
         started_at:
           type: string
           format: date-time
-          example: '2026-01-01T00:00:00Z'
+          example: "2026-01-01T00:00:00Z"
     PortalSessionResponse:
       type: object
       properties:
         url:
           type: string
-          description: URL do portal com token embutido. Redirecione o cliente para
+          description:
+            URL do portal com token embutido. Redirecione o cliente para
             esta URL.
           example: https://billing.app/portal/abc123def456ghi789...
         expires_in:
@@ -274,13 +275,13 @@ components:
           type: string
           format: date-time
           description: Data/hora exata de expiração do link (ISO 8601)
-          example: '2026-06-10T15:30:00Z'
+          example: "2026-06-10T15:30:00Z"
     WebhookCustomer:
       type: object
       properties:
         id:
           type: string
-          example: '42'
+          example: "42"
         external_id:
           type: string
           example: EXT123
@@ -306,17 +307,17 @@ components:
         status:
           type: string
           enum:
-          - active
-          - pending
-          - past_due
-          - cancelled
-          - trialing
+            - active
+            - pending
+            - past_due
+            - cancelled
+            - trialing
           example: active
         billing_cycle:
           type: string
           enum:
-          - monthly
-          - yearly
+            - monthly
+            - yearly
           example: monthly
         base_price_cents:
           type: integer
@@ -329,11 +330,11 @@ components:
           type: string
           format: date-time
           nullable: true
-          example: '2026-07-12T00:00:00Z'
+          example: "2026-07-12T00:00:00Z"
         started_at:
           type: string
           format: date-time
-          example: '2026-06-12T00:00:00Z'
+          example: "2026-06-12T00:00:00Z"
     WebhookCreditEntry:
       type: object
       description: Saldo de um tipo de crédito no período atual
@@ -369,11 +370,11 @@ components:
     WebhookBase:
       type: object
       required:
-      - event
-      - uuid
-      - timestamp
-      - account_id
-      - customer
+        - event
+        - uuid
+        - timestamp
+        - account_id
+        - customer
       properties:
         event:
           type: string
@@ -387,10 +388,10 @@ components:
         timestamp:
           type: string
           format: date-time
-          example: '2026-06-01T14:30:00Z'
+          example: "2026-06-01T14:30:00Z"
         account_id:
           type: string
-          example: '1'
+          example: "1"
         test:
           type: boolean
           description: true quando disparado pelo botão de teste. Ignore em produção.
@@ -400,12 +401,14 @@ components:
         subscription:
           nullable: true
           allOf:
-          - "$ref": "#/components/schemas/WebhookSubscriptionData"
-          description: Assinatura ativa do cliente vinculada a esta integração. null
+            - "$ref": "#/components/schemas/WebhookSubscriptionData"
+          description:
+            Assinatura ativa do cliente vinculada a esta integração. null
             quando o cliente não possui assinatura ativa.
         features:
           type: object
-          description: Features habilitadas no plano atual do cliente. Chave = key
+          description:
+            Features habilitadas no plano atual do cliente. Chave = key
             do feature_type, valor = booleano.
           additionalProperties:
             type: boolean
@@ -415,7 +418,8 @@ components:
             whatsapp_unlimited: true
         credits:
           type: object
-          description: Saldo de créditos do período atual por tipo. Chave = key do
+          description:
+            Saldo de créditos do período atual por tipo. Chave = key do
             credit_type. Vazio quando não há assinatura ativa.
           additionalProperties:
             "$ref": "#/components/schemas/WebhookCreditEntry"
@@ -430,7 +434,8 @@ components:
               usage_percent: 0.0
         licenses:
           type: object
-          description: Licenças do período atual por tipo. Chave = key do license_type.
+          description:
+            Licenças do período atual por tipo. Chave = key do license_type.
             Vazio quando não há assinatura ativa.
           additionalProperties:
             "$ref": "#/components/schemas/LicenseInfo"
@@ -450,296 +455,296 @@ components:
           description: Dados específicos do evento
     WebhookSubscriptionActivated:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - subscription.activated
-          data:
-            type: object
-            properties:
-              plan:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    example: 1
-                  name:
-                    type: string
-                    example: Pro
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - subscription.activated
+            data:
+              type: object
+              properties:
+                plan:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: Pro
     WebhookSubscriptionCancelled:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - subscription.cancelled
-          data:
-            type: object
-            example: {}
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - subscription.cancelled
+            data:
+              type: object
+              example: {}
     WebhookSubscriptionPastDue:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - subscription.past_due
-          data:
-            type: object
-            example: {}
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - subscription.past_due
+            data:
+              type: object
+              example: {}
     WebhookSubscriptionRenewed:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - subscription.renewed
-          data:
-            type: object
-            properties:
-              period_end:
-                type: string
-                format: date-time
-                example: '2026-07-01T00:00:00Z'
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - subscription.renewed
+            data:
+              type: object
+              properties:
+                period_end:
+                  type: string
+                  format: date-time
+                  example: "2026-07-01T00:00:00Z"
     WebhookSubscriptionTrialEnding:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - subscription.trial_ending
-          data:
-            type: object
-            properties:
-              trial_ends_at:
-                type: string
-                format: date-time
-                example: '2026-06-04T00:00:00Z'
-              days_remaining:
-                type: integer
-                example: 3
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - subscription.trial_ending
+            data:
+              type: object
+              properties:
+                trial_ends_at:
+                  type: string
+                  format: date-time
+                  example: "2026-06-04T00:00:00Z"
+                days_remaining:
+                  type: integer
+                  example: 3
     WebhookPlanChanged:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - plan.changed
-          data:
-            type: object
-            properties:
-              previous_plan:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    example: 1
-                  name:
-                    type: string
-                    example: Starter
-              new_plan:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                    example: 2
-                  name:
-                    type: string
-                    example: Pro
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - plan.changed
+            data:
+              type: object
+              properties:
+                previous_plan:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: Starter
+                new_plan:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 2
+                    name:
+                      type: string
+                      example: Pro
     WebhookPaymentReceived:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - payment.received
-          data:
-            type: object
-            properties:
-              amount_cents:
-                type: integer
-                example: 19700
-              gateway:
-                type: string
-                example: asaas
-                enum:
-                - asaas
-                - stripe
-                - dlocal_go
-              charge_id:
-                type: string
-                example: pay_abc123
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - payment.received
+            data:
+              type: object
+              properties:
+                amount_cents:
+                  type: integer
+                  example: 19700
+                gateway:
+                  type: string
+                  example: asaas
+                  enum:
+                    - asaas
+                    - stripe
+                    - dlocal_go
+                charge_id:
+                  type: string
+                  example: pay_abc123
     WebhookPaymentFailed:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - payment.failed
-          data:
-            type: object
-            properties:
-              amount_cents:
-                type: integer
-                example: 19700
-              gateway:
-                type: string
-                example: stripe
-              attempt:
-                type: integer
-                example: 1
-                description: Número da tentativa de cobrança
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - payment.failed
+            data:
+              type: object
+              properties:
+                amount_cents:
+                  type: integer
+                  example: 19700
+                gateway:
+                  type: string
+                  example: stripe
+                attempt:
+                  type: integer
+                  example: 1
+                  description: Número da tentativa de cobrança
     WebhookCreditsThresholdReached:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - credits.threshold_reached
-          data:
-            type: object
-            properties:
-              credit_type:
-                type: string
-                example: coins
-              used:
-                type: integer
-                example: 800
-              limit:
-                type: integer
-                example: 1000
-              usage_percent:
-                type: number
-                example: 80.0
-              threshold:
-                type: integer
-                example: 80
-                enum:
-                - 80
-                - 95
-                description: Percentual que disparou o alerta
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - credits.threshold_reached
+            data:
+              type: object
+              properties:
+                credit_type:
+                  type: string
+                  example: coins
+                used:
+                  type: integer
+                  example: 800
+                limit:
+                  type: integer
+                  example: 1000
+                usage_percent:
+                  type: number
+                  example: 80.0
+                threshold:
+                  type: integer
+                  example: 80
+                  enum:
+                    - 80
+                    - 95
+                  description: Percentual que disparou o alerta
     WebhookCreditsDepleted:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - credits.depleted
-          data:
-            type: object
-            properties:
-              credit_type:
-                type: string
-                example: coins
-              used:
-                type: integer
-                example: 1000
-              limit:
-                type: integer
-                example: 1000
-              usage_percent:
-                type: number
-                example: 100.0
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - credits.depleted
+            data:
+              type: object
+              properties:
+                credit_type:
+                  type: string
+                  example: coins
+                used:
+                  type: integer
+                  example: 1000
+                limit:
+                  type: integer
+                  example: 1000
+                usage_percent:
+                  type: number
+                  example: 100.0
     WebhookCreditsRecharged:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - credits.recharged
-          data:
-            type: object
-            properties:
-              credit_type:
-                type: string
-                example: coins
-              added:
-                type: integer
-                example: 1000
-                description: Créditos adicionados
-              new_balance:
-                type: integer
-                example: 2000
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - credits.recharged
+            data:
+              type: object
+              properties:
+                credit_type:
+                  type: string
+                  example: coins
+                added:
+                  type: integer
+                  example: 1000
+                  description: Créditos adicionados
+                new_balance:
+                  type: integer
+                  example: 2000
     WebhookLicenseUpdated:
       allOf:
-      - "$ref": "#/components/schemas/WebhookBase"
-      - type: object
-        properties:
-          event:
-            type: string
-            enum:
-            - license.updated
-          data:
-            type: object
-            properties:
-              license_type:
-                type: string
-                example: user_licenses
-              previous_quantity:
-                type: integer
-                example: 10
-              new_quantity:
-                type: integer
-                example: 20
+        - "$ref": "#/components/schemas/WebhookBase"
+        - type: object
+          properties:
+            event:
+              type: string
+              enum:
+                - license.updated
+            data:
+              type: object
+              properties:
+                license_type:
+                  type: string
+                  example: user_licenses
+                previous_quantity:
+                  type: integer
+                  example: 10
+                new_quantity:
+                  type: integer
+                  example: 20
 security:
-- BearerAuth: []
+  - BearerAuth: []
 paths:
   "/api/v1/customers/{external_id}/credits":
     parameters:
-    - name: external_id
-      in: path
-      required: true
-      description: ID externo do cliente no seu sistema
-      example: EXT123
-      schema:
-        type: string
+      - name: external_id
+        in: path
+        required: true
+        description: ID externo do cliente no seu sistema
+        example: EXT123
+        schema:
+          type: string
     get:
       summary: Consultar saldo de créditos
       tags:
-      - Créditos
+        - Créditos
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       description: |
         Retorna o saldo atual de todos os tipos de crédito do cliente
         no período de cobrança vigente.
 
         O saldo é atualizado via `POST /credits/report` pelo seu sistema.
       responses:
-        '200':
+        "200":
           description: Saldo retornado com sucesso
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CreditsResponse"
-        '401':
+        "401":
           description: Token inválido ou ausente
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '404':
+        "404":
           description: Cliente não encontrado
           content:
             application/json:
@@ -747,19 +752,19 @@ paths:
                 "$ref": "#/components/schemas/Error"
   "/api/v1/customers/{external_id}/credits/report":
     parameters:
-    - name: external_id
-      in: path
-      required: true
-      description: ID externo do cliente
-      example: EXT123
-      schema:
-        type: string
+      - name: external_id
+        in: path
+        required: true
+        description: ID externo do cliente
+        example: EXT123
+        schema:
+          type: string
     post:
       summary: Reportar uso de créditos
       tags:
-      - Créditos
+        - Créditos
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       description: |
         Atualiza o uso de créditos do cliente no período atual.
 
@@ -774,19 +779,19 @@ paths:
         via webhook quando atingidos.
       parameters: []
       responses:
-        '200':
+        "200":
           description: Uso registrado com sucesso
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CreditReportResponse"
-        '404':
+        "404":
           description: Tipo de crédito não encontrado
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '422':
+        "422":
           description: Sem assinatura ativa
           content:
             application/json:
@@ -800,37 +805,37 @@ paths:
         required: true
   "/api/v1/customers/{external_id}/licenses":
     parameters:
-    - name: external_id
-      in: path
-      required: true
-      example: EXT123
-      schema:
-        type: string
+      - name: external_id
+        in: path
+        required: true
+        example: EXT123
+        schema:
+          type: string
     get:
       summary: Consultar licenças ativas
       tags:
-      - Licenças
+        - Licenças
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       description: |
         Retorna as licenças alocadas e em uso do cliente no plano atual.
 
         `allocated: null` indica licença ilimitada.
         Use `POST /licenses/report` para atualizar o uso.
       responses:
-        '200':
+        "200":
           description: Licenças retornadas com sucesso
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/LicensesResponse"
-        '401':
+        "401":
           description: Token inválido
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '404':
+        "404":
           description: Cliente não encontrado
           content:
             application/json:
@@ -838,18 +843,18 @@ paths:
                 "$ref": "#/components/schemas/Error"
   "/api/v1/customers/{external_id}/licenses/report":
     parameters:
-    - name: external_id
-      in: path
-      required: true
-      example: EXT123
-      schema:
-        type: string
+      - name: external_id
+        in: path
+        required: true
+        example: EXT123
+        schema:
+          type: string
     post:
       summary: Reportar uso de licenças
       tags:
-      - Licenças
+        - Licenças
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       description: |
         Atualiza a quantidade de licenças em uso pelo cliente.
 
@@ -857,13 +862,13 @@ paths:
         Pode enviar apenas os tipos que mudaram.
       parameters: []
       responses:
-        '200':
+        "200":
           description: Uso registrado com sucesso
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/LicenseReportResponse"
-        '404':
+        "404":
           description: Cliente não encontrado
           content:
             application/json:
@@ -879,9 +884,9 @@ paths:
     post:
       summary: Gerar magic link do portal
       tags:
-      - Portal
+        - Portal
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       description: |
         Gera um link temporário (15 minutos) para o cliente acessar o portal
         de autoatendimento.
@@ -917,19 +922,19 @@ paths:
         logo e cor primária, configuráveis no painel de administração.
       parameters: []
       responses:
-        '200':
+        "200":
           description: Magic link gerado com sucesso
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/PortalSessionResponse"
-        '401':
+        "401":
           description: Token inválido ou expirado
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '404':
+        "404":
           description: Cliente não encontrado nesta integração
           content:
             application/json:
@@ -941,28 +946,29 @@ paths:
             schema:
               type: object
               required:
-              - external_id
+                - external_id
               properties:
                 external_id:
                   type: string
-                  description: ID do cliente no seu sistema (conforme cadastrado na
+                  description:
+                    ID do cliente no seu sistema (conforme cadastrado na
                     integração)
                   example: EXT123
         required: true
   "/api/v1/customers/{external_id}/subscription":
     parameters:
-    - name: external_id
-      in: path
-      required: true
-      example: EXT123
-      schema:
-        type: string
+      - name: external_id
+        in: path
+        required: true
+        example: EXT123
+        schema:
+          type: string
     get:
       summary: Consultar assinatura ativa
       tags:
-      - Assinatura
+        - Assinatura
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       description: |
         Retorna os dados da assinatura ativa do cliente, incluindo
         plano, status, moeda e data de renovação.
@@ -970,19 +976,19 @@ paths:
         Use este endpoint para verificar se um cliente tem acesso ativo
         antes de permitir operações no seu sistema.
       responses:
-        '200':
+        "200":
           description: Assinatura retornada com sucesso
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/SubscriptionResponse"
-        '401':
+        "401":
           description: Token inválido
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '404':
+        "404":
           description: Sem assinatura ativa
           content:
             application/json:
@@ -992,7 +998,7 @@ paths:
     get:
       summary: Documentação dos webhooks de saída
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         ## Visão geral
 
@@ -1058,20 +1064,20 @@ paths:
         Selecione os eventos desejados ao configurar cada integração.
         Abaixo estão todos os eventos disponíveis com seus payloads.
       responses:
-        '200':
+        "200":
           description: Documentação de referência
   "/webhooks/events/subscription.activated":
     post:
       summary: subscription.activated — Assinatura ativada
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando uma nova assinatura é criada e ativada.
 
         **Quando usar:** liberar acesso ao sistema, criar o tenant do cliente,
         configurar as licenças e créditos iniciais.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
@@ -1080,17 +1086,42 @@ paths:
                   value:
                     event: subscription.activated
                     uuid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-                    timestamp: '2026-06-01T14:30:00Z'
-                    account_id: '1'
+                    timestamp: "2026-06-01T14:30:00Z"
+                    account_id: "1"
                     test: false
                     customer:
-                      id: '42'
+                      id: "42"
                       external_id: EXT123
                       name: Empresa X
                       email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-06-01T00:00:00Z"
                     features:
                       ai_enabled: true
                       export_reports: false
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 0
+                        balance: 1000
+                        usage_percent: 0.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 0
+                        available: 20
+                        unlimited: false
                     data:
                       plan:
                         id: 1
@@ -1101,48 +1132,132 @@ paths:
     post:
       summary: subscription.cancelled — Assinatura cancelada
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando uma assinatura é cancelada.
 
         **Quando usar:** revogar acesso, arquivar dados do cliente,
         disparar fluxo de win-back.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
+              examples:
+                example_0:
+                  value:
+                    event: subscription.cancelled
+                    uuid: b1c2d3e4-f5a6-7890-bcde-f12345678901
+                    timestamp: "2026-06-15T10:00:00Z"
+                    account_id: "1"
+                    test: false
+                    customer:
+                      id: "42"
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: cancelled
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
+                    features:
+                      ai_enabled: true
+                      export_reports: false
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 300
+                        balance: 700
+                        usage_percent: 30.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
+                    data: {}
               schema:
                 "$ref": "#/components/schemas/WebhookSubscriptionCancelled"
   "/webhooks/events/subscription.past_due":
     post:
       summary: subscription.past_due — Pagamento em atraso
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando um pagamento fica em atraso.
 
         **Quando usar:** notificar o cliente, restringir acesso a features
         premium, iniciar fluxo de cobrança.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
+              examples:
+                example_0:
+                  value:
+                    event: subscription.past_due
+                    uuid: a2b3c4d5-e6f7-8901-abcd-ef2345678901
+                    timestamp: "2026-06-10T08:00:00Z"
+                    account_id: "1"
+                    test: false
+                    customer:
+                      id: "42"
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: past_due
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
+                    features:
+                      ai_enabled: true
+                      export_reports: false
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 500
+                        balance: 500
+                        usage_percent: 50.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
+                    data: {}
               schema:
                 "$ref": "#/components/schemas/WebhookSubscriptionPastDue"
   "/webhooks/events/subscription.renewed":
     post:
       summary: subscription.renewed — Assinatura renovada
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando uma assinatura é renovada com sucesso.
 
         **Quando usar:** resetar contadores de uso, renovar limites
         de créditos, registrar o novo período.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
@@ -1151,49 +1266,117 @@ paths:
                   value:
                     event: subscription.renewed
                     uuid: b2c3d4e5-f6a7-8901-bcde-f12345678901
-                    timestamp: '2026-06-01T00:00:00Z'
-                    account_id: '1'
+                    timestamp: "2026-06-01T00:00:00Z"
+                    account_id: "1"
                     test: false
                     customer:
-                      id: '42'
+                      id: "42"
                       external_id: EXT123
                       name: Empresa X
                       email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
                     features:
                       ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 0
+                        balance: 1000
+                        usage_percent: 0.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
                     data:
-                      period_end: '2026-07-01T00:00:00Z'
+                      period_end: "2026-07-01T00:00:00Z"
               schema:
                 "$ref": "#/components/schemas/WebhookSubscriptionRenewed"
   "/webhooks/events/subscription.trial_ending":
     post:
       summary: subscription.trial_ending — Trial encerrando
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado 3 dias antes do trial expirar.
 
         **Quando usar:** enviar email de aviso, oferecer desconto
         de conversão, solicitar dados de pagamento.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
+              examples:
+                example_0:
+                  value:
+                    event: subscription.trial_ending
+                    uuid: c2d3e4f5-a6b7-8901-cdef-123456789012
+                    timestamp: "2026-06-01T08:00:00Z"
+                    account_id: "1"
+                    test: false
+                    customer:
+                      id: "42"
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: trialing
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-06-04T00:00:00Z"
+                      started_at: "2026-05-21T00:00:00Z"
+                    features:
+                      ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 200
+                        balance: 800
+                        usage_percent: 20.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 5
+                        available: 15
+                        unlimited: false
+                    data:
+                      trial_ends_at: "2026-06-04T00:00:00Z"
+                      days_remaining: 3
               schema:
                 "$ref": "#/components/schemas/WebhookSubscriptionTrialEnding"
   "/webhooks/events/plan.changed":
     post:
       summary: plan.changed — Plano alterado
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando o cliente muda de plano (upgrade ou downgrade).
 
         **Quando usar:** atualizar limites de licenças e créditos,
         habilitar ou desabilitar features, notificar o time de CS.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
@@ -1202,17 +1385,42 @@ paths:
                   value:
                     event: plan.changed
                     uuid: c3d4e5f6-a7b8-9012-cdef-123456789012
-                    timestamp: '2026-06-01T14:30:00Z'
-                    account_id: '1'
+                    timestamp: "2026-06-01T14:30:00Z"
+                    account_id: "1"
                     test: false
                     customer:
-                      id: '42'
+                      id: "42"
                       external_id: EXT123
                       name: Empresa X
                       email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 2
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 29700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
                     features:
                       ai_enabled: true
                       export_reports: true
+                    credits:
+                      coins:
+                        limit: 2000
+                        base: 2000
+                        extras: 0
+                        extra_packages: 0
+                        used: 300
+                        balance: 1700
+                        usage_percent: 15.0
+                    licenses:
+                      user_licenses:
+                        allocated: 50
+                        used: 14
+                        available: 36
+                        unlimited: false
                     data:
                       previous_plan:
                         id: 1
@@ -1226,14 +1434,14 @@ paths:
     post:
       summary: payment.received — Pagamento confirmado
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando um pagamento é confirmado pelo gateway.
 
         **Quando usar:** registrar receita, liberar acesso após
         período de inadimplência, emitir nota fiscal.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
@@ -1242,16 +1450,41 @@ paths:
                   value:
                     event: payment.received
                     uuid: d4e5f6a7-b8c9-0123-defa-234567890123
-                    timestamp: '2026-06-01T14:30:00Z'
-                    account_id: '1'
+                    timestamp: "2026-06-01T14:30:00Z"
+                    account_id: "1"
                     test: false
                     customer:
-                      id: '42'
+                      id: "42"
                       external_id: EXT123
                       name: Empresa X
                       email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
                     features:
                       ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 300
+                        balance: 700
+                        usage_percent: 30.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
                     data:
                       amount_cents: 19700
                       gateway: asaas
@@ -1262,24 +1495,68 @@ paths:
     post:
       summary: payment.failed — Pagamento falhou
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando uma tentativa de cobrança falha.
 
         **Quando usar:** notificar o cliente, iniciar régua de
         cobrança, restringir acesso após N tentativas.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
+              examples:
+                example_0:
+                  value:
+                    event: payment.failed
+                    uuid: d5e6f7a8-b9c0-1234-defa-345678901234
+                    timestamp: "2026-06-05T08:00:00Z"
+                    account_id: "1"
+                    test: false
+                    customer:
+                      id: "42"
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
+                    features:
+                      ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 300
+                        balance: 700
+                        usage_percent: 30.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
+                    data:
+                      amount_cents: 19700
+                      gateway: stripe
+                      attempt: 1
               schema:
                 "$ref": "#/components/schemas/WebhookPaymentFailed"
   "/webhooks/events/credits.threshold_reached":
     post:
       summary: credits.threshold_reached — Threshold de créditos atingido
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando o uso de créditos atinge 80% ou 95% do limite.
 
@@ -1288,7 +1565,7 @@ paths:
         **Quando usar:** notificar o cliente, oferecer recarga,
         mostrar aviso no sistema.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
@@ -1297,16 +1574,41 @@ paths:
                   value:
                     event: credits.threshold_reached
                     uuid: e5f6a7b8-c9d0-1234-efab-345678901234
-                    timestamp: '2026-06-15T10:00:00Z'
-                    account_id: '1'
+                    timestamp: "2026-06-15T10:00:00Z"
+                    account_id: "1"
                     test: false
                     customer:
-                      id: '42'
+                      id: "42"
                       external_id: EXT123
                       name: Empresa X
                       email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
                     features:
                       ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 800
+                        balance: 200
+                        usage_percent: 80.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
                     data:
                       credit_type: coins
                       used: 800
@@ -1319,24 +1621,69 @@ paths:
     post:
       summary: credits.depleted — Créditos esgotados
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando os créditos chegam a zero.
 
         **Quando usar:** bloquear uso de features que consomem créditos,
         notificar o cliente urgentemente, oferecer recarga imediata.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
+              examples:
+                example_0:
+                  value:
+                    event: credits.depleted
+                    uuid: f5a6b7c8-d9e0-1234-fabc-456789012345
+                    timestamp: "2026-06-20T16:00:00Z"
+                    account_id: "1"
+                    test: false
+                    customer:
+                      id: "42"
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
+                    features:
+                      ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 1000
+                        base: 1000
+                        extras: 0
+                        extra_packages: 0
+                        used: 1000
+                        balance: 0
+                        usage_percent: 100.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
+                    data:
+                      credit_type: coins
+                      used: 1000
+                      limit: 1000
+                      usage_percent: 100.0
               schema:
                 "$ref": "#/components/schemas/WebhookCreditsDepleted"
   "/webhooks/events/credits.recharged":
     post:
       summary: credits.recharged — Créditos recarregados
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando créditos são adicionados manualmente
         (compra de pacote avulso) ou na renovação do plano.
@@ -1344,17 +1691,61 @@ paths:
         **Quando usar:** liberar bloqueio de features, notificar
         o cliente da recarga, atualizar saldo no sistema.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
+              examples:
+                example_0:
+                  value:
+                    event: credits.recharged
+                    uuid: a6b7c8d9-e0f1-2345-abcd-567890123456
+                    timestamp: "2026-06-10T12:00:00Z"
+                    account_id: "1"
+                    test: false
+                    customer:
+                      id: "42"
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 1
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 19700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
+                    features:
+                      ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 2000
+                        base: 1000
+                        extras: 1000
+                        extra_packages: 1
+                        used: 800
+                        balance: 1200
+                        usage_percent: 40.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
+                    data:
+                      credit_type: coins
+                      added: 1000
+                      new_balance: 1200
               schema:
                 "$ref": "#/components/schemas/WebhookCreditsRecharged"
   "/webhooks/events/license.updated":
     post:
       summary: license.updated — Licença atualizada
       tags:
-      - Webhooks
+        - Webhooks
       description: |
         Disparado quando a quantidade de licenças de um tipo é alterada
         (upgrade/downgrade de plano ou ajuste manual).
@@ -1362,7 +1753,7 @@ paths:
         **Quando usar:** atualizar limites no sistema integrado,
         bloquear criação de novos usuários se reduzido, notificar admin.
       responses:
-        '200':
+        "200":
           description: Payload do evento
           content:
             application/json:
@@ -1371,16 +1762,41 @@ paths:
                   value:
                     event: license.updated
                     uuid: f6a7b8c9-d0e1-2345-fabc-456789012345
-                    timestamp: '2026-06-01T14:30:00Z'
-                    account_id: '1'
+                    timestamp: "2026-06-01T14:30:00Z"
+                    account_id: "1"
                     test: false
                     customer:
-                      id: '42'
+                      id: "42"
                       external_id: EXT123
                       name: Empresa X
                       email: admin@empresax.com
+                    subscription:
+                      id: 1
+                      plan_id: 2
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 29700
+                      currency_code: BRL
+                      current_period_end: "2026-07-01T00:00:00Z"
+                      started_at: "2026-01-01T00:00:00Z"
                     features:
                       ai_enabled: true
+                    credits:
+                      coins:
+                        limit: 2000
+                        base: 2000
+                        extras: 0
+                        extra_packages: 0
+                        used: 300
+                        balance: 1700
+                        usage_percent: 15.0
+                    licenses:
+                      user_licenses:
+                        allocated: 20
+                        used: 14
+                        available: 6
+                        unlimited: false
                     data:
                       license_type: user_licenses
                       previous_quantity: 10

@@ -30,27 +30,84 @@
       <NavLink href="/" icon="dashboard" label="Dashboard" :exact="true" />
 
       <!-- GESTÃO -->
-      <SideSection label="Gestão" />
-      <NavLink href="/subscriptions" icon="subscriptions" label="Assinaturas" />
-      <NavLink href="/customers" icon="customers" label="Clientes" />
-      <NavLink href="/plans" icon="plans" label="Planos" />
-      <NavLink href="/products" icon="products" label="Produtos" />
-      <NavLink href="/imports" icon="import" label="Importar clientes" />
+      <template v-if="can.view_customers || can.view_plans || can.view_subscriptions || can.view_products">
+        <SideSection label="Gestão" />
+        <NavLink
+          v-if="can.view_subscriptions"
+          href="/subscriptions"
+          icon="subscriptions"
+          label="Assinaturas"
+        />
+        <NavLink
+          v-if="can.view_customers"
+          href="/customers"
+          icon="customers"
+          label="Clientes"
+        />
+        <NavLink
+          v-if="can.view_plans"
+          href="/plans"
+          icon="plans"
+          label="Planos"
+        />
+        <NavLink
+          v-if="can.view_products"
+          href="/products"
+          icon="products"
+          label="Produtos"
+        />
+        <NavLink
+          v-if="can.import_customers"
+          href="/imports"
+          icon="import"
+          label="Importar clientes"
+        />
+      </template>
 
-      <!-- CONFIGURAÇÕES -->
-      <SideSection label="Configurações" />
-      <NavLink href="/integrations" icon="integrations" label="Integrações" />
-      <NavLink href="/api_keys" icon="apikeys" label="API Keys" />
-      <NavLink href="/payment_gateways" icon="gateways" label="Gateways" />
-      <NavLink href="/currencies" icon="currencies" label="Moedas" />
+      <!-- CONFIGURAÇÕES — manager+ para integrações, admin+ para settings -->
+      <template v-if="can.view_integrations || can.manage_settings">
+        <SideSection label="Configurações" />
+        <NavLink
+          v-if="can.view_integrations"
+          href="/integrations"
+          icon="integrations"
+          label="Integrações"
+        />
+        <NavLink
+          v-if="can.manage_settings"
+          href="/api_keys"
+          icon="apikeys"
+          label="API Keys"
+        />
+        <NavLink
+          v-if="can.manage_settings"
+          href="/payment_gateways"
+          icon="gateways"
+          label="Gateways"
+        />
+        <NavLink
+          v-if="can.manage_settings"
+          href="/currencies"
+          icon="currencies"
+          label="Moedas"
+        />
+      </template>
 
-      <!-- TIPOS -->
-      <SideSection label="Tipos" />
-      <NavLink href="/license_types" icon="license" label="Tipos de licença" />
-      <NavLink href="/credit_types" icon="credits" label="Tipos de crédito" />
-      <NavLink href="/feature_types" icon="features" label="Features" />
+      <!-- TIPOS — admin+ -->
+      <template v-if="can.manage_settings">
+        <SideSection label="Tipos" />
+        <NavLink href="/license_types" icon="license" label="Tipos de licença" />
+        <NavLink href="/credit_types" icon="credits" label="Tipos de crédito" />
+        <NavLink href="/feature_types" icon="features" label="Features" />
+      </template>
 
-      <!-- SUPERADMIN — só para superadmins -->
+      <!-- EQUIPE — manager+ -->
+      <template v-if="can.view_members">
+        <SideSection label="Equipe" />
+        <NavLink href="/account_users" icon="sa_users" label="Colaboradores" />
+      </template>
+
+      <!-- SUPERADMIN -->
       <template v-if="auth.user?.superadmin">
         <SideSection label="SuperAdmin" variant="warning" />
         <NavLink href="/superadmin" icon="sa_dashboard" label="Dashboard" :exact="true" />
@@ -105,7 +162,6 @@
     <!-- Usuário -->
     <div class="border-t border-white/10 px-3 py-3">
       <div class="flex items-center gap-2.5">
-        <!-- Avatar -->
         <div
           class="w-8 h-8 rounded-full bg-brand-600 flex items-center
                     justify-center text-white text-xs font-semibold flex-shrink-0"
@@ -117,10 +173,9 @@
             {{ auth.user?.name }}
           </p>
           <p class="text-xs text-gray-400 truncate leading-tight">
-            {{ auth.account?.name }}
+            {{ roleLabel }} · {{ auth.account?.name }}
           </p>
         </div>
-        <!-- Logout -->
         <Link
           href="/users/sign_out"
           method="delete"
@@ -157,6 +212,17 @@ import SideSection from "./SideSection.vue";
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
+const can  = computed(() => page.props.auth?.can || {});
+
+const roleLabel = computed(() =>
+  ({
+    owner:   "Owner",
+    admin:   "Admin",
+    manager: "Manager",
+    seller:  "Vendedor",
+    member:  "Colaborador",
+  })[auth.value?.user?.role] || ""
+);
 
 const switchAccount = (accountId) =>
   router.post("/account_switch", { account_id: accountId });

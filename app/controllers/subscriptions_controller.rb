@@ -1,10 +1,9 @@
 class SubscriptionsController < ApplicationController
   before_action :set_customer, except: [:index]
   before_action :set_subscription, only: [:edit, :update, :destroy]
-  before_action :require_admin!
 
   def index
-    subscriptions = Subscription
+    subscriptions = policy_scope(Subscription)
                     .includes(:customer, :plan, :integration, :currency, plan: :plan_prices)
                     .order(created_at: :desc)
 
@@ -15,6 +14,8 @@ class SubscriptionsController < ApplicationController
   end
 
   def new
+    authorize Subscription
+
     render inertia: "Subscriptions/Form", props: {
       customer:               serialize_customer(@customer),
       subscription:           {},
@@ -29,6 +30,8 @@ class SubscriptionsController < ApplicationController
   end
 
   def create
+    authorize Subscription
+
     result = Subscriptions::CreateService.call(
       customer:                @customer,
       plan_id:                 params[:plan_id],
@@ -62,6 +65,8 @@ class SubscriptionsController < ApplicationController
   end
 
   def edit
+    authorize @subscription
+
     render inertia: "Subscriptions/Form", props: {
       customer:               serialize_customer(@customer),
       subscription:           serialize_subscription(@subscription),
@@ -76,6 +81,8 @@ class SubscriptionsController < ApplicationController
   end
 
   def update
+    authorize @subscription
+
     if params[:plan_id].present? && params[:plan_id].to_i != @subscription.plan_id
       new_plan = Plan.find(params[:plan_id])
       @subscription.change_plan!(new_plan, changed_by: current_user)
@@ -97,6 +104,8 @@ class SubscriptionsController < ApplicationController
   end
 
   def destroy
+    authorize @subscription, :cancel?
+
     @subscription.cancel!
     redirect_to customer_path(@customer), notice: "Assinatura cancelada."
   rescue StandardError => e

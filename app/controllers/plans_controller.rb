@@ -1,9 +1,8 @@
 class PlansController < ApplicationController
-  before_action :require_admin!
   before_action :set_plan, only: %i[show edit update destroy]
 
   def index
-    plans = Plan.active
+    plans = policy_scope(Plan).active
                 .includes(:plan_licenses, :plan_credits, :plan_prices,
                           plan_licenses: :license_type, plan_credits: :credit_type,
                           plan_prices: :currency)
@@ -14,6 +13,8 @@ class PlansController < ApplicationController
   end
 
   def new
+    authorize Plan
+
     render inertia: "Plans/Form", props: {
       plan:          serialize_plan(Plan.new),
       license_types: serialize_license_types,
@@ -26,6 +27,8 @@ class PlansController < ApplicationController
   end
 
   def create
+    authorize Plan
+
     plan = Plan.new(plan_params)
 
     if plan.save
@@ -49,6 +52,8 @@ class PlansController < ApplicationController
   end
 
   def edit
+    authorize @plan
+
     render inertia: "Plans/Form", props: {
       plan:          serialize_plan(@plan),
       license_types: serialize_license_types,
@@ -61,6 +66,8 @@ class PlansController < ApplicationController
   end
 
   def update
+    authorize @plan
+
     if @plan.update(plan_params)
       sync_licenses_and_credits(@plan)
       sync_features(@plan)
@@ -82,6 +89,8 @@ class PlansController < ApplicationController
   end
 
   def destroy
+    authorize @plan
+
     @plan.archive!
     redirect_to plans_path, notice: "Plano arquivado."
   end

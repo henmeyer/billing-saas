@@ -5,7 +5,7 @@
         <h2 class="page-title">Clientes</h2>
         <p class="text-sm text-gray-500 mt-0.5">{{ customers.length }} clientes</p>
       </div>
-      <Link href="/customers/new" class="btn-primary">Novo cliente</Link>
+      <Link v-if="can.create_customers" href="/customers/new" class="btn-primary">Novo cliente</Link>
     </div>
 
     <div class="card">
@@ -66,8 +66,11 @@
 import { Link } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
+import { usePermissions } from "@/composables/usePermissions";
 
 defineProps({ customers: Array });
+
+const { can } = usePermissions();
 
 const statusVariant = (s) =>
   ({ active: "green", churned: "gray", suspended: "red", trial: "blue" })[s] || "yellow";

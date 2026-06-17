@@ -6,7 +6,7 @@
         <p class="text-sm text-gray-500 mt-0.5">Todas as assinaturas ativas e encerradas</p>
       </div>
       <div class="flex items-center gap-2">
-        <template v-if="pickingCustomer">
+        <template v-if="can.create_subscriptions && pickingCustomer">
           <select
             v-model="selectedCustomerId"
             class="form-input w-56 text-sm"
@@ -28,7 +28,7 @@
             Cancelar
           </button>
         </template>
-        <button v-else @click="pickingCustomer = true" class="btn-primary">
+        <button v-else-if="can.create_subscriptions" @click="pickingCustomer = true" class="btn-primary">
           + Nova assinatura
         </button>
       </div>
@@ -80,6 +80,7 @@
               <td class="text-sm text-gray-500">{{ s.started_at || "—" }}</td>
               <td class="text-right">
                 <Link
+                  v-if="can.create_subscriptions"
                   :href="`/customers/${s.customer.id}/subscriptions/${s.id}/edit`"
                   class="btn-secondary btn-sm"
                 >
@@ -99,8 +100,11 @@ import { ref } from "vue";
 import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
+import { usePermissions } from "@/composables/usePermissions";
 
 defineProps({ subscriptions: Array, customers: { type: Array, default: () => [] } });
+
+const { can } = usePermissions();
 
 const pickingCustomer  = ref(false);
 const selectedCustomerId = ref("");

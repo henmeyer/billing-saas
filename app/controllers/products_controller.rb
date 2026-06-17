@@ -1,15 +1,16 @@
 class ProductsController < ApplicationController
-  before_action :require_admin!
   before_action :set_product, only: [:edit, :update, :destroy]
 
   def index
-    products = Product.includes(:credit_type, product_prices: :currency).order(name: :asc)
+    products = policy_scope(Product).includes(:credit_type, product_prices: :currency).order(name: :asc)
     render inertia: "Products/Index", props: {
       products: products.map { |prod| serialize(prod) }
     }
   end
 
   def new
+    authorize Product
+
     render inertia: "Products/Form", props: {
       product:      {},
       credit_types: serialize_credit_types,
@@ -19,6 +20,8 @@ class ProductsController < ApplicationController
   end
 
   def create
+    authorize Product
+
     product = Product.new(product_params)
     if product.save
       sync_prices(product)
@@ -34,6 +37,8 @@ class ProductsController < ApplicationController
   end
 
   def edit
+    authorize @product
+
     render inertia: "Products/Form", props: {
       product:      serialize(@product),
       credit_types: serialize_credit_types,
@@ -43,6 +48,8 @@ class ProductsController < ApplicationController
   end
 
   def update
+    authorize @product
+
     if @product.update(product_params)
       sync_prices(@product)
       redirect_to products_path, notice: "Produto atualizado."
@@ -57,6 +64,8 @@ class ProductsController < ApplicationController
   end
 
   def destroy
+    authorize @product
+
     @product.update!(active: false)
     redirect_to products_path, notice: "Produto desativado."
   end

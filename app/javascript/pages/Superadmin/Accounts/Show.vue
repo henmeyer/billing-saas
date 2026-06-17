@@ -72,13 +72,13 @@
         </div>
       </div>
 
-      <!-- Membros -->
+      <!-- Colaboradores -->
       <div class="lg:col-span-2 card">
         <div class="card-header">
-          <h3 class="text-sm font-medium text-gray-900">Membros ({{ members.length }})</h3>
+          <h3 class="text-sm font-medium text-gray-900">Colaboradores ({{ members.length }})</h3>
         </div>
         <div v-if="!members.length" class="card-body text-sm text-gray-400">
-          Sem membros.
+          Sem colaboradores.
         </div>
         <div v-else class="table-wrapper border-0 rounded-none">
           <table class="table">

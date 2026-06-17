@@ -1,13 +1,14 @@
 class IntegrationsController < ApplicationController
-  before_action :require_admin!
   before_action :set_integration, only: %i[show edit update destroy]
 
   def index
-    integrations = Integration.order(name: :asc).map { |i| serialize_integration(i) }
+    integrations = policy_scope(Integration).order(name: :asc).map { |i| serialize_integration(i) }
     render inertia: "Integrations/Index", props: { integrations: }
   end
 
   def show
+    authorize @integration
+
     keys = @integration.integration_api_keys.order(created_at: :desc)
     render inertia: "Integrations/Show", props: {
       integration: serialize_full(@integration),
@@ -16,6 +17,8 @@ class IntegrationsController < ApplicationController
   end
 
   def new
+    authorize Integration
+
     render inertia: "Integrations/Form", props: {
       integration:      {},
       available_events: Integration::AVAILABLE_EVENTS,
@@ -27,6 +30,8 @@ class IntegrationsController < ApplicationController
   end
 
   def create
+    authorize Integration
+
     integration = Integration.new(integration_params)
     if integration.save
       sync_field_configs(integration)
@@ -44,6 +49,8 @@ class IntegrationsController < ApplicationController
   end
 
   def edit
+    authorize @integration
+
     render inertia: "Integrations/Form", props: {
       integration:      serialize_integration(@integration),
       available_events: Integration::AVAILABLE_EVENTS,
@@ -55,6 +62,8 @@ class IntegrationsController < ApplicationController
   end
 
   def update
+    authorize @integration
+
     if @integration.update(integration_params)
       sync_field_configs(@integration)
       redirect_to integrations_path, notice: "Integração atualizada."
@@ -71,6 +80,8 @@ class IntegrationsController < ApplicationController
   end
 
   def destroy
+    authorize @integration
+
     @integration.update!(active: false)
     redirect_to integrations_path, notice: "Integração desativada."
   end

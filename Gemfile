@@ -15,6 +15,7 @@ gem "acts_as_tenant"
 # Auth
 gem "bcrypt", "~> 3.1.7"
 gem "devise"
+gem "pundit"
 
 # Frontend
 gem "vite_rails"
@@ -56,6 +57,7 @@ group :test do
   gem "shoulda-matchers"
   gem "webmock"
   gem "vcr"
+  gem "pundit-matchers"
 end
 
 group :development do

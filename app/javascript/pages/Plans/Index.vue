@@ -5,13 +5,13 @@
         <h2 class="page-title">Planos</h2>
         <p class="text-sm text-gray-500 mt-0.5">Gerencie os planos de assinatura</p>
       </div>
-      <Link href="/plans/new" class="btn-primary">Novo plano</Link>
+      <Link v-if="can.manage_plans" href="/plans/new" class="btn-primary">Novo plano</Link>
     </div>
 
     <div v-if="!plans.length" class="card">
       <div class="card-body text-center py-12">
         <p class="text-gray-400 text-sm mb-4">Nenhum plano criado ainda.</p>
-        <Link href="/plans/new" class="btn-primary inline-flex">Criar primeiro plano</Link>
+        <Link v-if="can.manage_plans" href="/plans/new" class="btn-primary inline-flex">Criar primeiro plano</Link>
       </div>
     </div>
 
@@ -73,12 +73,21 @@
 
           <div class="flex gap-2 pt-3 border-t border-gray-100">
             <Link
+              v-if="can.manage_plans"
               :href="`/plans/${plan.id}/edit`"
               class="btn-secondary btn-sm flex-1 justify-center"
             >
               Editar
             </Link>
+            <Link
+              v-else
+              :href="`/plans/${plan.id}`"
+              class="btn-secondary btn-sm flex-1 justify-center"
+            >
+              Ver
+            </Link>
             <ConfirmButton
+              v-if="can.manage_plans"
               :message="`Deletar o plano ${plan.name}?`"
               btn-class="btn-danger btn-sm flex-1 justify-center"
               @confirm="deletePlan(plan.id)"
@@ -97,8 +106,11 @@ import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
+import { usePermissions } from "@/composables/usePermissions";
 
 defineProps({ plans: Array });
+
+const { can } = usePermissions();
 
 const deletePlan = (id) => router.delete(`/plans/${id}`, { preserveState: false });
 

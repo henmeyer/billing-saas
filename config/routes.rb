@@ -60,6 +60,8 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :account_users, only: %i[index new create edit update destroy]
+
   # Superadmin
   namespace :superadmin do
     root "dashboard#index"

@@ -2,7 +2,7 @@ class CustomersController < ApplicationController
   before_action :set_customer, only: [:show, :edit, :update, :destroy]
 
   def index
-    customers = Customer.includes(:subscriptions, :currency)
+    customers = policy_scope(Customer).includes(:subscriptions, :currency)
                         .order(name: :asc)
                         .map { |customer| serialize_customer(customer) }
 
@@ -10,6 +10,8 @@ class CustomersController < ApplicationController
   end
 
   def show
+    authorize @customer
+
     active_subscriptions = @customer.subscriptions
                                     .where(status: %w[active trialing past_due])
                                     .includes(:integration, :plan)
@@ -48,6 +50,8 @@ class CustomersController < ApplicationController
   end
 
   def new
+    authorize Customer
+
     render inertia: "Customers/Form", props: {
       customer:     {},
       currencies:   serialize_currencies,
@@ -57,6 +61,8 @@ class CustomersController < ApplicationController
   end
 
   def create
+    authorize Customer
+
     customer = Customer.new(customer_params)
     if customer.save
       sync_identities(customer)
@@ -72,6 +78,8 @@ class CustomersController < ApplicationController
   end
 
   def edit
+    authorize @customer
+
     render inertia: "Customers/Form", props: {
       customer:     serialize_customer_for_form(@customer),
       currencies:   serialize_currencies,
@@ -81,6 +89,8 @@ class CustomersController < ApplicationController
   end
 
   def update
+    authorize @customer
+
     if @customer.update(customer_params)
       sync_identities(@customer)
       redirect_to customer_path(@customer), notice: "Cliente atualizado."
@@ -95,6 +105,8 @@ class CustomersController < ApplicationController
   end
 
   def destroy
+    authorize @customer
+
     @customer.destroy!
     redirect_to customers_path, notice: "Cliente removido."
   rescue ActiveRecord::InvalidForeignKey
