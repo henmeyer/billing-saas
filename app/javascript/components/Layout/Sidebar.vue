@@ -162,24 +162,28 @@
     <!-- Usuário -->
     <div class="border-t border-white/10 px-3 py-3">
       <div class="flex items-center gap-2.5">
-        <div
-          class="w-8 h-8 rounded-full bg-brand-600 flex items-center
-                    justify-center text-white text-xs font-semibold flex-shrink-0"
-        >
-          {{ auth.user?.name?.charAt(0).toUpperCase() }}
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-medium text-white truncate leading-tight">
-            {{ auth.user?.name }}
-          </p>
-          <p class="text-xs text-gray-400 truncate leading-tight">
-            {{ roleLabel }} · {{ auth.account?.name }}
-          </p>
-        </div>
-        <Link
-          href="/users/sign_out"
-          method="delete"
-          as="button"
+        <Link href="/profile" class="flex items-center gap-2.5 flex-1 min-w-0 group">
+          <UserAvatar
+            :avatar-url="auth.user?.avatar_url"
+            :name="auth.user?.name"
+            :initials="auth.user?.initials"
+            size="md"
+          />
+          <div class="flex-1 min-w-0">
+            <p
+              class="text-xs font-medium text-white truncate leading-tight
+                     group-hover:text-brand-300 transition-colors"
+            >
+              {{ auth.user?.name }}
+            </p>
+            <p class="text-xs text-gray-400 truncate leading-tight">
+              {{ roleLabel }} · {{ auth.account?.name }}
+            </p>
+          </div>
+        </Link>
+
+        <button
+          @click="logout"
           class="p-1 rounded text-gray-500 hover:text-gray-300
                  hover:bg-white/5 transition-colors flex-shrink-0"
           title="Sair"
@@ -198,7 +202,7 @@
                      3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             />
           </svg>
-        </Link>
+        </button>
       </div>
     </div>
   </nav>
@@ -209,6 +213,7 @@ import { computed } from "vue";
 import { Link, usePage, router } from "@inertiajs/vue3";
 import NavLink from "./NavLink.vue";
 import SideSection from "./SideSection.vue";
+import UserAvatar from "../Shared/UserAvatar.vue";
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
@@ -226,4 +231,6 @@ const roleLabel = computed(() =>
 
 const switchAccount = (accountId) =>
   router.post("/account_switch", { account_id: accountId });
+
+const logout = () => router.delete("/users/sign_out", { preserveState: false });
 </script>

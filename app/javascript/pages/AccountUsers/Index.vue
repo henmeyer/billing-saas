@@ -28,7 +28,17 @@
               </td>
             </tr>
             <tr v-for="au in account_users" :key="au.id">
-              <td class="font-medium text-gray-900">{{ au.user.name }}</td>
+              <td class="font-medium text-gray-900">
+                <div class="flex items-center gap-2">
+                  <UserAvatar
+                    :avatar-url="au.user.avatar_url"
+                    :name="au.user.name"
+                    :initials="au.user.initials"
+                    size="sm"
+                  />
+                  {{ au.user.name }}
+                </div>
+              </td>
               <td class="text-sm text-gray-500">{{ au.user.email }}</td>
               <td>
                 <Badge :variant="roleBadge(au.role)">{{ roleLabel(au.role) }}</Badge>
@@ -63,6 +73,7 @@ import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
+import UserAvatar from "@/components/Shared/UserAvatar.vue";
 import { usePermissions } from "@/composables/usePermissions";
 
 defineProps({ account_users: Array });

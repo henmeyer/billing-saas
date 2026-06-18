@@ -22,7 +22,9 @@ class ApplicationController < ActionController::Base
                       email:         current_user.email,
                       role:          current_account_user&.role,
                       superadmin:    current_user.superadmin?,
-                      impersonating: impersonating?
+                      impersonating: impersonating?,
+                      avatar_url:    current_user.avatar_url,
+                      initials:      current_user.initials
                     }
                   end,
         account:  if current_account
@@ -127,7 +129,8 @@ class ApplicationController < ActionController::Base
       is_a?(Superadmin::BaseController) ||
       is_a?(Api::V1::BaseController) ||
       is_a?(Webhooks::BaseController) ||
-      is_a?(DashboardController)
+      is_a?(DashboardController) ||
+      is_a?(ProfileController)
   end
 
   def build_permissions

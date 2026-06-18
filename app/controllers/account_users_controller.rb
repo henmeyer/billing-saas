@@ -3,7 +3,7 @@ class AccountUsersController < ApplicationController
 
   def index
     account_users = policy_scope(AccountUser)
-                    .includes(:user)
+                    .includes(user: { avatar_attachment: :blob })
                     .order(:role)
                     .map { |au| serialize_account_user(au) }
 
@@ -104,9 +104,11 @@ class AccountUsersController < ApplicationController
       role:  account_user.role,
       level: account_user.level,
       user:  {
-        id:    account_user.user.id,
-        name:  account_user.user.name,
-        email: account_user.user.email
+        id:         account_user.user.id,
+        name:       account_user.user.name,
+        email:      account_user.user.email,
+        avatar_url: account_user.user.avatar_url,
+        initials:   account_user.user.initials
       }
     }
   end

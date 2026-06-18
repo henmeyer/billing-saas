@@ -62,6 +62,10 @@ Rails.application.routes.draw do
 
   resources :account_users, only: %i[index new create edit update destroy]
 
+  resource :profile, only: %i[show update], controller: "profile" do
+    delete :destroy_avatar, on: :member
+  end
+
   # Superadmin
   namespace :superadmin do
     root "dashboard#index"
