@@ -31,7 +31,11 @@ class Portal::DashboardController < Portal::BaseController
       currency_code:       s.currency_code,
       billing_cycle:       s.plan.billing_cycle,
       current_period_end:  s.current_period_end&.strftime("%d/%m/%Y"),
-      started_at:          s.started_at&.strftime("%d/%m/%Y")
+      started_at:          s.started_at&.strftime("%d/%m/%Y"),
+      is_trial:             s.trialing?,
+      trial_ends_at:        s.trial_ends_at&.strftime("%d/%m/%Y"),
+      trial_days_remaining: s.trial_days_remaining,
+      trial_expired:        s.trial_expired?
     }
   end
 

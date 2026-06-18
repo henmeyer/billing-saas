@@ -20,6 +20,68 @@
     </div>
 
     <template v-else>
+      <!-- Banner de trial -->
+      <div v-if="subscription.is_trial" class="card overflow-hidden mb-6">
+        <div
+          :class="[
+            'px-6 py-4',
+            subscription.trial_expired
+              ? 'bg-red-50 border-b border-red-200'
+              : subscription.trial_days_remaining <= 3
+                ? 'bg-amber-50 border-b border-amber-200'
+                : 'bg-blue-50 border-b border-blue-200',
+          ]"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <p
+                :class="[
+                  'text-sm font-semibold',
+                  subscription.trial_expired
+                    ? 'text-red-800'
+                    : subscription.trial_days_remaining <= 3
+                      ? 'text-amber-800'
+                      : 'text-blue-800',
+                ]"
+              >
+                {{
+                  subscription.trial_expired
+                    ? "Seu período de teste expirou"
+                    : `Teste grátis — ${subscription.trial_days_remaining} dia(s) restante(s)`
+                }}
+              </p>
+              <p
+                :class="[
+                  'text-xs mt-0.5',
+                  subscription.trial_expired
+                    ? 'text-red-600'
+                    : subscription.trial_days_remaining <= 3
+                      ? 'text-amber-600'
+                      : 'text-blue-600',
+                ]"
+              >
+                {{
+                  subscription.trial_expired
+                    ? "Comece a pagar para continuar usando o serviço."
+                    : `Expira em ${subscription.trial_ends_at}. Após isso, será necessário realizar o pagamento.`
+                }}
+              </p>
+            </div>
+            <Link
+              :href="p('/conversion/new')"
+              :class="[
+                'px-4 py-2 rounded-lg text-sm font-semibold transition-colors',
+                subscription.trial_expired
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-[var(--portal-primary)] text-white hover:opacity-90',
+              ]"
+            >
+              {{ subscription.trial_expired ? "Ativar agora" : "Começar a pagar" }}
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Plano atual -->
         <div class="lg:col-span-2 space-y-4">
@@ -41,7 +103,20 @@
               </div>
 
               <!-- Preço -->
-              <div class="bg-gray-50 rounded-lg px-4 py-3 space-y-1.5">
+              <div v-if="subscription.is_trial" class="bg-gray-50 rounded-lg px-4 py-3">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Valor após o teste</span>
+                  <span class="text-gray-400 line-through">
+                    {{ fmt(subscription.base_price_cents) }}/mês
+                  </span>
+                </div>
+                <div class="flex justify-between font-semibold text-base mt-1">
+                  <span>Agora</span>
+                  <span class="text-green-600">Grátis</span>
+                </div>
+              </div>
+
+              <div v-else class="bg-gray-50 rounded-lg px-4 py-3 space-y-1.5">
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-500">Valor base</span>
                   <span>{{ fmt(subscription.base_price_cents) }}/mês</span>
@@ -61,7 +136,7 @@
                 </div>
               </div>
 
-              <p class="text-xs text-gray-400 mt-3">
+              <p v-if="!subscription.is_trial" class="text-xs text-gray-400 mt-3">
                 Próxima renovação: {{ subscription.current_period_end }}
               </p>
 

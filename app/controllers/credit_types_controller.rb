@@ -4,11 +4,13 @@ class CreditTypesController < ApplicationController
 
   def index
     render inertia: "CreditTypes/Index", props: {
-      credit_types: CreditType.order(:label).map { |ct| serialize(ct) }
+      credit_types: policy_scope(CreditType).order(:label).map { |ct| serialize(ct) }
     }
   end
 
   def new
+    authorize CreditType
+
     render inertia: "CreditTypes/Form", props: {
       credit_type: {},
       errors:      {}
@@ -16,6 +18,8 @@ class CreditTypesController < ApplicationController
   end
 
   def create
+    authorize CreditType
+
     ct = CreditType.new(credit_type_params)
     if ct.save
       redirect_to credit_types_path, notice: "Tipo de crédito criado."
@@ -28,6 +32,8 @@ class CreditTypesController < ApplicationController
   end
 
   def edit
+    authorize @credit_type
+
     render inertia: "CreditTypes/Form", props: {
       credit_type: serialize(@credit_type),
       errors:      {}
@@ -35,6 +41,8 @@ class CreditTypesController < ApplicationController
   end
 
   def update
+    authorize @credit_type
+
     if @credit_type.update(credit_type_params)
       redirect_to credit_types_path, notice: "Tipo de crédito atualizado."
     else
@@ -46,6 +54,8 @@ class CreditTypesController < ApplicationController
   end
 
   def destroy
+    authorize @credit_type
+
     @credit_type.destroy!
     redirect_to credit_types_path, notice: "Tipo de crédito removido."
   rescue ActiveRecord::InvalidForeignKey

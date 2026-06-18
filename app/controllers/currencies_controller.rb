@@ -3,19 +3,23 @@ class CurrenciesController < ApplicationController
   before_action :set_currency, only: [:edit, :update, :destroy]
 
   def index
-    currencies = Currency.order(:code)
+    currencies = policy_scope(Currency).order(:code)
     render inertia: "Currencies/Index", props: {
       currencies: currencies.map { |c| serialize(c) }
     }
   end
 
   def new
+    authorize Currency
+
     render inertia: "Currencies/Form", props: {
       currency: {}, errors: {}
     }
   end
 
   def create
+    authorize Currency
+
     currency = Currency.new(currency_params)
     if currency.save
       redirect_to currencies_path, notice: "Moeda criada."
@@ -27,12 +31,16 @@ class CurrenciesController < ApplicationController
   end
 
   def edit
+    authorize @currency
+
     render inertia: "Currencies/Form", props: {
       currency: serialize(@currency), errors: {}
     }
   end
 
   def update
+    authorize @currency
+
     if @currency.update(currency_params)
       redirect_to currencies_path, notice: "Moeda atualizada."
     else
@@ -43,6 +51,8 @@ class CurrenciesController < ApplicationController
   end
 
   def destroy
+    authorize @currency
+
     @currency.update!(active: false)
     redirect_to currencies_path, notice: "Moeda desativada."
   end

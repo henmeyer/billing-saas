@@ -32,28 +32,32 @@ class SubscriptionsController < ApplicationController
   def create
     authorize Subscription
 
+    is_trial = ActiveModel::Type::Boolean.new.cast(params[:trial])
+
     result = Subscriptions::CreateService.call(
       customer:                @customer,
       plan_id:                 params[:plan_id],
-      gateway:                 params[:gateway],
+      gateway:                 is_trial ? nil : params[:gateway],
       integration_id:          params[:integration_id],
       currency_id:             params[:currency_id],
       started_at:              params[:started_at] || Time.current,
-      gateway_subscription_id: params[:gateway_subscription_id],
+      gateway_subscription_id: is_trial ? nil : params[:gateway_subscription_id],
       extra_packages:          params[:extra_packages]&.to_unsafe_h || {},
-      initial_quantity:        params[:initial_quantity]&.to_i
+      initial_quantity:        params[:initial_quantity]&.to_i,
+      trial:                   is_trial
     )
 
     if result.success?
       if result.redirect_url.present?
         redirect_to result.redirect_url, allow_other_host: true
       else
-        redirect_to customer_path(@customer), notice: "Assinatura criada com sucesso."
+        notice = is_trial ? "Teste de #{result.subscription.plan.trial_days} dias iniciado." : "Assinatura criada com sucesso."
+        redirect_to customer_path(@customer), notice: notice
       end
     else
       render inertia: "Subscriptions/Form", props: {
         customer:               serialize_customer(@customer),
-        subscription:           params.permit(:plan_id, :gateway, :currency_id, :integration_id),
+        subscription:           params.permit(:plan_id, :gateway, :currency_id, :integration_id, :trial),
         plans:                  serialize_plans,
         gateways:               serialize_gateways,
         currencies:             serialize_currencies,
@@ -192,6 +196,7 @@ class SubscriptionsController < ApplicationController
         name:                 plan.name,
         billing_cycle:        plan.billing_cycle,
         pricing_model:        plan.pricing_model,
+        trial_days:           plan.trial_days,
         pricing_metric_label: plan.pricing_metric_label,
         integration_ids:      plan.plan_integrations.map(&:integration_id),
         prices:               plan.plan_prices.map do |pp|

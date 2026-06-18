@@ -213,4 +213,92 @@ RSpec.describe Subscriptions::CreateService do
       expect(result.errors).to include("Já existe assinatura ativa para este cliente nesta integração")
     end
   end
+
+  context "trial" do
+    it "cria assinatura como trialing sem gateway" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        integration_id: integration.id,
+        currency_id:    currency.id,
+        trial:          true
+      )
+      expect(result.success?).to be true
+
+      sub = result.subscription
+      expect(sub.status).to eq("trialing")
+      expect(sub.gateway).to be_nil
+      expect(sub.gateway_subscription_id).to be_nil
+      expect(sub.trial_ends_at).to be_present
+    end
+
+    it "usa plan.trial_days para calcular trial_ends_at" do
+      plan.update!(trial_days: 14)
+
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        integration_id: integration.id,
+        currency_id:    currency.id,
+        trial:          true
+      )
+
+      expect(result.subscription.trial_ends_at).to be_within(1.minute).of(14.days.from_now.beginning_of_day)
+    end
+
+    it "usa 7 dias como padrão quando plan.trial_days é zero" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        integration_id: integration.id,
+        currency_id:    currency.id,
+        trial:          true
+      )
+
+      expect(result.subscription.trial_ends_at).to be_within(1.minute).of(7.days.from_now.beginning_of_day)
+    end
+
+    it "cria período com amount_cents 0" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        integration_id: integration.id,
+        currency_id:    currency.id,
+        trial:          true
+      )
+
+      period = result.subscription.subscription_periods.first
+      expect(period.amount_cents).to eq(0)
+      expect(period.base_amount_cents).to eq(0)
+      expect(period.extras_amount_cents).to eq(0)
+    end
+
+    it "cria snapshots com os limites do plano" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        integration_id: integration.id,
+        currency_id:    currency.id,
+        trial:          true
+      )
+
+      period = result.subscription.subscription_periods.first
+      expect(period.credit_snapshots.count).to be > 0
+      expect(period.credit_snapshots.first.limit).to eq(1000)
+      expect(period.subscription_period_licenses.first.quantity).to eq(20)
+    end
+
+    it "não chama nenhum gateway de pagamento" do
+      expect(Gateways::Base).not_to receive(:for)
+
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        integration_id: integration.id,
+        currency_id:    currency.id,
+        trial:          true
+      )
+      expect(result.success?).to be true
+    end
+  end
 end

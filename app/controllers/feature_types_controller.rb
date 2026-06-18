@@ -4,11 +4,13 @@ class FeatureTypesController < ApplicationController
 
   def index
     render inertia: "FeatureTypes/Index", props: {
-      feature_types: FeatureType.order(:label).map { |ft| serialize(ft) }
+      feature_types: policy_scope(FeatureType).order(:label).map { |ft| serialize(ft) }
     }
   end
 
   def new
+    authorize FeatureType
+
     render inertia: "FeatureTypes/Form", props: {
       feature_type: {},
       errors:       {}
@@ -16,6 +18,8 @@ class FeatureTypesController < ApplicationController
   end
 
   def create
+    authorize FeatureType
+
     ft = FeatureType.new(feature_type_params)
     if ft.save
       redirect_to feature_types_path, notice: "Feature criada."
@@ -28,6 +32,8 @@ class FeatureTypesController < ApplicationController
   end
 
   def edit
+    authorize @feature_type
+
     render inertia: "FeatureTypes/Form", props: {
       feature_type: serialize(@feature_type),
       errors:       {}
@@ -35,6 +41,8 @@ class FeatureTypesController < ApplicationController
   end
 
   def update
+    authorize @feature_type
+
     if @feature_type.update(feature_type_params)
       redirect_to feature_types_path, notice: "Feature atualizada."
     else
@@ -46,6 +54,8 @@ class FeatureTypesController < ApplicationController
   end
 
   def destroy
+    authorize @feature_type
+
     @feature_type.destroy!
     redirect_to feature_types_path, notice: "Feature removida."
   rescue ActiveRecord::InvalidForeignKey

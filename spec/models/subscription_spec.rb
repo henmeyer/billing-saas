@@ -149,4 +149,66 @@ RSpec.describe Subscription, type: :model do
       expect(subscription.integration_id).to eq(integration.id)
     end
   end
+
+  describe "webhook de ativação (independente do gateway)" do
+    let(:customer)     { create(:customer, account: account) }
+    let(:plan)         { create(:plan, account: account) }
+    let(:integration)  { create(:integration, account: account) }
+
+    before { allow(WebhookDispatchJob).to receive(:perform_later) }
+
+    %w[stripe asaas dlocal_go].each do |gateway_name|
+      it "dispara subscription.activated quando o status muda para active via #{gateway_name}" do
+        sub = create(:subscription,
+                     customer:    customer,
+                     plan:        plan,
+                     integration: integration,
+                     gateway:     gateway_name,
+                     status:      "pending")
+
+        sub.update!(status: "active")
+
+        expect(WebhookDispatchJob).to have_received(:perform_later).with(
+          customer,
+          "subscription.activated",
+          hash_including(plan: { id: plan.id, name: plan.name }, gateway: gateway_name)
+        )
+      end
+    end
+
+    it "marca converted_from_trial quando vem de trialing" do
+      sub = create(:subscription,
+                   customer:    customer,
+                   plan:        plan,
+                   integration: integration,
+                   gateway:     nil,
+                   status:      "trialing")
+
+      sub.update!(status: "active", gateway: "asaas")
+
+      expect(WebhookDispatchJob).to have_received(:perform_later).with(
+        customer,
+        "subscription.activated",
+        hash_including(converted_from_trial: true)
+      )
+    end
+
+    it "não dispara quando o status muda para algo diferente de active" do
+      sub = create(:subscription, customer: customer, plan: plan, integration: integration, status: "active")
+
+      sub.update!(status: "past_due")
+
+      expect(WebhookDispatchJob).not_to have_received(:perform_later)
+        .with(anything, "subscription.activated", anything)
+    end
+
+    it "não dispara quando status permanece active" do
+      sub = create(:subscription, customer: customer, plan: plan, integration: integration, status: "active")
+
+      sub.update!(base_price_cents: 1000)
+
+      expect(WebhookDispatchJob).not_to have_received(:perform_later)
+        .with(anything, "subscription.activated", anything)
+    end
+  end
 end

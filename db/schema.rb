@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_18_120901) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_18_174847) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -176,6 +176,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_18_120901) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "currency_id"
+    t.string "country", default: "BR", null: false
     t.index ["account_id", "email"], name: "index_customers_on_account_id_and_email", unique: true
     t.index ["account_id"], name: "index_customers_on_account_id"
     t.index ["currency_id"], name: "index_customers_on_currency_id"
@@ -488,7 +489,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_18_120901) do
     t.bigint "customer_id", null: false
     t.bigint "plan_id", null: false
     t.string "status", default: "active", null: false
-    t.string "gateway", null: false
+    t.string "gateway"
     t.string "gateway_subscription_id"
     t.datetime "started_at", null: false
     t.datetime "trial_ends_at"
@@ -502,6 +503,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_18_120901) do
     t.integer "base_price_cents", default: 0, null: false
     t.string "currency_code", default: "BRL", null: false
     t.bigint "integration_id", null: false
+    t.datetime "converted_at"
     t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
     t.index ["customer_id", "integration_id"], name: "idx_unique_active_subscription_per_customer_integration", unique: true, where: "((status)::text = ANY ((ARRAY['active'::character varying, 'trialing'::character varying, 'past_due'::character varying])::text[]))"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"

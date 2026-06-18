@@ -3,8 +3,8 @@ class Subscriptions::CreateService
 
   def self.call(**args) = new(**args).call
 
-  def initialize(customer:, plan_id:, gateway:, integration_id:, currency_id: nil, started_at: Time.current,
-                 gateway_subscription_id: nil, extra_packages: {}, initial_quantity: nil)
+  def initialize(customer:, plan_id:, integration_id:, gateway: nil, currency_id: nil, started_at: Time.current,
+                 gateway_subscription_id: nil, extra_packages: {}, initial_quantity: nil, trial: false)
     @customer                = customer
     @plan                    = Plan.find(plan_id)
     @gateway                 = gateway
@@ -14,12 +14,67 @@ class Subscriptions::CreateService
     @gateway_subscription_id = gateway_subscription_id
     @extra_packages          = extra_packages
     @initial_quantity        = initial_quantity&.to_i.presence
+    @trial                   = ActiveModel::Type::Boolean.new.cast(trial)
   end
 
   def call
     errors = validate_integration
     return Result.new(success?: false, subscription: nil, errors: errors, redirect_url: nil) if errors.any?
 
+    @trial ? create_trial : create_paid
+  rescue ActiveRecord::RecordNotUnique
+    Result.new(success?: false, subscription: nil,
+               errors: ["Já existe assinatura ativa para este cliente nesta integração"], redirect_url: nil)
+  rescue StandardError => e
+    Rails.logger.error("[CreateService] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}")
+    Result.new(success?: false, subscription: nil, errors: [e.message], redirect_url: nil)
+  end
+
+  private
+
+  def create_trial
+    ActiveRecord::Base.transaction do
+      trial_days   = @plan.trial_days.positive? ? @plan.trial_days : 7
+      period_start = @started_at.to_time
+      period_end   = trial_days.days.from_now.beginning_of_day
+      base_price   = @plan.price_for(@currency)
+
+      subscription = @customer.subscriptions.create!(
+        plan:                    @plan,
+        integration_id:          @integration_id,
+        gateway:                 nil,
+        currency:                @currency,
+        gateway_subscription_id: nil,
+        status:                  "trialing",
+        started_at:              period_start,
+        current_period_start:    period_start,
+        current_period_end:      period_end,
+        trial_ends_at:           period_end,
+        base_price_cents:        base_price,
+        currency_code:           @currency.code,
+        metadata:                { extra_packages: @extra_packages, trial: true }
+      )
+
+      period = subscription.subscription_periods.create!(
+        period_start:        period_start,
+        period_end:          period_end,
+        amount_cents:        0,
+        base_amount_cents:   0,
+        extras_amount_cents: 0
+      )
+
+      create_period_records(period, nil)
+
+      WebhookDispatchJob.perform_later(
+        @customer, "subscription.activated",
+        { plan: { id: @plan.id, name: @plan.name }, trial: true, trial_ends_at: period_end.iso8601 }
+      )
+
+      Result.new(success?: true, subscription: subscription, errors: [], redirect_url: nil)
+    end
+  end
+
+  def create_paid
     ActiveRecord::Base.transaction do
       period_start = @started_at.to_time
       period_end   = period_start + 1.month
@@ -90,15 +145,7 @@ class Subscriptions::CreateService
 
       Result.new(success?: true, subscription: subscription, errors: [], redirect_url: redirect_url)
     end
-  rescue ActiveRecord::RecordNotUnique
-    Result.new(success?: false, subscription: nil,
-               errors: ["Já existe assinatura ativa para este cliente nesta integração"], redirect_url: nil)
-  rescue StandardError => e
-    Rails.logger.error("[CreateService] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}")
-    Result.new(success?: false, subscription: nil, errors: [e.message], redirect_url: nil)
   end
-
-  private
 
   def validate_integration
     errors = []

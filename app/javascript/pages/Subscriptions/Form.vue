@@ -123,53 +123,97 @@
               </p>
             </div>
 
-            <div>
-              <label class="form-label">Gateway de pagamento</label>
-              <select
-                v-model="form.gateway"
-                class="form-input"
-                :disabled="!!subscription.id"
-              >
-                <option value="">Selecione o gateway</option>
-                <option v-for="g in gateways" :key="g.id" :value="g.provider">
-                  {{ g.provider }}
-                </option>
-              </select>
-              <p v-if="subscription.id" class="form-hint">
-                Gateway não pode ser alterado após criação.
-              </p>
+            <div v-if="!subscription.id && selectedPlan" class="flex gap-4">
+              <label class="flex-1 cursor-pointer">
+                <input
+                  v-model="form.trial"
+                  :value="false"
+                  type="radio"
+                  name="sub_type"
+                  class="peer hidden"
+                />
+                <div
+                  class="border-2 rounded-lg p-4 text-center transition-all peer-checked:border-brand-500 peer-checked:bg-brand-50 border-gray-200 hover:border-gray-300"
+                >
+                  <p class="text-sm font-semibold text-gray-900">
+                    Com pagamento
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Cobra imediatamente via gateway
+                  </p>
+                </div>
+              </label>
+
+              <label class="flex-1 cursor-pointer">
+                <input
+                  v-model="form.trial"
+                  :value="true"
+                  type="radio"
+                  name="sub_type"
+                  class="peer hidden"
+                />
+                <div
+                  class="border-2 rounded-lg p-4 text-center transition-all peer-checked:border-amber-500 peer-checked:bg-amber-50 border-gray-200 hover:border-gray-300"
+                >
+                  <p class="text-sm font-semibold text-gray-900">
+                    Teste grátis
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    {{ trialDays }} dias sem cobrança
+                  </p>
+                </div>
+              </label>
             </div>
 
-            <div
-              v-if="form.gateway === 'dlocal_go' && !subscription.id"
-              class="rounded-md bg-blue-50 border border-blue-200 p-3"
-            >
-              <div class="flex gap-2">
-                <span class="text-blue-500">ℹ</span>
-                <p class="text-xs text-blue-700">
-                  O cliente será redirecionado ao checkout do dLocal Go para
-                  pagar. Ele pode escolher Pix, cartão, boleto ou outro método
-                  disponível. Nas renovações, um novo link de pagamento será
-                  gerado.
+            <template v-if="!form.trial">
+              <div>
+                <label class="form-label">Gateway de pagamento</label>
+                <select
+                  v-model="form.gateway"
+                  class="form-input"
+                  :disabled="!!subscription.id"
+                >
+                  <option value="">Selecione o gateway</option>
+                  <option v-for="g in gateways" :key="g.id" :value="g.provider">
+                    {{ g.provider }}
+                  </option>
+                </select>
+                <p v-if="subscription.id" class="form-hint">
+                  Gateway não pode ser alterado após criação.
                 </p>
               </div>
-            </div>
 
-            <div v-if="!subscription.id">
-              <label class="form-label">
-                ID da assinatura no gateway
-                <span class="text-gray-400 font-normal">(opcional)</span>
-              </label>
-              <input
-                v-model="form.gateway_subscription_id"
-                type="text"
-                class="form-input font-mono"
-                placeholder="Deixe em branco para gerar automaticamente"
-              />
-              <p class="form-hint">
-                Se o cliente já tem assinatura ativa no gateway, cole o ID aqui.
-              </p>
-            </div>
+              <div
+                v-if="form.gateway === 'dlocal_go' && !subscription.id"
+                class="rounded-md bg-blue-50 border border-blue-200 p-3"
+              >
+                <div class="flex gap-2">
+                  <span class="text-blue-500">ℹ</span>
+                  <p class="text-xs text-blue-700">
+                    O cliente será redirecionado ao checkout do dLocal Go para
+                    pagar. Ele pode escolher Pix, cartão, boleto ou outro método
+                    disponível. Nas renovações, um novo link de pagamento será
+                    gerado.
+                  </p>
+                </div>
+              </div>
+
+              <div v-if="!subscription.id">
+                <label class="form-label">
+                  ID da assinatura no gateway
+                  <span class="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  v-model="form.gateway_subscription_id"
+                  type="text"
+                  class="form-input font-mono"
+                  placeholder="Deixe em branco para gerar automaticamente"
+                />
+                <p class="form-hint">
+                  Se o cliente já tem assinatura ativa no gateway, cole o ID aqui.
+                </p>
+              </div>
+            </template>
 
             <div v-if="subscription.id">
               <label class="form-label">Status</label>
@@ -274,10 +318,26 @@
         <div v-if="selectedPlan && selectedCurrency" class="card bg-gray-50">
           <div class="card-header">
             <h3 class="text-sm font-medium text-gray-900">
-              Resumo da cobrança
+              {{ form.trial ? "Resumo do teste" : "Resumo da cobrança" }}
             </h3>
           </div>
-          <div class="card-body space-y-3 text-sm">
+          <div v-if="form.trial" class="card-body space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Período de teste</span>
+              <span class="font-medium">{{ trialDays }} dias grátis</span>
+            </div>
+            <div class="flex justify-between text-gray-400">
+              <span>Após o teste</span>
+              <span>{{ fmtCents(basePriceCents) }}/mês</span>
+            </div>
+            <div
+              class="flex justify-between pt-2 border-t border-gray-200 font-semibold text-base"
+            >
+              <span class="text-gray-900">Hoje</span>
+              <span class="text-green-600">Grátis</span>
+            </div>
+          </div>
+          <div v-else class="card-body space-y-3 text-sm">
             <div
               v-if="selectedPlan.pricing_model !== 'flat'"
               class="flex justify-between"
@@ -421,7 +481,10 @@ const form = useForm({
   initial_quantity: props.subscription.current_quantity || 1,
   integration_id:
     props.subscription.integration_id || props.selected_integration_id || "",
+  trial: false,
 });
+
+const trialDays = computed(() => selectedPlan.value?.trial_days || 7);
 
 const extraPackages = reactive({
   ...(props.subscription.current_extra_packages || {}),

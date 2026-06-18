@@ -121,7 +121,7 @@ class CustomersController < ApplicationController
 
   def customer_params
     params.require(:customer).permit(
-      :name, :email, :document, :phone, :status, :notes, :currency_id
+      :name, :email, :document, :phone, :status, :notes, :currency_id, :country
     )
   end
 
@@ -153,6 +153,7 @@ class CustomersController < ApplicationController
       status:      customer.status,
       notes:       customer.notes,
       currency_id: customer.currency_id,
+      country:     customer.country,
       identities:  customer.customer_identities.includes(:integration).map do |ci|
         {
           id:               ci.id,

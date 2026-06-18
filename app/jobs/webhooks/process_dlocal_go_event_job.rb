@@ -7,7 +7,7 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     order_id   = payload["order_id"] || payload["external_id"] || ""
     payment_id = payload["id"]
 
-    subscription = find_subscription(order_id)
+    subscription = find_subscription(order_id, payment_id)
 
     case event_type
     when "payment_received"
@@ -23,8 +23,26 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
 
   private
 
+  # Estratégia principal: a charge já foi criada pelo nosso sistema antes do
+  # cliente pagar (CreateService, RenewDlocalGoJob, ConversionsController),
+  # então ela já tem o subscription_id correto — não importa o prefixo do
+  # order_id. Isso cobre qualquer fluxo (renovação, conversão de trial, etc).
+  # Fallback: parse do order_id, para compatibilidade com fluxos antigos.
+  def find_subscription(order_id, payment_id)
+    charge = ActsAsTenant.without_tenant do
+      Charge.where(gateway: "dlocal_go").find_by(gateway_charge_id: payment_id)
+    end
+
+    if charge
+      ActsAsTenant.current_tenant = charge.customer.account
+      return charge.subscription
+    end
+
+    find_subscription_by_order_id(order_id)
+  end
+
   # Formatos: "sub_CUSTOMER_ID_TIMESTAMP" ou "renew_CUSTOMER_ID_TIMESTAMP"
-  def find_subscription(order_id)
+  def find_subscription_by_order_id(order_id)
     return unless order_id.match?(/^(sub|renew)_\d+_/)
 
     customer_id = order_id.match(/^(?:sub|renew)_(\d+)_/)[1] rescue nil
@@ -46,8 +64,9 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     customer     = subscription.customer
     amount_cents = extract_amount(payload)
 
-    # Idempotência
-    return if subscription.charges.exists?(gateway_charge_id: payment_id)
+    # Idempotência: só ignora se essa charge já está confirmada como paga
+    existing_charge = subscription.charges.find_by(gateway_charge_id: payment_id)
+    return if existing_charge&.status == "paid"
 
     # Salva checkout_id para cobranças recorrentes futuras (crucial no primeiro pagamento)
     checkout_id = payload["id"] || payload["checkout_id"]
@@ -58,15 +77,14 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     end
 
     was_pending  = subscription.status == "pending"
+    was_trialing = subscription.trialing?
     period_start = Time.current.beginning_of_day
     period_end   = next_period(subscription)
 
     ActiveRecord::Base.transaction do
       # Atualiza charge pendente se existir, ou cria nova
-      charge = subscription.charges.find_by(gateway_charge_id: payment_id, status: "pending")
-
-      if charge
-        charge.update!(status: "paid", paid_at: Time.current)
+      if existing_charge
+        existing_charge.update!(status: "paid", paid_at: Time.current)
       else
         subscription.charges.create!(
           customer:          customer,
@@ -78,44 +96,55 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
         )
       end
 
-      subscription.update!(
-        status:               "active",
-        current_period_start: period_start,
-        current_period_end:   period_end
-      )
+      if was_trialing
+        # Conversão de trial: vira assinatura paga, mantém o período (e os
+        # créditos/licenças já concedidos) e só atualiza valores e datas.
+        subscription.convert_from_trial!(gateway: "dlocal_go")
+        subscription.update!(current_period_start: period_start, current_period_end: period_end)
 
-      if was_pending
-        # Primeiro pagamento: atualiza o período criado pelo CreateService
         period = subscription.subscription_periods.last
-        if period
-          period.update!(
-            amount_cents:        amount_cents,
-            base_amount_cents:   subscription.base_price_cents,
-            extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
-          )
-        end
+        period&.update!(
+          amount_cents:        amount_cents,
+          base_amount_cents:   subscription.base_price_cents,
+          extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
+        )
       else
-        # Renovação: cria novo período apenas se não existe (idempotente)
-        existing_period = subscription.subscription_periods.find_by(period_start: period_start)
-        unless existing_period
-          new_period = subscription.subscription_periods.create!(
-            period_start:        period_start,
-            period_end:          period_end,
-            amount_cents:        amount_cents,
-            base_amount_cents:   subscription.base_price_cents,
-            extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
-          )
-          replicate_period_data(subscription, new_period)
+        subscription.update!(
+          status:               "active",
+          current_period_start: period_start,
+          current_period_end:   period_end
+        )
+
+        if was_pending
+          # Primeiro pagamento: atualiza o período criado pelo CreateService
+          period = subscription.subscription_periods.last
+          if period
+            period.update!(
+              amount_cents:        amount_cents,
+              base_amount_cents:   subscription.base_price_cents,
+              extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
+            )
+          end
+        else
+          # Renovação: cria novo período apenas se não existe (idempotente)
+          existing_period = subscription.subscription_periods.find_by(period_start: period_start)
+          unless existing_period
+            new_period = subscription.subscription_periods.create!(
+              period_start:        period_start,
+              period_end:          period_end,
+              amount_cents:        amount_cents,
+              base_amount_cents:   subscription.base_price_cents,
+              extras_amount_cents: [amount_cents - subscription.base_price_cents, 0].max
+            )
+            replicate_period_data(subscription, new_period)
+          end
         end
       end
     end
 
-    if was_pending
-      WebhookDispatchJob.perform_later(
-        customer, "subscription.activated",
-        { plan: { id: subscription.plan.id, name: subscription.plan.name } }
-      )
-    else
+    # subscription.activated é disparado pelo callback do model (Subscription#became_active?)
+    # sempre que o status muda para "active" — cobre was_pending e was_trialing sem duplicar aqui.
+    unless was_pending || was_trialing
       WebhookDispatchJob.perform_later(
         customer, "payment.received",
         { amount_cents: amount_cents, gateway: "dlocal_go", charge_id: payment_id }

@@ -2,6 +2,8 @@ class Integrations::WebhookTestsController < ApplicationController
   before_action :require_admin!
   before_action :set_integration
 
+  skip_after_action :verify_policy_scoped, only: :logs
+
   def create
     event = params[:event]
 
@@ -35,6 +37,7 @@ class Integrations::WebhookTestsController < ApplicationController
 
   def set_integration
     @integration = Integration.find(params[:integration_id])
+    authorize @integration, :show?
   end
 
   def serialize_log(log)

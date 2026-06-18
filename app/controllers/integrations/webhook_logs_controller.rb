@@ -2,6 +2,8 @@ class Integrations::WebhookLogsController < ApplicationController
   before_action :require_admin!
   before_action :set_integration
 
+  skip_after_action :verify_policy_scoped, only: :index
+
   def index
     logs = @integration.webhook_logs
                        .order(created_at: :desc)
@@ -16,6 +18,7 @@ class Integrations::WebhookLogsController < ApplicationController
 
   def set_integration
     @integration = Integration.find(params[:integration_id])
+    authorize @integration
   end
 
   def serialize(log)

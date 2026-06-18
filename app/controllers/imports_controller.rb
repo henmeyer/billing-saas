@@ -3,7 +3,7 @@ class ImportsController < ApplicationController
   before_action :set_import_job, only: [:show, :decide, :execute]
 
   def index
-    import_jobs = ImportJob.recent.limit(10)
+    import_jobs = policy_scope(ImportJob).recent.limit(10)
     render inertia: "Imports/Index", props: {
       import_jobs: import_jobs.map { |j| serialize(j) },
       gateways:    available_gateways
@@ -11,6 +11,8 @@ class ImportsController < ApplicationController
   end
 
   def create
+    authorize ImportJob
+
     gateway = params[:gateway]
     unless PaymentGateway.active.exists?(provider: gateway)
       redirect_to imports_path, alert: "Gateway #{gateway} não configurado."
@@ -31,6 +33,8 @@ class ImportsController < ApplicationController
   end
 
   def show
+    authorize @import_job
+
     render inertia: "Imports/Show", props: {
       import_job:   serialize_full(@import_job),
       integrations: Integration.active.map { |i| { id: i.id, name: i.name } }
@@ -38,6 +42,8 @@ class ImportsController < ApplicationController
   end
 
   def decide
+    authorize @import_job
+
     unless @import_job.preview_ready?
       redirect_to import_path(@import_job), alert: "Import não está pronto."
       return
@@ -51,6 +57,8 @@ class ImportsController < ApplicationController
   end
 
   def execute
+    authorize @import_job
+
     unless @import_job.preview_ready?
       redirect_to import_path(@import_job), alert: "Import não está pronto."
       return

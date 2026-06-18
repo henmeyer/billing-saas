@@ -4,11 +4,13 @@ class PaymentGatewaysController < ApplicationController
 
   def index
     render inertia: "PaymentGateways/Index", props: {
-      gateways: PaymentGateway.order(:provider).map { |g| serialize(g) }
+      gateways: policy_scope(PaymentGateway).order(:provider).map { |g| serialize(g) }
     }
   end
 
   def new
+    authorize PaymentGateway
+
     render inertia: "PaymentGateways/Form", props: {
       gateway:   {},
       providers: PaymentGateway::PROVIDERS,
@@ -17,6 +19,8 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def create
+    authorize PaymentGateway
+
     gateway = PaymentGateway.new(provider: params[:provider],
                                  active:   true)
     gateway.api_key = params[:api_key] if params[:api_key].present?
@@ -34,6 +38,8 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def edit
+    authorize @gateway
+
     render inertia: "PaymentGateways/Form", props: {
       gateway:   serialize(@gateway),
       providers: PaymentGateway::PROVIDERS,
@@ -42,6 +48,8 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def update
+    authorize @gateway
+
     @gateway.api_key = params[:api_key] if params[:api_key].present?
     @gateway.active = params[:active] if params.key?(:active)
     apply_gateway_params(@gateway)
@@ -58,11 +66,15 @@ class PaymentGatewaysController < ApplicationController
   end
 
   def destroy
+    authorize @gateway
+
     @gateway.update!(active: false)
     redirect_to payment_gateways_path, notice: "Gateway desativado."
   end
 
   def test
+    authorize @gateway, :update?
+
     adapter = Gateways::Base.for(@gateway.provider)
     result  = adapter.test_connection
 

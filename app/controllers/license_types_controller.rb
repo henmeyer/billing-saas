@@ -4,11 +4,13 @@ class LicenseTypesController < ApplicationController
 
   def index
     render inertia: "LicenseTypes/Index", props: {
-      license_types: LicenseType.order(:label).map { |lt| serialize(lt) }
+      license_types: policy_scope(LicenseType).order(:label).map { |lt| serialize(lt) }
     }
   end
 
   def new
+    authorize LicenseType
+
     render inertia: "LicenseTypes/Form", props: {
       license_type: {},
       errors:       {}
@@ -16,6 +18,8 @@ class LicenseTypesController < ApplicationController
   end
 
   def create
+    authorize LicenseType
+
     lt = LicenseType.new(license_type_params)
     if lt.save
       redirect_to license_types_path, notice: "Tipo de licença criado."
@@ -28,6 +32,8 @@ class LicenseTypesController < ApplicationController
   end
 
   def edit
+    authorize @license_type
+
     render inertia: "LicenseTypes/Form", props: {
       license_type: serialize(@license_type),
       errors:       {}
@@ -35,6 +41,8 @@ class LicenseTypesController < ApplicationController
   end
 
   def update
+    authorize @license_type
+
     if @license_type.update(license_type_params)
       redirect_to license_types_path, notice: "Tipo de licença atualizado."
     else
@@ -46,6 +54,8 @@ class LicenseTypesController < ApplicationController
   end
 
   def destroy
+    authorize @license_type
+
     @license_type.destroy!
     redirect_to license_types_path, notice: "Tipo de licença removido."
   rescue ActiveRecord::InvalidForeignKey

@@ -103,7 +103,10 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
 
   describe "payment_received — renovação (active)" do
     before do
-      subscription.update!(
+      # Atualiza direto na coluna para não disparar o callback de ativação
+      # do model no setup do teste (já testado em outro contexto) — aqui
+      # queremos isolar o comportamento de renovação (já estava ativa).
+      subscription.update_columns(
         status:               "active",
         current_period_start: 1.month.ago.beginning_of_day,
         current_period_end:   Time.current.beginning_of_day
@@ -170,6 +173,51 @@ RSpec.describe Webhooks::ProcessDlocalGoEventJob do
       }.to change(SubscriptionPeriod, :count).by(1)
 
       expect(subscription.reload.status).to eq("active")
+    end
+  end
+
+  describe "payment_received — conversão de trial (Portal::ConversionsController)" do
+    # order_id com prefixo "charge_" (padrão do DlocalGoAdapter#create_charge
+    # quando nenhum prefix é passado) — não bate com o regex sub_/renew_,
+    # mas a charge já criada com subscription_id deve ser encontrada por FK.
+    let(:order_id) { "charge_#{customer.id}_#{Time.current.to_i}" }
+
+    before do
+      subscription.update_columns(status: "trialing", gateway: nil, trial_ends_at: 3.days.from_now)
+      create(:charge,
+             subscription:      subscription,
+             customer:          customer,
+             gateway:           "dlocal_go",
+             gateway_charge_id: payment_id,
+             amount_cents:      19_700,
+             status:            "pending")
+    end
+
+    it "converte o trial em assinatura ativa" do
+      described_class.perform_now("payment_received", payload)
+
+      subscription.reload
+      expect(subscription.status).to eq("active")
+      expect(subscription.gateway).to eq("dlocal_go")
+      expect(subscription.converted_at).to be_present
+    end
+
+    it "marca a charge pendente como paga (não cria uma nova)" do
+      expect {
+        described_class.perform_now("payment_received", payload)
+      }.not_to change(Charge, :count)
+
+      expect(subscription.charges.find_by(gateway_charge_id: payment_id).status).to eq("paid")
+    end
+
+    it "dispara subscription.activated com converted_from_trial" do
+      described_class.perform_now("payment_received", payload)
+
+      expect(WebhookDispatchJob).to have_received(:perform_later).with(
+        customer,
+        "subscription.activated",
+        hash_including(converted_from_trial: true)
+      )
     end
   end
 

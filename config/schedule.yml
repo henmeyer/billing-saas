@@ -12,3 +12,8 @@ sync_dlocal_go_payments:
   cron: "*/15 * * * *" # A cada 15 minutos
   class: "Subscriptions::SyncDlocalGoPaymentsJob"
   description: "Reconcilia pagamentos pendentes do dLocal Go consultando a API"
+
+check_trials:
+  cron: "0 7 * * *" # Diariamente às 07:00 UTC
+  class: "Subscriptions::CheckTrialsJob"
+  description: "Notifica trials expirando em 3 dias e cancela os expirados"

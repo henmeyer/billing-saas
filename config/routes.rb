@@ -124,6 +124,7 @@ Rails.application.routes.draw do
     get  "/checkout/:charge_id/status", to: "checkouts#status", as: :portal_checkout_status
     resources :invoices, only: [:index]
     resource  :subscription, only: [:update, :destroy]
+    resource  :conversion,   only: [:new, :create]
     delete "/logout", to: "sessions#destroy", as: :portal_logout
   end
 end

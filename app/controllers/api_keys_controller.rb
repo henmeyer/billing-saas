@@ -2,7 +2,7 @@ class ApiKeysController < ApplicationController
   before_action :require_admin!
 
   def index
-    api_keys = current_account.api_keys.order(created_at: :desc).map do |k|
+    api_keys = policy_scope(current_account.api_keys).order(created_at: :desc).map do |k|
       {
         id:           k.id,
         name:         k.name,
@@ -17,6 +17,8 @@ class ApiKeysController < ApplicationController
   end
 
   def create
+    authorize ApiKey
+
     _api_key, token_raw = ApiKey.generate!(
       account:    current_account,
       name:       params[:name],
@@ -27,7 +29,10 @@ class ApiKeysController < ApplicationController
   end
 
   def destroy
-    current_account.api_keys.find(params[:id]).revoke!
+    api_key = current_account.api_keys.find(params[:id])
+    authorize api_key
+
+    api_key.revoke!
     redirect_to api_keys_path, notice: "Chave revogada."
   end
 end

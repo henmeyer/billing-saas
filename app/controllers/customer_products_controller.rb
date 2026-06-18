@@ -2,8 +2,10 @@ class CustomerProductsController < ApplicationController
   before_action :require_admin!
 
   def create
-    customer = Customer.find(params[:customer_id])
-    product  = Product.find(params[:product_id])
+    authorize Customer, :show?
+
+    customer = policy_scope(Customer).find(params[:customer_id])
+    product  = policy_scope(Product).find(params[:product_id])
 
     result = Products::PurchaseService.call(customer: customer, product: product)
 

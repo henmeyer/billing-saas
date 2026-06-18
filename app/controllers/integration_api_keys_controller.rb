@@ -3,7 +3,7 @@ class IntegrationApiKeysController < ApplicationController
   before_action :set_integration
 
   def index
-    keys = @integration.integration_api_keys.order(created_at: :desc)
+    keys = policy_scope(@integration.integration_api_keys).order(created_at: :desc)
     render inertia: "IntegrationApiKeys/Index", props: {
       integration: serialize_integration(@integration),
       api_keys:    keys.map { |k| serialize_key(k) }
@@ -11,6 +11,7 @@ class IntegrationApiKeysController < ApplicationController
   end
 
   def create
+    authorize @integration
     _key, token_raw = IntegrationApiKey.generate!(
       integration: @integration,
       name:        params[:name],
@@ -22,7 +23,10 @@ class IntegrationApiKeysController < ApplicationController
   end
 
   def destroy
-    @integration.integration_api_keys.find(params[:id]).revoke!
+    api_key = @integration.integration_api_keys.find(params[:id])
+    authorize api_key
+
+    api_key.revoke!
     redirect_to integration_path(@integration), notice: "Chave revogada."
   end
 

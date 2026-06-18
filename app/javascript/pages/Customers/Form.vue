@@ -84,6 +84,24 @@
           </div>
 
           <div>
+            <label class="form-label">País</label>
+            <select v-model="form.country" class="form-input">
+              <option value="BR">Brasil</option>
+              <option value="AR">Argentina</option>
+              <option value="CL">Chile</option>
+              <option value="CO">Colômbia</option>
+              <option value="MX">México</option>
+              <option value="PE">Peru</option>
+              <option value="UY">Uruguai</option>
+              <option value="US">Estados Unidos</option>
+              <option value="PT">Portugal</option>
+            </select>
+            <p class="form-hint">
+              Usado para selecionar automaticamente o gateway de pagamento.
+            </p>
+          </div>
+
+          <div>
             <label class="form-label">Moeda preferida</label>
             <select v-model.number="form.currency_id" class="form-input">
               <option value="">Usar padrão da conta</option>
@@ -181,6 +199,7 @@ const form = useForm({
   document: props.customer.document || "",
   phone: props.customer.phone || "",
   status: props.customer.status || "active",
+  country: props.customer.country || "BR",
   currency_id: props.customer.currency_id || "",
   notes: props.customer.notes || "",
 });

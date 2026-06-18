@@ -82,7 +82,7 @@ class WebhookDispatchJob < ApplicationJob
   def build_payload(integration, customer, event, data)
     subscription = customer.subscriptions
                            .where(integration_id: integration.id)
-                           .where(status: %w[active pending past_due])
+                           .where(status: %w[active trialing pending past_due])
                            .order(created_at: :desc)
                            .first
 
