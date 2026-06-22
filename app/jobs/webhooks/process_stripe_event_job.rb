@@ -39,6 +39,8 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
 
     return if subscription.charges.exists?(gateway_charge_id: charge_id)
 
+    charge_type = subscription.charges.exists? ? "renewal" : "new_subscription"
+
     ActiveRecord::Base.transaction do
       subscription.charges.create!(
         customer:          subscription.customer,
@@ -46,6 +48,7 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
         gateway_charge_id: charge_id,
         amount_cents:      amount,
         status:            "paid",
+        charge_type:       charge_type,
         paid_at:           Time.current
       )
 

@@ -60,10 +60,7 @@ class Subscriptions::SyncDlocalGoPaymentsJob < ApplicationJob
     subscription = charge.subscription
     return unless subscription
 
-    order_id = charge.charge_data&.dig("order_id") || subscription.gateway_subscription_id || ""
-    is_subscription_charge = order_id.match?(/^(sub|renew)_/) || charge.charge_data&.dig("renewal")
-
-    renew_subscription(subscription, charge) if is_subscription_charge
+    renew_subscription(subscription, charge) unless charge.charge_type_product?
 
     WebhookDispatchJob.perform_later(
       charge.customer,

@@ -36,6 +36,7 @@ class Portal::CreateChargeService
       status:            "pending",
       redirect_url:      result["redirect_url"] || result[:redirect_url],
       charge_data:       extract_charge_data(result),
+      charge_type:       "product",
       due_date:          3.days.from_now
     )
 

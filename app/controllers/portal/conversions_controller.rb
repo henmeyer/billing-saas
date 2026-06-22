@@ -63,12 +63,13 @@ class Portal::ConversionsController < Portal::BaseController
 
     charge = current_customer.charges.create!(
       subscription:      sub,
-      gateway:            provider,
-      gateway_charge_id:  result["id"] || result[:id],
-      amount_cents:       pricing.amount_cents,
-      status:             "pending",
-      redirect_url:       result["redirect_url"] || result[:redirect_url],
-      charge_data:        result.to_h.stringify_keys.merge("conversion" => true)
+      gateway:           provider,
+      gateway_charge_id: result["id"] || result[:id],
+      amount_cents:      pricing.amount_cents,
+      status:            "pending",
+      redirect_url:      result["redirect_url"] || result[:redirect_url],
+      charge_type:       "new_subscription",
+      charge_data:       result.to_h.stringify_keys.merge("conversion" => true)
     )
 
     # Salva o gateway na subscription para as futuras cobranças (renovação)

@@ -129,6 +129,7 @@ class Subscriptions::CreateService
           gateway_charge_id: gateway_result.checkout_id,
           amount_cents:      pricing.amount_cents,
           status:            "pending",
+          charge_type:       "new_subscription",
           redirect_url:      gateway_result.redirect_url
         )
         redirect_url = gateway_result.redirect_url

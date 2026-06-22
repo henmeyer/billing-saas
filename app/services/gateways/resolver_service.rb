@@ -45,7 +45,7 @@ module Gateways
       case provider
       when "asaas"
         [
-          { id: "PIX",          label: "Pix",                  icon: "pix" },
+          { id: "PIX",          label: "Pix", icon: "pix" },
           { id: "BOLETO",       label: "Boleto",                icon: "boleto" },
           { id: "CREDIT_CARD",  label: "Cartão de crédito",     icon: "card" }
         ]

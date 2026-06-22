@@ -92,6 +92,7 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
           gateway_charge_id: payment_id,
           amount_cents:      amount_cents,
           status:            "paid",
+          charge_type:       was_pending || was_trialing ? "new_subscription" : "renewal",
           paid_at:           Time.current
         )
       end
@@ -144,16 +145,16 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
 
     # subscription.activated é disparado pelo callback do model (Subscription#became_active?)
     # sempre que o status muda para "active" — cobre was_pending e was_trialing sem duplicar aqui.
-    unless was_pending || was_trialing
-      WebhookDispatchJob.perform_later(
-        customer, "payment.received",
-        { amount_cents: amount_cents, gateway: "dlocal_go", charge_id: payment_id }
-      )
-      WebhookDispatchJob.perform_later(
-        customer, "subscription.renewed",
-        { period_end: period_end.iso8601 }
-      )
-    end
+    return if was_pending || was_trialing
+
+    WebhookDispatchJob.perform_later(
+      customer, "payment.received",
+      { amount_cents: amount_cents, gateway: "dlocal_go", charge_id: payment_id }
+    )
+    WebhookDispatchJob.perform_later(
+      customer, "subscription.renewed",
+      { period_end: period_end.iso8601 }
+    )
   end
 
   def process_standalone_payment(payload, payment_id)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_18_174847) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_22_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -91,6 +91,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_18_174847) do
     t.bigint "currency_id"
     t.string "redirect_url"
     t.jsonb "charge_data", default: {}, null: false
+    t.string "charge_type", default: "new_subscription", null: false
     t.index ["currency_id"], name: "index_charges_on_currency_id"
     t.index ["customer_id"], name: "index_charges_on_customer_id"
     t.index ["gateway", "gateway_charge_id"], name: "index_charges_on_gateway_and_gateway_charge_id", unique: true, where: "(gateway_charge_id IS NOT NULL)"
@@ -502,10 +503,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_18_174847) do
     t.jsonb "metadata", default: {}, null: false
     t.integer "base_price_cents", default: 0, null: false
     t.string "currency_code", default: "BRL", null: false
-    t.bigint "integration_id", null: false
+    t.bigint "integration_id"
     t.datetime "converted_at"
     t.index ["currency_id"], name: "index_subscriptions_on_currency_id"
-    t.index ["customer_id", "integration_id"], name: "idx_unique_active_subscription_per_customer_integration", unique: true, where: "((status)::text = ANY ((ARRAY['active'::character varying, 'trialing'::character varying, 'past_due'::character varying])::text[]))"
+    t.index ["customer_id", "integration_id"], name: "idx_unique_active_subscription_per_customer_integration", unique: true, where: "((status)::text = ANY (ARRAY[('active'::character varying)::text, ('trialing'::character varying)::text, ('past_due'::character varying)::text]))"
     t.index ["customer_id"], name: "index_subscriptions_on_customer_id"
     t.index ["gateway", "gateway_subscription_id"], name: "index_subscriptions_on_gateway_and_gateway_subscription_id", unique: true, where: "(gateway_subscription_id IS NOT NULL)"
     t.index ["integration_id"], name: "index_subscriptions_on_integration_id"

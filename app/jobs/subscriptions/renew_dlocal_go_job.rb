@@ -58,6 +58,7 @@ class Subscriptions::RenewDlocalGoJob < ApplicationJob
       amount_cents:      pricing.amount_cents,
       status:            "pending",
       redirect_url:      result["redirect_url"],
+      charge_type:       "renewal",
       charge_data:       {
         "order_id" => result["order_id"],
         "renewal"  => true

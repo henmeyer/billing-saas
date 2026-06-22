@@ -17,6 +17,7 @@ class Webhooks::ProcessRenewalJob < ApplicationJob
         gateway_charge_id: extract_charge_id(payload),
         amount_cents:      extract_amount(payload),
         status:            "paid",
+        charge_type:       "renewal",
         paid_at:           Time.current
       )
 

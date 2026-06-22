@@ -41,13 +41,13 @@ class ProfileController < ApplicationController
     end
 
     if params[:password] != params[:password_confirmation]
-      return redirect_to profile_path, alert: "Confirmação de senha não confere.",
-                          status: :see_other
+      return redirect_to profile_path, alert:  "Confirmação de senha não confere.",
+                                       status: :see_other
     end
 
     if params[:password].length < 8
-      return redirect_to profile_path, alert: "Senha deve ter no mínimo 8 caracteres.",
-                          status: :see_other
+      return redirect_to profile_path, alert:  "Senha deve ter no mínimo 8 caracteres.",
+                                       status: :see_other
     end
 
     current_user.update!(
