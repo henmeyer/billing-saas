@@ -10,9 +10,11 @@ class Subscription < ApplicationRecord
 
   STATUSES = %w[active past_due cancelled trialing pending].freeze
   GATEWAYS = %w[stripe asaas dlocal_go].freeze
+  MANAGED_BY = %w[gateway billing].freeze
 
-  validates :status,  inclusion: { in: STATUSES }
-  validates :gateway, inclusion: { in: GATEWAYS }, allow_nil: true
+  validates :status,     inclusion: { in: STATUSES }
+  validates :gateway,    inclusion: { in: GATEWAYS }, allow_nil: true
+  validates :managed_by, inclusion: { in: MANAGED_BY }
   validates :integration_id, presence: true
   validate :unique_active_per_integration, on: :create
 
@@ -20,6 +22,8 @@ class Subscription < ApplicationRecord
   scope :trialing, -> { where(status: "trialing") }
   scope :trial_expiring_in, ->(days) { trialing.where(trial_ends_at: ..days.from_now) }
   scope :trial_expired, -> { trialing.where("trial_ends_at < ?", Time.current) }
+  scope :gateway_managed, -> { where(managed_by: "gateway") }
+  scope :billing_managed, -> { where(managed_by: "billing") }
 
   attr_readonly :integration_id
 
@@ -56,6 +60,18 @@ class Subscription < ApplicationRecord
 
   def trialing?
     status == "trialing"
+  end
+
+  def pending?
+    status == "pending"
+  end
+
+  def gateway_managed?
+    managed_by == "gateway"
+  end
+
+  def billing_managed?
+    managed_by == "billing"
   end
 
   def trial_expired?

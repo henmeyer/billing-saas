@@ -6,13 +6,11 @@ RSpec.describe "Webhooks::Asaas", type: :request do
   before { stub_const("ENV", ENV.to_hash.merge("ASAAS_WEBHOOK_SECRET" => secret)) }
 
   def post_with_valid_sig(payload)
-    body = payload.to_json
-    sig  = "sha256=#{OpenSSL::HMAC.hexdigest("SHA256", secret, body)}"
     post "/webhooks/asaas",
-         params:  body,
+         params:  payload.to_json,
          headers: {
            "Content-Type"       => "application/json",
-           "asaas-access-token" => sig
+           "asaas-access-token" => secret
          }
   end
 

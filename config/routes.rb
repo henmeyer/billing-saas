@@ -31,7 +31,11 @@ Rails.application.routes.draw do
   resources :feature_types
   resources :subscriptions, only: [:index]
   resources :customers do
-    resources :subscriptions, only: %i[new create edit update destroy]
+    resources :subscriptions, only: %i[new create edit update destroy] do
+      member do
+        post :migrate_to_billing
+      end
+    end
     resources :customer_products, only: [:create]
   end
   resources :integrations do

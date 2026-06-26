@@ -120,6 +120,79 @@ RSpec.describe "SubscriptionsController", type: :request do
     end
   end
 
+  describe "POST /customers/:customer_id/subscriptions/:id/migrate_to_billing" do
+    let(:customer)    { create(:customer, account: account, gateway_data: { "asaas" => { "customer_id" => "cus_test" } }) }
+    let(:integration) { create(:integration, account: account, active: true) }
+    let(:plan)        { create(:plan, account: account) }
+
+    before do
+      create(:payment_gateway, account: account)
+      stub_request(:delete, /asaas\.com/)
+        .to_return(status: 200, body: { "deleted" => true }.to_json, headers: { "Content-Type" => "application/json" })
+    end
+
+    context "when subscription is Asaas gateway-managed" do
+      let(:subscription) do
+        create(:subscription, :asaas, :gateway_managed,
+               customer:                customer,
+               plan:                    plan,
+               integration:             integration,
+               gateway_subscription_id: "sub_asaas_admin_123")
+      end
+
+      it "migrates subscription to billing-managed" do
+        post migrate_to_billing_customer_subscription_path(customer, subscription)
+
+        subscription.reload
+        expect(subscription.managed_by).to eq("billing")
+        expect(subscription.metadata["migrated_from_gateway"]).to be true
+        expect(subscription.metadata["original_asaas_sub_id"]).to eq("sub_asaas_admin_123")
+        expect(response).to redirect_to(customer_path(customer))
+        expect(flash[:notice]).to include("migrada")
+      end
+
+      it "cancels the native Asaas subscription" do
+        post migrate_to_billing_customer_subscription_path(customer, subscription)
+
+        expect(a_request(:delete, /subscriptions\/sub_asaas_admin_123/)).to have_been_made.once
+      end
+    end
+
+    context "when subscription is not Asaas gateway-managed" do
+      let(:subscription) do
+        create(:subscription, :asaas, :billing_managed,
+               customer:    customer,
+               plan:        plan,
+               integration: integration)
+      end
+
+      it "redirects with alert" do
+        post migrate_to_billing_customer_subscription_path(customer, subscription)
+
+        expect(response).to redirect_to(customer_path(customer))
+        expect(flash[:alert]).to include("não é gerenciada pelo Asaas")
+      end
+    end
+
+    context "when subscription is Stripe" do
+      let(:subscription) do
+        create(:subscription,
+               customer:    customer,
+               plan:        plan,
+               integration: integration,
+               gateway:     "stripe",
+               managed_by:  "gateway")
+      end
+
+      it "redirects with alert" do
+        post migrate_to_billing_customer_subscription_path(customer, subscription)
+
+        expect(response).to redirect_to(customer_path(customer))
+        expect(flash[:alert]).to include("não é gerenciada pelo Asaas")
+      end
+    end
+  end
+
   describe "GET /subscriptions (index)" do
     it "includes integration data in subscription row serialization" do
       customer    = create(:customer, account: account)

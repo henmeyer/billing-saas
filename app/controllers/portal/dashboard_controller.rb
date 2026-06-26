@@ -24,6 +24,8 @@ class Portal::DashboardController < Portal::BaseController
       plan_name:            s.plan.name,
       plan_description:     s.plan.description,
       status:               s.status,
+      managed_by:           s.managed_by,
+      is_gateway_managed:   s.gateway_managed?,
       base_price_cents:     s.base_price_cents,
       period_amount_cents:  period&.amount_cents || s.base_price_cents,
       period_extras_cents:  period&.extras_amount_cents || 0,

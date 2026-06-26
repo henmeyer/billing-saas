@@ -1,6 +1,6 @@
 class SubscriptionsController < ApplicationController
   before_action :set_customer, except: [:index]
-  before_action :set_subscription, only: [:edit, :update, :destroy]
+  before_action :set_subscription, only: [:edit, :update, :destroy, :migrate_to_billing]
 
   def index
     subscriptions = policy_scope(Subscription)
@@ -116,6 +116,37 @@ class SubscriptionsController < ApplicationController
     redirect_to customer_path(@customer), alert: e.message
   end
 
+  def migrate_to_billing
+    authorize @subscription, :update?
+
+    unless @subscription.gateway_managed? && @subscription.gateway == "asaas"
+      redirect_to customer_path(@customer),
+                  alert: "Esta assinatura não é gerenciada pelo Asaas.",
+                  status: :see_other
+      return
+    end
+
+    adapter = Gateways::AsaasAdapter.new
+    adapter.cancel_subscription(@subscription.gateway_subscription_id)
+
+    @subscription.update!(
+      managed_by: "billing",
+      metadata:   @subscription.metadata.merge(
+        "migrated_from_gateway" => true,
+        "migrated_at"           => Time.current.iso8601,
+        "original_asaas_sub_id" => @subscription.gateway_subscription_id
+      )
+    )
+
+    redirect_to customer_path(@customer),
+                notice: "Assinatura migrada para controle do billing.",
+                status: :see_other
+  rescue StandardError => e
+    redirect_to customer_path(@customer),
+                alert: "Erro ao migrar: #{e.message}",
+                status: :see_other
+  end
+
   private
 
   def set_customer
@@ -140,6 +171,8 @@ class SubscriptionsController < ApplicationController
       gateway:                 sub.gateway,
       gateway_subscription_id: sub.gateway_subscription_id,
       status:                  sub.status,
+      managed_by:              sub.managed_by,
+      is_gateway_managed:      sub.gateway_managed?,
       currency_id:             sub.currency_id,
       currency_code:           sub.currency&.code,
       base_price_cents:        sub.base_price_cents,
@@ -172,6 +205,8 @@ class SubscriptionsController < ApplicationController
       id:                 sub.id,
       status:             sub.status,
       gateway:            sub.gateway,
+      managed_by:         sub.managed_by,
+      is_gateway_managed: sub.gateway_managed?,
       plan_name:          sub.plan&.name,
       integration_id:     sub.integration_id,
       integration_name:   sub.integration&.name,

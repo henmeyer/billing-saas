@@ -44,6 +44,46 @@ RSpec.describe Gateways::ResolverService do
     end
   end
 
+  context "com Asaas e Stripe ativos (sem dLocal Go)" do
+    before do
+      create(:payment_gateway, account: account, provider: "asaas")
+      create(:payment_gateway, account: account, provider: "stripe")
+    end
+
+    it "resolve Asaas para LATAM como fallback" do
+      result = described_class.call(account: account, country: "AR")
+      expect(result).to eq("asaas")
+    end
+
+    it "resolve Stripe para países fora de LATAM" do
+      result = described_class.call(account: account, country: "DE")
+      expect(result).to eq("stripe")
+    end
+  end
+
+  context "com todos os gateways ativos" do
+    before do
+      create(:payment_gateway, account: account, provider: "asaas")
+      create(:payment_gateway, account: account, provider: "dlocal_go")
+      create(:payment_gateway, account: account, provider: "stripe")
+    end
+
+    it "resolve Asaas para Brasil" do
+      result = described_class.call(account: account, country: "BR")
+      expect(result).to eq("asaas")
+    end
+
+    it "resolve dLocal Go para LATAM (não BR)" do
+      result = described_class.call(account: account, country: "MX")
+      expect(result).to eq("dlocal_go")
+    end
+
+    it "resolve Stripe para países fora de LATAM" do
+      result = described_class.call(account: account, country: "US")
+      expect(result).to eq("stripe")
+    end
+  end
+
   context "sem gateways ativos" do
     it "retorna nil" do
       result = described_class.call(account: account, country: "BR")

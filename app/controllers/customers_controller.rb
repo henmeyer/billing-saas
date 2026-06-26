@@ -192,6 +192,8 @@ class CustomersController < ApplicationController
       id:                     sub.id,
       status:                 sub.status,
       gateway:                sub.gateway,
+      managed_by:             sub.managed_by,
+      is_gateway_managed:     sub.gateway_managed?,
       integration_name:       sub.integration&.name,
       plan_name:              sub.plan.name,
       base_price_cents:       sub.base_price_cents,

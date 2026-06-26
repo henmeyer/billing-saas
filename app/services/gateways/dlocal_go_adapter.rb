@@ -50,8 +50,6 @@ module Gateways
                                           external_id:      order_id
                                         })
 
-      Rails.logger.info("\n\n\n#{notification_url}\n\n\n")
-
       OpenStruct.new(
         id:           order_id,
         checkout_id:  response.id,

@@ -1,6 +1,6 @@
 class Webhooks::AsaasController < Webhooks::BaseController
   def receive
-    return unless verify_hmac_signature(
+    return unless verify_static_token(
       ENV.fetch("ASAAS_WEBHOOK_SECRET"),
       header_name: "asaas-access-token"
     )

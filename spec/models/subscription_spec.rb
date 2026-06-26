@@ -19,6 +19,62 @@ RSpec.describe Subscription, type: :model do
     it { should validate_presence_of(:integration_id) }
     it { should validate_inclusion_of(:status).in_array(Subscription::STATUSES) }
     it { should validate_inclusion_of(:gateway).in_array(Subscription::GATEWAYS) }
+    it { should validate_inclusion_of(:managed_by).in_array(Subscription::MANAGED_BY) }
+  end
+
+  describe "managed_by scopes and helpers" do
+    let(:customer) { create(:customer, account: account) }
+    let(:plan) { create(:plan, account: account) }
+
+    it "scope :gateway_managed returns only gateway-managed subscriptions" do
+      integration1 = create(:integration, account: account)
+      integration2 = create(:integration, account: account)
+
+      gw_sub = create(:subscription, customer: customer, plan: plan, integration: integration1,
+                                     status: "active", managed_by: "gateway")
+      bl_sub = create(:subscription, customer: customer, plan: plan, integration: integration2,
+                                     status: "active", managed_by: "billing")
+
+      expect(Subscription.gateway_managed).to include(gw_sub)
+      expect(Subscription.gateway_managed).not_to include(bl_sub)
+    end
+
+    it "scope :billing_managed returns only billing-managed subscriptions" do
+      integration1 = create(:integration, account: account)
+      integration2 = create(:integration, account: account)
+
+      gw_sub = create(:subscription, customer: customer, plan: plan, integration: integration1,
+                                     status: "active", managed_by: "gateway")
+      bl_sub = create(:subscription, customer: customer, plan: plan, integration: integration2,
+                                     status: "active", managed_by: "billing")
+
+      expect(Subscription.billing_managed).to include(bl_sub)
+      expect(Subscription.billing_managed).not_to include(gw_sub)
+    end
+
+    it "#gateway_managed? returns true for gateway-managed subscriptions" do
+      sub = build(:subscription, managed_by: "gateway")
+      expect(sub.gateway_managed?).to be true
+      expect(sub.billing_managed?).to be false
+    end
+
+    it "#billing_managed? returns true for billing-managed subscriptions" do
+      sub = build(:subscription, managed_by: "billing")
+      expect(sub.billing_managed?).to be true
+      expect(sub.gateway_managed?).to be false
+    end
+
+    it "defaults to gateway when not specified" do
+      sub = Subscription.new
+      expect(sub.managed_by).to eq("gateway")
+      expect(sub.gateway_managed?).to be true
+    end
+
+    it "rejects invalid managed_by values" do
+      sub = build(:subscription, managed_by: "invalid")
+      expect(sub).not_to be_valid
+      expect(sub.errors[:managed_by]).to be_present
+    end
   end
 
   describe "unique_active_per_integration" do

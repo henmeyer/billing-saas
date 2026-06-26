@@ -105,17 +105,19 @@ RSpec.describe Subscriptions::CreateService do
       expect(spl.quantity).to eq(20)
     end
 
-    it "dispara webhook subscription.activated" do
-      expect(WebhookDispatchJob).to receive(:perform_later).with(
+    it "não dispara webhook subscription.activated (espera confirmação do pagamento)" do
+      expect(WebhookDispatchJob).not_to receive(:perform_later).with(
         customer, "subscription.activated", anything
       )
-      described_class.call(
+      result = described_class.call(
         customer:       customer,
         plan_id:        plan.id,
         gateway:        "asaas",
         integration_id: integration.id,
         currency_id:    currency.id
       )
+      expect(result.subscription.status).to eq("pending")
+      expect(result.subscription.managed_by).to eq("billing")
     end
   end
 
@@ -211,6 +213,69 @@ RSpec.describe Subscriptions::CreateService do
       )
       expect(result.success?).to be false
       expect(result.errors).to include("Já existe assinatura ativa para este cliente nesta integração")
+    end
+  end
+
+  context "Asaas billing-managed" do
+    before do
+      stub_request(:post, /asaas\.com/)
+        .to_return(
+          status:  200,
+          body:    { id: "pay_first_123", status: "PENDING", invoiceUrl: "https://asaas.com/i/123", billingType: "PIX" }.to_json,
+          headers: { "Content-Type" => "application/json" }
+        )
+      stub_request(:get, /asaas\.com/)
+        .to_return(
+          status:  200,
+          body:    { encodedImage: "base64qr", payload: "pix-copy-paste" }.to_json,
+          headers: { "Content-Type" => "application/json" }
+        )
+    end
+
+    it "cria subscription com managed_by billing e status pending" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        gateway:        "asaas",
+        integration_id: integration.id,
+        currency_id:    currency.id
+      )
+      expect(result.success?).to be true
+
+      sub = result.subscription
+      expect(sub.managed_by).to eq("billing")
+      expect(sub.status).to eq("pending")
+      expect(sub.gateway).to eq("asaas")
+    end
+
+    it "cria charge pendente com dados do Asaas" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        gateway:        "asaas",
+        integration_id: integration.id,
+        currency_id:    currency.id
+      )
+      sub = result.subscription
+
+      charge = sub.charges.first
+      expect(charge).to be_present
+      expect(charge.status).to eq("pending")
+      expect(charge.gateway).to eq("asaas")
+      expect(charge.charge_type).to eq("new_subscription")
+      expect(charge.gateway_charge_id).to be_present
+    end
+
+    it "gateway_subscription_id segue formato sub_ID_TIMESTAMP" do
+      result = described_class.call(
+        customer:       customer,
+        plan_id:        plan.id,
+        gateway:        "asaas",
+        integration_id: integration.id,
+        currency_id:    currency.id
+      )
+      sub = result.subscription
+      expect(sub.gateway_subscription_id).to match(/\Asub_\d+_\d+\z/)
     end
   end
 

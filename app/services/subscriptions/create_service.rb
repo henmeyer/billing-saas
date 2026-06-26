@@ -92,8 +92,8 @@ class Subscriptions::CreateService
       base_price     = @plan.calculate_price(pricing.quantity, @currency)
       extras_total   = [pricing.amount_cents - base_price, 0].max
 
-      # dLocal Go: pending até o primeiro pagamento ser confirmado via webhook
-      initial_status = @gateway == "dlocal_go" ? "pending" : "active"
+      # dLocal Go e Asaas billing-managed: pending até primeiro pagamento confirmado via webhook
+      initial_status = %w[dlocal_go asaas].include?(@gateway) ? "pending" : "active"
 
       subscription = @customer.subscriptions.create!(
         plan:                    @plan,
@@ -102,6 +102,7 @@ class Subscriptions::CreateService
         currency:                @currency,
         gateway_subscription_id: gw_sub_id,
         status:                  initial_status,
+        managed_by:              @gateway == "asaas" ? "billing" : "gateway",
         started_at:              period_start,
         current_period_start:    period_start,
         current_period_end:      period_end,
@@ -135,9 +136,28 @@ class Subscriptions::CreateService
         redirect_url = gateway_result.redirect_url
       end
 
-      # Webhook de ativação será disparado pelo ProcessDlocalGoEventJob
-      # após confirmação do pagamento (para dLocal Go)
-      unless @gateway == "dlocal_go"
+      # Asaas billing-managed: salva charge pendente (webhook vai ativar)
+      if @gateway == "asaas" && gateway_result.respond_to?(:charge_id) && gateway_result.charge_id
+        subscription.charges.create!(
+          customer:          @customer,
+          gateway:           "asaas",
+          gateway_charge_id: gateway_result.charge_id,
+          amount_cents:      pricing.amount_cents,
+          status:            "pending",
+          charge_type:       "new_subscription",
+          redirect_url:      gateway_result.invoice_url,
+          charge_data:       {
+            "billing_type" => "UNDEFINED",
+            "invoice_url"  => gateway_result.invoice_url,
+            "pix"          => gateway_result.pix,
+            "boleto"       => gateway_result.boleto
+          }
+        )
+      end
+
+      # Webhook de ativação será disparado pelo webhook job
+      # após confirmação do pagamento (para dLocal Go e Asaas billing-managed)
+      unless %w[dlocal_go asaas].include?(@gateway)
         WebhookDispatchJob.perform_later(
           @customer, "subscription.activated",
           { plan: { id: @plan.id, name: @plan.name } }
@@ -210,8 +230,6 @@ class Subscriptions::CreateService
     adapter = Gateways::Base.for(@gateway)
     adapter.create_customer(@customer) unless @customer.gateway_data[@gateway].present?
     adapter.create_subscription(@customer, @plan, amount_cents: amount_cents)
-  rescue Gateways::Base::GatewayError
-    OpenStruct.new(id: "manual_#{SecureRandom.hex(8)}")
   end
 
   def extract_sub_id(gateway_result)

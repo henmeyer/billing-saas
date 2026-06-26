@@ -3,9 +3,9 @@ module Gateways
     # Resolve o melhor gateway ativo para o cliente, baseado no país.
     #
     # Prioridade:
-    #   País BR        → Asaas > dLocal Go > Stripe
-    #   País LATAM (≠BR) → dLocal Go > Stripe
-    #   Outros países  → Stripe > dLocal Go
+    #   País BR          → Asaas > dLocal Go > Stripe
+    #   País LATAM (≠BR) → dLocal Go > Asaas > Stripe
+    #   Outros países    → Stripe > dLocal Go
     #
     # Retorna o provider string ("asaas", "dlocal_go", "stripe")
     # ou nil se nenhum gateway ativo disponível.
@@ -34,7 +34,7 @@ module Gateways
       if brazil?
         %w[asaas dlocal_go stripe]
       elsif latam?
-        %w[dlocal_go stripe]
+        %w[dlocal_go asaas stripe]
       else
         %w[stripe dlocal_go]
       end

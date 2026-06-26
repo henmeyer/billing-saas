@@ -26,5 +26,13 @@ FactoryBot.define do
       status       { "cancelled" }
       cancelled_at { Time.current }
     end
+
+    trait :billing_managed do
+      managed_by { "billing" }
+    end
+
+    trait :gateway_managed do
+      managed_by { "gateway" }
+    end
   end
 end

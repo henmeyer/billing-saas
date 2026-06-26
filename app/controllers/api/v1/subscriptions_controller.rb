@@ -29,6 +29,8 @@ class Api::V1::SubscriptionsController < Api::V1::BaseController
       },
       status:             subscription.status,
       gateway:            subscription.gateway,
+      managed_by:         subscription.managed_by,
+      is_gateway_managed: subscription.gateway_managed?,
       current_period_end: subscription.current_period_end&.iso8601,
       started_at:         subscription.started_at&.iso8601
     }

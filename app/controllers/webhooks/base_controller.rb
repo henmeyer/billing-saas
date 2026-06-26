@@ -14,4 +14,14 @@ class Webhooks::BaseController < ActionController::API
     end
     true
   end
+
+  def verify_static_token(secret, header_name:)
+    token = request.headers[header_name]
+
+    unless ActiveSupport::SecurityUtils.secure_compare(secret.to_s, token.to_s)
+      render json: { error: "Token inválido" }, status: :unauthorized
+      return false
+    end
+    true
+  end
 end
