@@ -700,7 +700,7 @@ import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
 const props = defineProps({
   integration: Object,
-  apiKeys: { type: Array, default: () => [] },
+  api_keys: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -731,7 +731,7 @@ const portalOptions = [
 
 // API Keys
 const showNewKeyForm = ref(false);
-const localApiKeys = ref(props.apiKeys);
+const localApiKeys = ref(props.api_keys);
 const appUrl = window.location.origin;
 
 const newToken = ref(page.props.flash?.token || null);

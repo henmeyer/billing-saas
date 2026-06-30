@@ -213,6 +213,46 @@ RSpec.describe Subscriptions::RenewAsaasJob, type: :job do
         )
       end
     end
+    context "when subscription has product_packs in metadata" do
+      before do
+        subscription.update!(metadata: { "product_packs" => { "42" => 2 } })
+        allow(adapter).to receive(:create_charge).and_return({
+          "id" => "pay_pack_1", "status" => "PENDING", "billingType" => "PIX", "invoiceUrl" => nil
+        })
+      end
+
+      it "passa product_packs ao Pricing::CalculateService" do
+        described_class.perform_now
+
+        expect(Pricing::CalculateService).to have_received(:call)
+          .with(hash_including(product_packs: { "42" => 2 }))
+      end
+    end
+    context "when subscription has a scheduled plan change (downgrade)" do
+      let(:cheaper_plan) do
+        p = create(:plan, account: account, name: "Basic")
+        create(:plan_price, plan: p, currency: currency, amount_cents: 4_900)
+        p
+      end
+
+      before do
+        subscription.update!(
+          metadata: { "scheduled_plan_change" => { "plan_id" => cheaper_plan.id } }
+        )
+        allow(adapter).to receive(:update_subscription)
+        allow(adapter).to receive(:create_charge).and_return({
+          "id" => "pay_dg_1", "status" => "PENDING", "billingType" => "PIX", "invoiceUrl" => nil
+        })
+      end
+
+      it "aplica o downgrade e limpa o agendamento antes de renovar" do
+        described_class.perform_now
+
+        subscription.reload
+        expect(subscription.plan_id).to eq(cheaper_plan.id)
+        expect(subscription.metadata["scheduled_plan_change"]).to be_nil
+      end
+    end
   end
 
   describe "queue" do

@@ -15,6 +15,8 @@ class Portal::PlansController < Portal::BaseController
       current_plan_id: current_subscription&.plan_id,
       plans:           available_plans.map { |p| serialize_plan(p) },
       currency_code:   current_subscription&.currency_code || "BRL",
+      prorate_info:    prorate_info,
+      scheduled:       scheduled_change_info,
       portal_config:   portal_config,
       branding:        branding
     }
@@ -24,20 +26,66 @@ class Portal::PlansController < Portal::BaseController
     set_tenant!
     new_plan = Plan.find(params[:id])
 
-    begin
-      current_subscription.change_plan!(
-        new_plan,
-        changed_by: current_customer
-      )
+    result = Subscriptions::PlanChangeService.call(
+      subscription: current_subscription,
+      new_plan:     new_plan,
+      changed_by:   current_customer
+    )
+
+    case result.type
+    when :upgrade, :upgrade_scheduled
+      handle_upgrade(result, new_plan)
+    else # :downgrade
       redirect_to portal_dashboard_path(token: portal_token),
-                  notice: "Plano alterado para #{new_plan.name}."
-    rescue StandardError => e
-      redirect_to portal_plans_path(token: portal_token),
-                  alert: "Erro ao trocar de plano: #{e.message}"
+                  notice: "Downgrade para #{new_plan.name} agendado para o fim do período atual."
     end
+  rescue StandardError => e
+    redirect_to portal_plans_path(token: portal_token),
+                alert: "Erro ao trocar de plano: #{e.message}"
   end
 
   private
+
+  # Dados para o portal estimar a diferença pró-rata de um upgrade.
+  def prorate_info
+    sub = current_subscription
+    return { days_remaining: 0, days_total: 0, current_base_cents: 0 } unless sub
+
+    period_start = sub.current_period_start&.to_date
+    period_end   = sub.current_period_end&.to_date
+    total        = (period_start && period_end) ? (period_end - period_start).to_i : 0
+    remaining    = period_end ? (period_end - Date.current).to_i.clamp(0, [total, 0].max) : 0
+
+    {
+      days_remaining:     remaining,
+      days_total:         total,
+      current_base_cents: sub.base_price_cents.to_i
+    }
+  end
+
+  def scheduled_change_info
+    scheduled = current_subscription&.metadata&.dig("scheduled_plan_change")
+    return nil if scheduled.blank?
+
+    plan = Plan.find_by(id: scheduled["plan_id"])
+    {
+      plan_id:      scheduled["plan_id"],
+      plan_name:    plan&.name,
+      effective_at: scheduled["effective_at"]
+    }
+  end
+
+  def handle_upgrade(result, new_plan)
+    if result.charge.nil?
+      # Upgrade sem cobrança imediata (sem dias restantes): agendado.
+      redirect_to portal_dashboard_path(token: portal_token),
+                  notice: "Upgrade para #{new_plan.name} agendado para o próximo ciclo."
+    elsif result.charge.redirect_url.present?
+      redirect_to result.charge.redirect_url, allow_other_host: true
+    else
+      redirect_to portal_checkout_path(token: portal_token, charge_id: result.charge.id)
+    end
+  end
 
   def require_plan_change!
     return if portal_config["allow_plan_change"]

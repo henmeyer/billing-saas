@@ -15,6 +15,7 @@ class ProductsController < ApplicationController
       product:      {},
       credit_types: serialize_credit_types,
       currencies:   serialize_currencies,
+      integrations: serialize_integrations,
       errors:       {}
     }
   end
@@ -25,12 +26,14 @@ class ProductsController < ApplicationController
     product = Product.new(product_params)
     if product.save
       sync_prices(product)
+      sync_integrations(product)
       redirect_to products_path, notice: "Produto criado."
     else
       render inertia: "Products/Form", props: {
         product:      product_params,
         credit_types: serialize_credit_types,
         currencies:   serialize_currencies,
+        integrations: serialize_integrations,
         errors:       product.errors.as_json
       }
     end
@@ -43,6 +46,7 @@ class ProductsController < ApplicationController
       product:      serialize(@product),
       credit_types: serialize_credit_types,
       currencies:   serialize_currencies,
+      integrations: serialize_integrations,
       errors:       {}
     }
   end
@@ -52,12 +56,14 @@ class ProductsController < ApplicationController
 
     if @product.update(product_params)
       sync_prices(@product)
+      sync_integrations(@product)
       redirect_to products_path, notice: "Produto atualizado."
     else
       render inertia: "Products/Form", props: {
         product:      serialize(@product),
         credit_types: serialize_credit_types,
         currencies:   serialize_currencies,
+        integrations: serialize_integrations,
         errors:       @product.errors.as_json
       }
     end
@@ -93,6 +99,7 @@ class ProductsController < ApplicationController
       credit_type:     ct ? { id: ct.id, label: ct.label, unit: ct.unit } : nil,
       credit_quantity: prod.credit_quantity,
       active:          prod.active,
+      integration_ids: prod.product_integrations.pluck(:integration_id),
       prices:          serialize_product_prices(prod)
     }
   end
@@ -113,6 +120,10 @@ class ProductsController < ApplicationController
     CreditType.all.map { |ct| { id: ct.id, key: ct.key, label: ct.label, unit: ct.unit } }
   end
 
+  def serialize_integrations
+    Integration.active.map { |i| { id: i.id, name: i.name, url: i.url } }
+  end
+
   def serialize_currencies
     Currency.active.map { |cur| { id: cur.id, code: cur.code, name: cur.name, symbol: cur.symbol } }
   end
@@ -125,6 +136,13 @@ class ProductsController < ApplicationController
 
       price = product.product_prices.find_or_initialize_by(currency_id:)
       price.update!(amount_cents: amount_cents.to_i)
+    end
+  end
+
+  def sync_integrations(product)
+    product.product_integrations.destroy_all
+    Array(params[:integration_ids]).each do |integration_id|
+      product.product_integrations.create!(integration_id:)
     end
   end
 end

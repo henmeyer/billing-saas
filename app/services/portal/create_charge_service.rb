@@ -1,20 +1,21 @@
 class Portal::CreateChargeService
-  def self.call(customer:, product:, integration:, gateway:)
-    new(customer:, product:, integration:, gateway:).call
+  def self.call(customer:, product:, integration:, gateway:, quantity: 1)
+    new(customer:, product:, integration:, gateway:, quantity:).call
   end
 
-  def initialize(customer:, product:, integration:, gateway:)
+  def initialize(customer:, product:, integration:, gateway:, quantity: 1)
     @customer    = customer
     @product     = product
     @integration = integration
     @gateway     = gateway
+    @quantity    = [quantity.to_i, 1].max
   end
 
   def call
     adapter = Gateways::Base.for(@gateway)
 
     currency = @customer.effective_currency
-    price_cents = @product.price_for(currency)
+    price_cents = @product.calculate_price(@quantity, currency)
 
     result = adapter.create_charge(
       @customer,
@@ -40,16 +41,26 @@ class Portal::CreateChargeService
       due_date:          3.days.from_now
     )
 
-    charge.charge_data["pending_credit"] = {
-      "credit_type_id" => @product.credit_type_id,
-      "quantity"       => @product.credit_quantity
-    }
+    charge.charge_data["product_purchase"] = product_purchase_payload
     charge.save!
 
     charge
   end
 
   private
+
+  # Dados consumidos por Charges::ApplyPaidChargeService quando o pagamento
+  # for confirmado. total_credits = crédito por unidade × quantidade comprada.
+  def product_purchase_payload
+    {
+      "product_id"     => @product.id,
+      "product_type"   => @product.product_type,
+      "credit_type_id" => @product.credit_type_id,
+      "credit_per_unit" => @product.credit_quantity.to_i,
+      "quantity"       => @quantity,
+      "total_credits"  => @product.credit_quantity.to_i * @quantity
+    }
+  end
 
   def extract_charge_data(result)
     {

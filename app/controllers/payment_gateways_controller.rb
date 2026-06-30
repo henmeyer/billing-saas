@@ -1,4 +1,11 @@
 class PaymentGatewaysController < ApplicationController
+  # #test é uma verificação de conectividade read-only (apenas chama
+  # adapter.test_connection, sem alterar estado) e já é protegida por
+  # autenticação + autorização Pundit. A verificação de CSRF é dispensada
+  # apenas nesta action porque a chamada vem de um fetch AJAX e o token do
+  # meta tag pode não estar disponível no contexto Inertia.
+  skip_before_action :verify_authenticity_token, only: :test
+
   before_action :require_admin!
   before_action :set_gateway, only: %i[edit update destroy test]
 

@@ -20,6 +20,17 @@
     </div>
 
     <template v-else>
+      <!-- Banner de mudança de plano agendada -->
+      <div
+        v-if="scheduledPlanChange"
+        class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+      >
+        Mudança para
+        <strong>{{ scheduledPlanChange.plan_name }}</strong> agendada para
+        {{ fmtDate(scheduledPlanChange.effective_at) }}. O plano atual permanece
+        até lá.
+      </div>
+
       <!-- Banner de trial -->
       <div v-if="subscription.is_trial" class="card overflow-hidden mb-6">
         <div
@@ -76,7 +87,9 @@
                   : 'bg-[var(--portal-primary)] text-white hover:opacity-90',
               ]"
             >
-              {{ subscription.trial_expired ? "Ativar agora" : "Começar a pagar" }}
+              {{
+                subscription.trial_expired ? "Ativar agora" : "Começar a pagar"
+              }}
             </Link>
           </div>
         </div>
@@ -103,7 +116,10 @@
               </div>
 
               <!-- Preço -->
-              <div v-if="subscription.is_trial" class="bg-gray-50 rounded-lg px-4 py-3">
+              <div
+                v-if="subscription.is_trial"
+                class="bg-gray-50 rounded-lg px-4 py-3"
+              >
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-500">Valor após o teste</span>
                   <span class="text-gray-400 line-through">
@@ -136,7 +152,10 @@
                 </div>
               </div>
 
-              <p v-if="!subscription.is_trial" class="text-xs text-gray-400 mt-3">
+              <p
+                v-if="!subscription.is_trial"
+                class="text-xs text-gray-400 mt-3"
+              >
                 Próxima renovação: {{ subscription.current_period_end }}
               </p>
 
@@ -302,12 +321,14 @@ const props = defineProps({
   credits: Array,
   licenses: Array,
   features: Array,
+  scheduled_plan_change: { type: Object, default: null },
   portal_config: Object,
   branding: Object,
 });
 
 const page = usePage();
 const portalConfig = props.portal_config;
+const scheduledPlanChange = props.scheduled_plan_change;
 const showCancelConfirm = ref(false);
 
 const p = (path) => `/portal/${page.props.portal_token}${path}`;
@@ -337,4 +358,5 @@ const fmt = (v) =>
     (v || 0) / 100,
   );
 const fmtNum = (v) => new Intl.NumberFormat("pt-BR").format(v || 0);
+const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString("pt-BR") : "");
 </script>

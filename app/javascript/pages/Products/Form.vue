@@ -2,7 +2,10 @@
   <AppLayout>
     <div class="page-header">
       <div class="flex items-center gap-3">
-        <Link href="/products" class="text-sm text-gray-500 hover:text-gray-700">
+        <Link
+          href="/products"
+          class="text-sm text-gray-500 hover:text-gray-700"
+        >
           ← Produtos
         </Link>
         <h2 class="page-title">
@@ -49,23 +52,52 @@
           <div>
             <label class="form-label">Tipo</label>
             <select v-model="form.product_type" class="form-input">
-              <option value="credit_pack">Pacote de créditos</option>
+              <option value="credit_pack">
+                Pacote de créditos (recorrente)
+              </option>
               <option value="one_time">Cobrança avulsa</option>
             </select>
+            <p class="form-hint">
+              <template v-if="form.product_type === 'credit_pack'">
+                Recorrente: é somado à assinatura e renovado a cada ciclo.
+              </template>
+              <template v-else>
+                Avulso: cobrado uma vez, não entra na renovação.
+              </template>
+            </p>
           </div>
 
-          <template v-if="form.product_type === 'credit_pack'">
+          <template
+            v-if="
+              form.product_type === 'credit_pack' ||
+              form.product_type === 'one_time'
+            "
+          >
             <div>
-              <label class="form-label">Tipo de crédito</label>
+              <label class="form-label">
+                Tipo de crédito
+                <span
+                  v-if="form.product_type === 'one_time'"
+                  class="text-gray-400 font-normal"
+                >
+                  (opcional)
+                </span>
+              </label>
               <select v-model.number="form.credit_type_id" class="form-input">
-                <option value="">Selecione</option>
+                <option value="">
+                  {{
+                    form.product_type === "one_time"
+                      ? "Nenhum (sem crédito)"
+                      : "Selecione"
+                  }}
+                </option>
                 <option v-for="ct in creditTypes" :key="ct.id" :value="ct.id">
                   {{ ct.label }} ({{ ct.key }})
                 </option>
               </select>
             </div>
 
-            <div>
+            <div v-if="form.credit_type_id">
               <label class="form-label">Quantidade de créditos</label>
               <input
                 v-model.number="form.credit_quantity"
@@ -74,10 +106,47 @@
                 class="form-input"
               />
               <p v-if="selectedCreditType" class="form-hint">
-                {{ fmtNum(form.credit_quantity) }} {{ selectedCreditType.unit }}s
+                {{ fmtNum(form.credit_quantity) }}
+                {{ selectedCreditType.unit }}s
               </p>
             </div>
           </template>
+        </div>
+      </div>
+
+      <!-- Integrações -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-sm font-medium text-gray-900">Integrações</h3>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Em quais integrações este produto fica disponível no portal
+          </p>
+        </div>
+        <div class="card-body">
+          <div v-if="integrations.length" class="space-y-2">
+            <label
+              v-for="integ in integrations"
+              :key="integ.id"
+              class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                :value="integ.id"
+                v-model="form.integration_ids"
+                class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span class="font-medium">{{ integ.name }}</span>
+              <span class="text-gray-400 font-mono text-xs truncate max-w-xs">{{
+                integ.url
+              }}</span>
+            </label>
+          </div>
+          <p v-else class="text-sm text-gray-400">
+            Nenhuma integração cadastrada ainda.
+            <a href="/integrations/new" class="text-brand-600 hover:underline"
+              >Criar integração</a
+            >
+          </p>
         </div>
       </div>
 
@@ -90,9 +159,15 @@
           </p>
         </div>
         <div class="card-body space-y-4">
-          <div v-for="cur in currencies" :key="cur.id" class="flex items-start gap-3">
+          <div
+            v-for="cur in currencies"
+            :key="cur.id"
+            class="flex items-start gap-3"
+          >
             <div class="w-16 pt-2 text-center flex-shrink-0">
-              <span class="font-mono text-sm font-semibold text-gray-700">{{ cur.code }}</span>
+              <span class="font-mono text-sm font-semibold text-gray-700">{{
+                cur.code
+              }}</span>
               <p class="text-xs text-gray-400">{{ cur.symbol }}</p>
             </div>
             <div class="flex-1">
@@ -108,7 +183,13 @@
       <div class="flex gap-3 justify-end">
         <Link href="/products" class="btn-secondary">Cancelar</Link>
         <button @click="submit" :disabled="form.processing" class="btn-primary">
-          {{ form.processing ? "Salvando..." : product.id ? "Salvar" : "Criar produto" }}
+          {{
+            form.processing
+              ? "Salvando..."
+              : product.id
+                ? "Salvar"
+                : "Criar produto"
+          }}
         </button>
       </div>
     </div>
@@ -122,28 +203,33 @@ import AppLayout from "@/components/Layout/AppLayout.vue";
 import MoneyInput from "@/components/Shared/MoneyInput.vue";
 
 const props = defineProps({
-  product:      Object,
+  product: Object,
   credit_types: Array,
-  currencies:   { type: Array, default: () => [] },
-  errors:       { type: Object, default: () => ({}) },
+  currencies: { type: Array, default: () => [] },
+  integrations: { type: Array, default: () => [] },
+  errors: { type: Object, default: () => ({}) },
 });
 
 const creditTypes = props.credit_types || [];
-const currencies  = props.currencies   || [];
+const currencies = props.currencies || [];
+const integrations = props.integrations || [];
 
 const form = useForm({
-  name:            props.product.name            || "",
-  description:     props.product.description     || "",
-  product_type:    props.product.product_type    || "credit_pack",
-  credit_type_id:  props.product.credit_type_id  || "",
+  name: props.product.name || "",
+  description: props.product.description || "",
+  product_type: props.product.product_type || "credit_pack",
+  credit_type_id: props.product.credit_type_id || "",
   credit_quantity: props.product.credit_quantity || 0,
+  integration_ids: props.product.integration_ids || [],
 });
 
 // Armazena em centavos
 const prices = reactive(
   Object.fromEntries(
     currencies.map((cur) => {
-      const existing = props.product.prices?.find((p) => p.currency_id === cur.id);
+      const existing = props.product.prices?.find(
+        (p) => p.currency_id === cur.id,
+      );
       return [cur.id, existing ? existing.amount_cents : null];
     }),
   ),
@@ -154,18 +240,24 @@ const selectedCreditType = computed(() =>
 );
 
 const submit = () => {
-  const url    = props.product.id ? `/products/${props.product.id}` : "/products";
+  const url = props.product.id ? `/products/${props.product.id}` : "/products";
   const method = props.product.id ? "put" : "post";
 
   const pricesToCents = Object.fromEntries(
-    Object.entries(prices).map(([id, val]) => [id, val != null ? Math.round(val) : null]),
+    Object.entries(prices).map(([id, val]) => [
+      id,
+      val != null ? Math.round(val) : null,
+    ]),
   );
 
   form.transform((data) => ({ ...data, prices: pricesToCents }))[method](url);
 };
 
 const fmtDecimal = (val) =>
-  new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
+  new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(val || 0);
 
 const fmtNum = (val) => new Intl.NumberFormat("pt-BR").format(val || 0);
 </script>

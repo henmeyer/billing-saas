@@ -55,8 +55,12 @@ module Gateways
       price_id = new_plan.gateway_data.dig("stripe", "price_id")
       raise GatewayError, "Novo plano não configurado no Stripe" unless price_id
 
+      # proration_behavior "none": fazemos a proração por conta própria
+      # (cobrança avulsa da diferença), então o Stripe não deve gerar
+      # faturas de proração para evitar cobrança dupla.
       Stripe::Subscription.update(gateway_sub_id, {
-                                    items: [{ id: sub.items.data[0].id, price: price_id }]
+                                    items:              [{ id: sub.items.data[0].id, price: price_id }],
+                                    proration_behavior: "none"
                                   })
     rescue Stripe::StripeError => e
       raise GatewayError.new(e.message, code: e.code)

@@ -4,7 +4,7 @@ class Charge < ApplicationRecord
 
   STATUSES     = %w[pending paid failed refunded].freeze
   GATEWAYS     = %w[stripe asaas dlocal_go].freeze
-  CHARGE_TYPES = %w[new_subscription renewal product].freeze
+  CHARGE_TYPES = %w[new_subscription renewal product plan_change].freeze
 
   enum :status,      STATUSES.zip(STATUSES).to_h, validate: true
   enum :charge_type, CHARGE_TYPES.zip(CHARGE_TYPES).to_h, validate: true, prefix: true

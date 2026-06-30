@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_24_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_25_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -391,6 +391,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_24_120000) do
     t.index ["token_digest"], name: "index_portal_sessions_on_token_digest", unique: true
   end
 
+  create_table "product_integrations", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.bigint "integration_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["integration_id"], name: "index_product_integrations_on_integration_id"
+    t.index ["product_id", "integration_id"], name: "index_product_integrations_on_product_and_integration", unique: true
+    t.index ["product_id"], name: "index_product_integrations_on_product_id"
+  end
+
   create_table "product_prices", force: :cascade do |t|
     t.bigint "product_id", null: false
     t.bigint "currency_id", null: false
@@ -601,6 +611,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_24_120000) do
   add_foreign_key "plans", "license_types", column: "pricing_license_type_id"
   add_foreign_key "portal_sessions", "customers"
   add_foreign_key "portal_sessions", "integrations"
+  add_foreign_key "product_integrations", "integrations"
+  add_foreign_key "product_integrations", "products"
   add_foreign_key "product_prices", "currencies"
   add_foreign_key "product_prices", "products"
   add_foreign_key "product_pricing_tiers", "currencies"

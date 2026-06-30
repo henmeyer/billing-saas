@@ -5,17 +5,29 @@ class Portal::DashboardController < Portal::BaseController
     period = sub&.current_period
 
     render inertia: "Portal/Dashboard", props: {
-      customer:      { name: current_customer.name, email: current_customer.email },
-      subscription:  sub ? serialize_subscription(sub) : nil,
-      credits:       period ? serialize_credits(period) : [],
-      licenses:      period ? serialize_licenses(period) : [],
-      features:      sub ? serialize_features(sub) : [],
-      portal_config: portal_config,
-      branding:      branding
+      customer:               { name: current_customer.name, email: current_customer.email },
+      subscription:           sub ? serialize_subscription(sub) : nil,
+      credits:                period ? serialize_credits(period) : [],
+      licenses:               period ? serialize_licenses(period) : [],
+      features:               sub ? serialize_features(sub) : [],
+      scheduled_plan_change:  sub ? scheduled_change_info(sub) : nil,
+      portal_config:          portal_config,
+      branding:               branding
     }
   end
 
   private
+
+  def scheduled_change_info(sub)
+    scheduled = sub.metadata&.dig("scheduled_plan_change")
+    return nil if scheduled.blank?
+
+    plan = Plan.find_by(id: scheduled["plan_id"])
+    {
+      plan_name:    plan&.name,
+      effective_at: scheduled["effective_at"]
+    }
+  end
 
   def serialize_subscription(s)
     period = s.current_period

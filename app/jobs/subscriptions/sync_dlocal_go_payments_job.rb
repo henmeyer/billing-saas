@@ -60,7 +60,11 @@ class Subscriptions::SyncDlocalGoPaymentsJob < ApplicationJob
     subscription = charge.subscription
     return unless subscription
 
-    renew_subscription(subscription, charge) unless charge.charge_type_product?
+    if charge.charge_type_product? || charge.charge_type_plan_change?
+      Charges::ApplyPaidChargeService.call(charge: charge)
+    else
+      renew_subscription(subscription, charge)
+    end
 
     WebhookDispatchJob.perform_later(
       charge.customer,

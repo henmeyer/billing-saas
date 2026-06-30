@@ -27,16 +27,19 @@ class Subscriptions::RenewDlocalGoJob < ApplicationJob
 
   def renew(subscription)
     ActsAsTenant.current_tenant = subscription.customer.account
+    apply_scheduled_plan_change!(subscription)
 
     customer       = subscription.customer
     extra_packages = subscription.metadata["extra_packages"] || {}
+    product_packs  = subscription.metadata["product_packs"] || {}
     currency       = subscription.effective_currency
 
     pricing = Pricing::CalculateService.call(
       plan:           subscription.plan,
       customer:       customer,
       currency:       currency,
-      extra_packages: extra_packages
+      extra_packages: extra_packages,
+      product_packs:  product_packs
     )
 
     # Cria checkout normal — cliente vai receber link para pagar
@@ -82,6 +85,20 @@ class Subscriptions::RenewDlocalGoJob < ApplicationJob
       "[RenewDlocalGo] Payment criado para sub #{subscription.id}: " \
       "#{result["id"]} — #{currency.code} #{pricing.amount_cents / 100.0}"
     )
+  end
+
+  # Aplica troca de plano agendada (downgrade) antes de renovar, para que a
+  # renovação já use o novo plano e valor. Limpa o agendamento após aplicar.
+  def apply_scheduled_plan_change!(subscription)
+    scheduled = subscription.metadata["scheduled_plan_change"]
+    return if scheduled.blank?
+
+    new_plan = Plan.find_by(id: scheduled["plan_id"])
+    if new_plan && new_plan.id != subscription.plan_id
+      subscription.change_plan!(new_plan, changed_by: subscription.customer, reason: "scheduled_downgrade")
+    end
+
+    subscription.update!(metadata: subscription.metadata.except("scheduled_plan_change"))
   end
 
   def handle_gateway_error(subscription, error)

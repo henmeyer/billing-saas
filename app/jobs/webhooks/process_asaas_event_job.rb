@@ -84,6 +84,13 @@ class Webhooks::ProcessAsaasEventJob < ApplicationJob
     existing_charge = subscription.charges.find_by(gateway_charge_id: charge_id)
     return if existing_charge&.status == "paid"
 
+    # Charges avulsas (produto/troca de plano) não disparam renovação de
+    # assinatura: marcam-se como pagas e aplicam seus efeitos via dispatcher.
+    if existing_charge && (existing_charge.charge_type_product? || existing_charge.charge_type_plan_change?)
+      apply_standalone_charge(existing_charge, "asaas", paid_at)
+      return
+    end
+
     was_pending_or_trial = subscription.pending? || subscription.trialing?
 
     ActiveRecord::Base.transaction do
@@ -113,6 +120,19 @@ class Webhooks::ProcessAsaasEventJob < ApplicationJob
 
     # Webhooks de saída
     dispatch_payment_webhooks(subscription, amount_cents, charge_id, was_pending_or_trial)
+  end
+
+  # Marca a charge avulsa como paga e dispara a aplicação dos seus efeitos
+  # (créditos de produto ou troca de plano) sem renovar a assinatura.
+  def apply_standalone_charge(charge, gateway, paid_at)
+    charge.update!(status: "paid", paid_at: Time.parse(paid_at.to_s)) unless charge.paid?
+    Charges::ApplyPaidChargeService.call(charge: charge)
+
+    WebhookDispatchJob.perform_later(
+      charge.customer,
+      "payment.received",
+      { amount_cents: charge.amount_cents, gateway: gateway, charge_id: charge.gateway_charge_id }
+    )
   end
 
   def process_billing_managed_payment(subscription, amount_cents, was_pending_or_trial)

@@ -23,6 +23,8 @@ class Integration < ApplicationRecord
   has_many :customer_identities,  dependent: :destroy
   has_many :customers,            through: :customer_identities
   has_many :subscriptions
+  has_many :product_integrations, dependent: :destroy
+  has_many :products,             through: :product_integrations
 
   scope :active, -> { where(active: true) }
 

@@ -68,6 +68,17 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     existing_charge = subscription.charges.find_by(gateway_charge_id: payment_id)
     return if existing_charge&.status == "paid"
 
+    # Charges avulsas (produto/troca de plano) aplicam efeitos sem renovar.
+    if existing_charge && (existing_charge.charge_type_product? || existing_charge.charge_type_plan_change?)
+      existing_charge.update!(status: "paid", paid_at: Time.current)
+      Charges::ApplyPaidChargeService.call(charge: existing_charge)
+      WebhookDispatchJob.perform_later(
+        customer, "payment.received",
+        { amount_cents: existing_charge.amount_cents, gateway: "dlocal_go", charge_id: payment_id }
+      )
+      return
+    end
+
     # Salva checkout_id para cobranças recorrentes futuras (crucial no primeiro pagamento)
     checkout_id = payload["id"] || payload["checkout_id"]
     if checkout_id.present?
@@ -172,6 +183,8 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
     return unless charge
 
     charge.update!(status: "paid", paid_at: Time.current)
+
+    Charges::ApplyPaidChargeService.call(charge: charge)
 
     WebhookDispatchJob.perform_later(
       customer, "payment.received",

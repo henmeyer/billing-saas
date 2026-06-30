@@ -16,26 +16,59 @@
       <div v-for="p in products" :key="p.id" class="card">
         <div class="card-body space-y-3">
           <div>
-            <h3 class="font-semibold text-gray-900">{{ p.name }}</h3>
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="font-semibold text-gray-900">{{ p.name }}</h3>
+              <span
+                :class="[
+                  'text-xs px-2 py-0.5 rounded-full font-medium',
+                  p.recurring
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'bg-gray-100 text-gray-600',
+                ]"
+              >
+                {{ p.recurring ? "Recorrente" : "Avulso" }}
+              </span>
+            </div>
             <p v-if="p.description" class="text-sm text-gray-500 mt-0.5">
               {{ p.description }}
             </p>
           </div>
 
-          <div class="bg-gray-50 rounded-lg px-3 py-2 text-sm">
+          <div
+            v-if="p.grants_credit"
+            class="bg-gray-50 rounded-lg px-3 py-2 text-sm"
+          >
             <span class="text-gray-500">
-              {{ fmtNum(p.credit_quantity) }} {{ p.credit_unit }}s
+              {{ fmtNum(p.credit_quantity * qty(p)) }} {{ p.credit_unit }}s
+              <template v-if="qty(p) > 1">
+                ({{ fmtNum(p.credit_quantity) }} × {{ qty(p) }})
+              </template>
             </span>
           </div>
 
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-500">Quantidade</label>
+            <input
+              v-model.number="quantities[p.id]"
+              type="number"
+              min="1"
+              class="w-20 rounded-lg border-gray-300 text-sm focus:ring-brand-500 focus:border-brand-500"
+            />
+          </div>
+
           <div class="flex items-center justify-between pt-2">
-            <span class="text-xl font-bold text-gray-900">
-              {{ fmt(p.price_cents) }}
-            </span>
+            <div>
+              <span class="text-xl font-bold text-gray-900">
+                {{ fmt(totalCents(p)) }}
+              </span>
+              <p v-if="p.recurring" class="text-xs text-gray-400">
+                somado à assinatura
+              </p>
+            </div>
             <ConfirmButton
-              :message="`Comprar ${p.name} por ${fmt(p.price_cents)}?`"
+              :message="`Comprar ${qty(p)}× ${p.name} por ${fmt(totalCents(p))}?`"
               btn-class="btn-primary btn-sm"
-              @confirm="buy(p.id)"
+              @confirm="buy(p)"
             >
               Comprar
             </ConfirmButton>
@@ -47,6 +80,7 @@
 </template>
 
 <script setup>
+import { reactive } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import PortalLayout from "@/components/Portal/PortalLayout.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
@@ -60,9 +94,29 @@ const props = defineProps({
 const page = usePage();
 const portalConfig = props.portal_config;
 
-const buy = (productId) =>
+// Quantidade selecionada por produto (default 1)
+const quantities = reactive(
+  Object.fromEntries((props.products || []).map((p) => [p.id, 1])),
+);
+
+const qty = (p) => Math.max(parseInt(quantities[p.id], 10) || 1, 1);
+
+const totalCents = (p) => {
+  const q = qty(p);
+  if (p.pricing_model === "flat") return (p.price_cents || 0) * q;
+  if (p.pricing_model === "volume") {
+    const tier = (p.pricing_tiers || []).find(
+      (t) => q >= t.from_unit && (t.to_unit == null || q <= t.to_unit),
+    );
+    return tier ? tier.unit_amount_cents * q : (p.price_cents || 0) * q;
+  }
+  return (p.price_cents || 0) * q;
+};
+
+const buy = (p) =>
   router.post(`/portal/${page.props.portal_token}/products`, {
-    product_id: productId,
+    product_id: p.id,
+    quantity: qty(p),
   });
 
 const fmt = (v) =>

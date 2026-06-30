@@ -37,6 +37,13 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
     period_start = Time.at(payload["period_start"].to_i)
     period_end   = Time.at(payload["period_end"].to_i)
 
+    # Charges avulsas (produto/troca de plano) aplicam efeitos sem renovar.
+    existing = subscription.charges.find_by(gateway_charge_id: charge_id)
+    if existing && (existing.charge_type_product? || existing.charge_type_plan_change?)
+      apply_standalone_charge(existing)
+      return
+    end
+
     return if subscription.charges.exists?(gateway_charge_id: charge_id)
 
     charge_type = subscription.charges.exists? ? "renewal" : "new_subscription"
@@ -88,6 +95,18 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
         gateway:      "stripe",
         attempt:      payload["attempt_count"].to_i
       }
+    )
+  end
+
+  # Marca a charge avulsa como paga e aplica seus efeitos sem renovar.
+  def apply_standalone_charge(charge)
+    charge.update!(status: "paid", paid_at: Time.current) unless charge.paid?
+    Charges::ApplyPaidChargeService.call(charge: charge)
+
+    WebhookDispatchJob.perform_later(
+      charge.customer,
+      "payment.received",
+      { amount_cents: charge.amount_cents, gateway: "stripe", charge_id: charge.gateway_charge_id }
     )
   end
 
