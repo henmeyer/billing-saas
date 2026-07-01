@@ -5,14 +5,15 @@ class Portal::DashboardController < Portal::BaseController
     period = sub&.current_period
 
     render inertia: "Portal/Dashboard", props: {
-      customer:               { name: current_customer.name, email: current_customer.email },
-      subscription:           sub ? serialize_subscription(sub) : nil,
-      credits:                period ? serialize_credits(period) : [],
-      licenses:               period ? serialize_licenses(period) : [],
-      features:               sub ? serialize_features(sub) : [],
-      scheduled_plan_change:  sub ? scheduled_change_info(sub) : nil,
-      portal_config:          portal_config,
-      branding:               branding
+      customer:              { name: current_customer.name, email: current_customer.email },
+      subscription:          sub ? serialize_subscription(sub) : nil,
+      credits:               period ? serialize_credits(period) : [],
+      licenses:              period ? serialize_licenses(period) : [],
+      features:              sub ? serialize_features(sub) : [],
+      extras_options:        sub ? serialize_extras_options(sub) : [],
+      scheduled_plan_change: sub ? scheduled_change_info(sub) : nil,
+      portal_config:         portal_config,
+      branding:              branding
     }
   end
 
@@ -29,43 +30,42 @@ class Portal::DashboardController < Portal::BaseController
     }
   end
 
-  def serialize_subscription(s)
-    period = s.current_period
+  def serialize_subscription(sub)
+    period = sub.current_period
     {
-      id:                   s.id,
-      plan_name:            s.plan.name,
-      plan_description:     s.plan.description,
-      status:               s.status,
-      managed_by:           s.managed_by,
-      is_gateway_managed:   s.gateway_managed?,
-      base_price_cents:     s.base_price_cents,
-      period_amount_cents:  period&.amount_cents || s.base_price_cents,
+      id:                   sub.id,
+      plan_name:            sub.plan.name,
+      plan_description:     sub.plan.description,
+      status:               sub.status,
+      managed_by:           sub.managed_by,
+      is_gateway_managed:   sub.gateway_managed?,
+      base_price_cents:     sub.base_price_cents,
+      period_amount_cents:  period&.amount_cents || sub.base_price_cents,
       period_extras_cents:  period&.extras_amount_cents || 0,
-      has_extras:           (period&.extras_amount_cents || 0) > 0,
-      currency_code:        s.currency_code,
-      billing_cycle:        s.plan.billing_cycle,
-      current_period_end:   s.current_period_end&.strftime("%d/%m/%Y"),
-      started_at:           s.started_at&.strftime("%d/%m/%Y"),
-      is_trial:             s.trialing?,
-      trial_ends_at:        s.trial_ends_at&.strftime("%d/%m/%Y"),
-      trial_days_remaining: s.trial_days_remaining,
-      trial_expired:        s.trial_expired?
+      has_extras:           (period&.extras_amount_cents || 0).positive?,
+      currency_code:        sub.currency_code,
+      billing_cycle:        sub.plan.billing_cycle,
+      current_period_end:   sub.current_period_end&.strftime("%d/%m/%Y"),
+      started_at:           sub.started_at&.strftime("%d/%m/%Y"),
+      is_trial:             sub.trialing?,
+      trial_ends_at:        sub.trial_ends_at&.strftime("%d/%m/%Y"),
+      trial_days_remaining: sub.trial_days_remaining,
+      trial_expired:        sub.trial_expired?
     }
   end
 
   def serialize_credits(period)
-    period.credit_snapshots.includes(:credit_type).map do |s|
-      spc = period.subscription_period_credits
-                  .find_by(credit_type: s.credit_type)
+    period.credit_snapshots.includes(:credit_type).map do |snap|
+      spc = period.subscription_period_credits.find_by(credit_type: snap.credit_type)
       {
-        key:            s.credit_type.key,
-        label:          s.credit_type.label,
-        unit:           s.credit_type.unit,
-        used:           s.used,
-        limit:          s.limit,
-        balance:        s.balance,
-        usage_percent:  s.usage_percent,
-        base:           spc&.base || s.limit,
+        key:            snap.credit_type.key,
+        label:          snap.credit_type.label,
+        unit:           snap.credit_type.unit,
+        used:           snap.used,
+        limit:          snap.limit,
+        balance:        snap.balance,
+        usage_percent:  snap.usage_percent,
+        base:           spc&.base || snap.limit,
         extras:         spc&.extras || 0,
         extra_packages: spc&.extra_packages || 0
       }
@@ -73,11 +73,8 @@ class Portal::DashboardController < Portal::BaseController
   end
 
   def serialize_licenses(period)
-    period.subscription_period_licenses
-          .includes(:license_type)
-          .map do |spl|
-      used = current_customer.metadata
-                             .dig("license_usage", spl.license_type.key).to_i
+    period.subscription_period_licenses.includes(:license_type).map do |spl|
+      used = current_customer.metadata.dig("license_usage", spl.license_type.key).to_i
       {
         key:       spl.license_type.key,
         label:     spl.license_type.label,
@@ -95,6 +92,22 @@ class Portal::DashboardController < Portal::BaseController
         key:     pf.feature_type.key,
         label:   pf.feature_type.label,
         enabled: pf.enabled
+      }
+    end
+  end
+
+  def serialize_extras_options(sub)
+    current_packages = sub.metadata["extra_packages"] || {}
+
+    sub.plan.plan_credits.where(allow_extras: true).includes(:credit_type).map do |pc|
+      {
+        credit_type_id:   pc.credit_type_id,
+        credit_type_key:  pc.credit_type.key,
+        label:            pc.credit_type.label,
+        unit:             pc.credit_type.unit,
+        extra_unit_size:  pc.extra_unit_size,
+        price_cents:      pc.extra_unit_price_cents,
+        current_packages: (current_packages[pc.credit_type_id.to_s] || 0).to_i
       }
     end
   end

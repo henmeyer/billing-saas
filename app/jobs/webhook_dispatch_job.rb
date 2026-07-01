@@ -79,7 +79,7 @@ class WebhookDispatchJob < ApplicationJob
     end
   end
 
-  EVENTS_WITHOUT_EXTRAS = %w[subscription.renewed plan.changed].freeze
+  EVENTS_WITHOUT_EXTRAS = %w[subscription.renewed subscription.updated plan.changed].freeze
 
   def build_payload(integration, customer, event, data, overrides = {})
     subscription = customer.subscriptions

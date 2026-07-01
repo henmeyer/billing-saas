@@ -2,7 +2,7 @@ class Integration < ApplicationRecord
   acts_as_tenant :account
 
   AVAILABLE_EVENTS = %w[
-    subscription.activated subscription.cancelled subscription.past_due
+    subscription.activated subscription.updated subscription.cancelled subscription.past_due
     subscription.renewed subscription.trial_ending plan.changed
     payment.received payment.failed credits.threshold_reached
     credits.depleted credits.recharged license.updated

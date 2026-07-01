@@ -214,6 +214,63 @@
             </div>
           </div>
 
+          <!-- Extras do plano -->
+          <div
+            v-if="portalConfig.allow_adjust_extras && extrasOptions.length"
+            class="card"
+          >
+            <div class="card-header">
+              <h3 class="text-sm font-medium text-gray-900">Pacotes extras</h3>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Adicione créditos além do incluído no plano.
+              </p>
+            </div>
+            <form @submit.prevent="saveExtras">
+              <div class="card-body space-y-4">
+                <div
+                  v-for="opt in extrasOptions"
+                  :key="opt.credit_type_id"
+                  class="flex items-center justify-between gap-4"
+                >
+                  <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-700">{{ opt.label }}</p>
+                    <p class="text-xs text-gray-400">
+                      {{ fmtNum(opt.extra_unit_size) }} {{ opt.unit }}s/pacote ·
+                      {{ fmt(opt.price_cents) }}/pacote
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input
+                      v-model.number="extraPackages[opt.credit_type_id]"
+                      type="number"
+                      min="0"
+                      class="w-20 rounded-lg border-gray-300 text-sm focus:ring-brand-500 focus:border-brand-500"
+                    />
+                    <span class="text-xs text-gray-400 w-16 text-right">
+                      {{ fmt(opt.price_cents * (extraPackages[opt.credit_type_id] || 0)) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-3 flex items-center justify-between">
+                  <div class="text-sm">
+                    <span class="text-gray-500">Total extras: </span>
+                    <span class="font-semibold">{{ fmt(totalExtrasCents) }}</span>
+                  </div>
+                  <button
+                    type="submit"
+                    :disabled="savingExtras"
+                    class="btn-primary btn-sm"
+                  >
+                    {{ savingExtras ? "Salvando..." : "Salvar extras" }}
+                  </button>
+                </div>
+
+                <p v-if="extrasError" class="text-xs text-red-600">{{ extrasError }}</p>
+              </div>
+            </form>
+          </div>
+
           <!-- Licenças -->
           <div v-if="licenses.length" class="card">
             <div class="card-header">
@@ -310,7 +367,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, reactive } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import PortalLayout from "@/components/Portal/PortalLayout.vue";
 import Badge from "@/components/Shared/Badge.vue";
@@ -321,6 +378,7 @@ const props = defineProps({
   credits: Array,
   licenses: Array,
   features: Array,
+  extras_options: { type: Array, default: () => [] },
   scheduled_plan_change: { type: Object, default: null },
   portal_config: Object,
   branding: Object,
@@ -330,6 +388,51 @@ const page = usePage();
 const portalConfig = props.portal_config;
 const scheduledPlanChange = props.scheduled_plan_change;
 const showCancelConfirm = ref(false);
+const extrasOptions = props.extras_options;
+
+const extraPackages = reactive(
+  Object.fromEntries(extrasOptions.map((o) => [o.credit_type_id, o.current_packages])),
+);
+
+const totalExtrasCents = computed(() =>
+  extrasOptions.reduce((sum, opt) => {
+    return sum + opt.price_cents * (extraPackages[opt.credit_type_id] || 0);
+  }, 0),
+);
+
+const savingExtras = ref(false);
+const extrasError = ref(null);
+
+const saveExtras = async () => {
+  savingExtras.value = true;
+  extrasError.value = null;
+  try {
+    const body = new URLSearchParams();
+    extrasOptions.forEach((opt) => {
+      body.append(
+        `extra_packages[${opt.credit_type_id}]`,
+        extraPackages[opt.credit_type_id] || 0,
+      );
+    });
+    body.append("_method", "patch");
+
+    const res = await fetch(`/portal/${page.props.portal_token}/subscription`, {
+      method: "POST",
+      headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content },
+      body,
+    });
+
+    if (res.redirected) {
+      window.location.href = res.url;
+    } else if (!res.ok) {
+      extrasError.value = "Erro ao salvar extras. Tente novamente.";
+    }
+  } catch {
+    extrasError.value = "Erro de conexão. Tente novamente.";
+  } finally {
+    savingExtras.value = false;
+  }
+};
 
 const p = (path) => `/portal/${page.props.portal_token}${path}`;
 

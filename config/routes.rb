@@ -111,8 +111,9 @@ Rails.application.routes.draw do
       post "/customers/:external_id/credits/report",    to: "credits#report"
       get  "/customers/:external_id/licenses",          to: "licenses#show"
       post "/customers/:external_id/licenses/report",   to: "licenses#report"
-      get  "/customers/:external_id/subscription",      to: "subscriptions#show"
-      post "/customers/:external_id/subscription",      to: "subscriptions#create"
+      get   "/customers/:external_id/subscription",         to: "subscriptions#show"
+      post  "/customers/:external_id/subscription",         to: "subscriptions#create"
+      patch "/customers/:external_id/subscription/extras", to: "subscriptions#update_extras"
       post "/portal/sessions",                          to: "portal_sessions#create"
     end
   end

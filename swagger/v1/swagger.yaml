@@ -1198,6 +1198,107 @@ paths:
                         name: Pro
               schema:
                 "$ref": "#/components/schemas/WebhookSubscriptionActivated"
+  "/webhooks/events/subscription.updated":
+    post:
+      summary: subscription.updated — Assinatura atualizada
+      tags:
+      - Webhooks
+      description: |
+        Disparado quando dados da assinatura são alterados pelo cliente,
+        como a configuração de pacotes extras de créditos.
+
+        **Quando usar:** sincronizar limites de créditos extras no seu sistema,
+        atualizar o valor faturável do próximo ciclo.
+      responses:
+        '200':
+          description: Payload do evento
+          content:
+            application/json:
+              examples:
+                example_0:
+                  value:
+                    event: subscription.updated
+                    uuid: d4e5f6a7-b8c9-0123-defa-234567890123
+                    timestamp: '2026-07-01T10:00:00Z'
+                    account_id: '1'
+                    test: false
+                    customer:
+                      id: '42'
+                      external_id: EXT123
+                      name: Empresa X
+                      email: admin@empresax.com
+                    subscription:
+                      id: 7
+                      plan_id: 3
+                      plan_name: Pro
+                      status: active
+                      billing_cycle: monthly
+                      base_price_cents: 9900
+                      currency_code: BRL
+                      current_period_end: '2026-08-01T00:00:00Z'
+                      started_at: '2026-01-01T00:00:00Z'
+                    credits:
+                      api_calls:
+                        limit: 15000
+                        base: 10000
+                        used: 3200
+                        balance: 11800
+                        usage_percent: 21.3
+                    features:
+                      ai_enabled: true
+                      export_reports: false
+                    licenses: {}
+                    data: {}
+              schema:
+                type: object
+                properties:
+                  event:
+                    type: string
+                    example: subscription.updated
+                  uuid:
+                    type: string
+                    format: uuid
+                  timestamp:
+                    type: string
+                    format: date-time
+                  account_id:
+                    type: string
+                  customer:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      external_id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                  subscription:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      plan_id:
+                        type: integer
+                      plan_name:
+                        type: string
+                      status:
+                        type: string
+                      base_price_cents:
+                        type: integer
+                      currency_code:
+                        type: string
+                      current_period_end:
+                        type: string
+                        format: date-time
+                  credits:
+                    type: object
+                    description: Mapa de créditos por chave do tipo (sem extras — detalhes de cobrança estão no payment.received)
+                  features:
+                    type: object
+                  data:
+                    type: object
   "/webhooks/events/subscription.cancelled":
     post:
       summary: subscription.cancelled — Assinatura cancelada
