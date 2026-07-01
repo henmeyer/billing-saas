@@ -37,7 +37,6 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
     period_start = Time.at(payload["period_start"].to_i)
     period_end   = Time.at(payload["period_end"].to_i)
 
-    # Charges avulsas (produto/troca de plano) aplicam efeitos sem renovar.
     existing = subscription.charges.find_by(gateway_charge_id: charge_id)
     if existing && (existing.charge_type_product? || existing.charge_type_plan_change?)
       apply_standalone_charge(existing)
@@ -46,6 +45,11 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
 
     return if subscription.charges.exists?(gateway_charge_id: charge_id)
 
+    persist_renewal(subscription, charge_id, amount, period_start, period_end)
+    dispatch_renewal_webhooks(subscription, amount, charge_id, period_end)
+  end
+
+  def persist_renewal(subscription, charge_id, amount, period_start, period_end)
     charge_type = subscription.charges.exists? ? "renewal" : "new_subscription"
 
     ActiveRecord::Base.transaction do
@@ -70,7 +74,9 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
         period_end:   period_end
       )
     end
+  end
 
+  def dispatch_renewal_webhooks(subscription, amount, charge_id, period_end)
     WebhookDispatchJob.perform_later(
       subscription.customer,
       "payment.received",
@@ -106,8 +112,19 @@ class Webhooks::ProcessStripeEventJob < ApplicationJob
     WebhookDispatchJob.perform_later(
       charge.customer,
       "payment.received",
-      { amount_cents: charge.amount_cents, gateway: "stripe", charge_id: charge.gateway_charge_id }
+      { amount_cents: charge.amount_cents, gateway: "stripe", charge_id: charge.gateway_charge_id },
+      overrides: { credits: purchased_credits_for(charge) }
     )
+  end
+
+  def purchased_credits_for(charge)
+    purchase = charge.charge_data["product_purchase"] || {}
+    return {} unless purchase["credit_type_id"].present? && purchase["total_credits"].to_i > 0
+
+    credit_type = CreditType.find_by(id: purchase["credit_type_id"])
+    return {} unless credit_type
+
+    { credit_type.key => { extras: purchase["total_credits"].to_i } }
   end
 
   def process_subscription_cancelled(subscription, _payload)

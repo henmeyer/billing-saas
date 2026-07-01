@@ -206,6 +206,92 @@ RSpec.configure do |config|
               currency:      { type: "string",  example: "BRL" }
             }
           },
+          CustomerCreateRequest:          {
+            type:       "object",
+            required:   %w[external_id name email document],
+            properties: {
+              external_id: {
+                type:        "string",
+                description: "ID do cliente no seu sistema. Usado em todas as chamadas futuras.",
+                example:     "user_abc123"
+              },
+              name:        { type: "string", example: "Acme Ltda" },
+              email:       { type: "string", format: "email", example: "billing@acme.com" },
+              document:    {
+                type:        "string",
+                description: "CPF, CNPJ ou documento equivalente do país do cliente.",
+                example:     "00.000.000/0001-00"
+              },
+              phone:       { type: "string", example: "+55 11 99999-9999" },
+              country:     {
+                type:        "string",
+                description: "Código ISO 3166-1 alpha-2. Usado para resolver o gateway de pagamento.",
+                example:     "BR",
+                default:     "BR"
+              }
+            }
+          },
+          CustomerResponse:               {
+            type:       "object",
+            properties: {
+              external_id: { type: "string", example: "user_abc123" },
+              id:          { type: "integer", example: 42 },
+              name:        { type: "string",  example: "Acme Ltda" },
+              email:       { type: "string",  example: "billing@acme.com" },
+              document:    { type: "string",  example: "00.000.000/0001-00" },
+              phone:       { type: "string",  example: "+55 11 99999-9999", nullable: true },
+              country:     { type: "string",  example: "BR" },
+              status:      {
+                type:    "string",
+                enum:    %w[active suspended churned trial],
+                example: "active"
+              }
+            }
+          },
+          SubscriptionCreateRequest:      {
+            type:       "object",
+            required:   ["plan_id"],
+            properties: {
+              plan_id:       {
+                type:        "integer",
+                description: "ID do plano a ser assinado.",
+                example:     1
+              },
+              trial_ends_at: {
+                type:        "string",
+                format:      "date-time",
+                nullable:    true,
+                description: "Se informado, a assinatura inicia como trial e converte automaticamente após esta data.",
+                example:     "2026-07-15T00:00:00Z"
+              }
+            }
+          },
+          SubscriptionCreateResponse:     {
+            type:       "object",
+            properties: {
+              external_id:        { type: "string", example: "user_abc123" },
+              integration_id:     { type: "integer", example: 1 },
+              plan:               { "$ref" => "#/components/schemas/SubscriptionPlan" },
+              status:             {
+                type:    "string",
+                enum:    %w[active trialing],
+                example: "trialing"
+              },
+              managed_by:         { type: "string", example: "billing" },
+              trial_ends_at:      {
+                type: "string", format: "date-time", nullable: true,
+                example: "2026-07-15T00:00:00Z"
+              },
+              current_period_end: {
+                type: "string", format: "date-time",
+                example: "2026-08-01T00:00:00Z"
+              },
+              started_at:         {
+                type: "string", format: "date-time",
+                example: "2026-07-01T00:00:00Z"
+              }
+            }
+          },
           SubscriptionResponse:           {
             type:       "object",
             properties: {

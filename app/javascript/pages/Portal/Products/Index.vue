@@ -6,6 +6,10 @@
   >
     <h1 class="text-xl font-semibold text-gray-900 mb-6">Comprar pacotes</h1>
 
+    <div v-if="buyError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ buyError }}
+    </div>
+
     <div v-if="!products.length" class="card">
       <div class="card-body text-center py-12 text-gray-400">
         Nenhum pacote disponível no momento.
@@ -68,9 +72,10 @@
             <ConfirmButton
               :message="`Comprar ${qty(p)}× ${p.name} por ${fmt(totalCents(p))}?`"
               btn-class="btn-primary btn-sm"
+              :disabled="buying === p.id"
               @confirm="buy(p)"
             >
-              Comprar
+              {{ buying === p.id ? "Processando..." : "Comprar" }}
             </ConfirmButton>
           </div>
         </div>
@@ -80,8 +85,8 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
-import { router, usePage } from "@inertiajs/vue3";
+import { reactive, ref } from "vue";
+import { usePage } from "@inertiajs/vue3";
 import PortalLayout from "@/components/Portal/PortalLayout.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
 
@@ -113,11 +118,34 @@ const totalCents = (p) => {
   return (p.price_cents || 0) * q;
 };
 
-const buy = (p) =>
-  router.post(`/portal/${page.props.portal_token}/products`, {
-    product_id: p.id,
-    quantity: qty(p),
-  });
+const buying = ref(null);
+const buyError = ref(null);
+
+const buy = async (p) => {
+  buying.value = p.id;
+  buyError.value = null;
+  try {
+    const res = await fetch(`/portal/${page.props.portal_token}/products`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ product_id: p.id, quantity: qty(p) }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      buyError.value = data.error || "Erro ao processar a compra.";
+      return;
+    }
+    window.open(data.payment_url, "_blank");
+  } catch {
+    buyError.value = "Erro ao processar a compra.";
+  } finally {
+    buying.value = null;
+  }
+};
 
 const fmt = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(

@@ -11,9 +11,10 @@ class Customer < ApplicationRecord
 
   STATUSES = %w[active suspended churned trial].freeze
 
-  validates :name,   presence: true
-  validates :email,  presence: true, uniqueness: { scope: :account_id }
-  validates :status, inclusion: { in: STATUSES }
+  validates :name,     presence: true
+  validates :email,    presence: true, uniqueness: { scope: :account_id }
+  validates :document, presence: true
+  validates :status,   inclusion: { in: STATUSES }
 
   scope :active,  -> { where(status: "active") }
   scope :churned, -> { where(status: "churned") }

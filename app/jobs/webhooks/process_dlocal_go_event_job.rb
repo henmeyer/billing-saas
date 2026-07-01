@@ -74,7 +74,8 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
       Charges::ApplyPaidChargeService.call(charge: existing_charge)
       WebhookDispatchJob.perform_later(
         customer, "payment.received",
-        { amount_cents: existing_charge.amount_cents, gateway: "dlocal_go", charge_id: payment_id }
+        { amount_cents: existing_charge.amount_cents, gateway: "dlocal_go", charge_id: payment_id },
+        overrides: { credits: purchased_credits_for(existing_charge) }
       )
       return
     end
@@ -236,5 +237,15 @@ class Webhooks::ProcessDlocalGoEventJob < ApplicationJob
         license_type: spl.license_type, quantity: spl.quantity
       )
     end
+  end
+
+  def purchased_credits_for(charge)
+    purchase = charge.charge_data["product_purchase"] || {}
+    return {} unless purchase["credit_type_id"].present? && purchase["total_credits"].to_i > 0
+
+    credit_type = CreditType.find_by(id: purchase["credit_type_id"])
+    return {} unless credit_type
+
+    { credit_type.key => { extras: purchase["total_credits"].to_i } }
   end
 end

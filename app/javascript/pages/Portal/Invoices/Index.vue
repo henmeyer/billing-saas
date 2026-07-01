@@ -22,7 +22,9 @@
               <th>Data</th>
               <th>Valor</th>
               <th>Status</th>
+              <th>Vencimento</th>
               <th>Pago em</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -36,8 +38,17 @@
                   {{ chargeLabel(c.status) }}
                 </Badge>
               </td>
-              <td class="text-sm text-gray-500">
-                {{ c.paid_at || "—" }}
+              <td class="text-sm text-gray-500">{{ c.due_date || "—" }}</td>
+              <td class="text-sm text-gray-500">{{ c.paid_at || "—" }}</td>
+              <td>
+                <a
+                  v-if="c.payment_url"
+                  :href="c.payment_url"
+                  target="_blank"
+                  class="btn-primary btn-sm"
+                >
+                  Pagar
+                </a>
               </td>
             </tr>
           </tbody>

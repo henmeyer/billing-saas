@@ -18,6 +18,7 @@
       <div v-if="Object.keys(errors).length" class="alert-danger">
         <div>
           <p v-for="(msgs, field) in errors" :key="field">
+            <span class="font-medium capitalize">{{ fieldLabel(field) }}:</span>
             {{ msgs.join(", ") }}
           </p>
         </div>
@@ -55,12 +56,16 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="form-label">CPF/CNPJ</label>
+              <label class="form-label">
+                {{ documentType.label }}
+                <span class="text-red-500">*</span>
+              </label>
               <input
                 v-model="form.document"
                 type="text"
                 class="form-input"
-                placeholder="000.000.000-00"
+                :placeholder="documentType.placeholder"
+                required
               />
             </div>
             <div>
@@ -86,15 +91,56 @@
           <div>
             <label class="form-label">País</label>
             <select v-model="form.country" class="form-input">
-              <option value="BR">Brasil</option>
-              <option value="AR">Argentina</option>
-              <option value="CL">Chile</option>
-              <option value="CO">Colômbia</option>
-              <option value="MX">México</option>
-              <option value="PE">Peru</option>
-              <option value="UY">Uruguai</option>
-              <option value="US">Estados Unidos</option>
-              <option value="PT">Portugal</option>
+              <optgroup label="América Latina">
+                <option value="BR">Brasil</option>
+                <option value="AR">Argentina</option>
+                <option value="BO">Bolívia</option>
+                <option value="CL">Chile</option>
+                <option value="CO">Colômbia</option>
+                <option value="CR">Costa Rica</option>
+                <option value="DO">República Dominicana</option>
+                <option value="EC">Equador</option>
+                <option value="SV">El Salvador</option>
+                <option value="GT">Guatemala</option>
+                <option value="HN">Honduras</option>
+                <option value="MX">México</option>
+                <option value="NI">Nicarágua</option>
+                <option value="PA">Panamá</option>
+                <option value="PY">Paraguai</option>
+                <option value="PE">Peru</option>
+                <option value="UY">Uruguai</option>
+                <option value="VE">Venezuela</option>
+              </optgroup>
+              <optgroup label="América do Norte">
+                <option value="US">Estados Unidos</option>
+                <option value="CA">Canadá</option>
+              </optgroup>
+              <optgroup label="Europa">
+                <option value="PT">Portugal</option>
+                <option value="ES">Espanha</option>
+                <option value="FR">França</option>
+                <option value="DE">Alemanha</option>
+                <option value="IT">Itália</option>
+                <option value="GB">Reino Unido</option>
+                <option value="NL">Holanda</option>
+                <option value="BE">Bélgica</option>
+                <option value="CH">Suíça</option>
+                <option value="PL">Polônia</option>
+              </optgroup>
+              <optgroup label="Ásia / Oceania">
+                <option value="AU">Austrália</option>
+                <option value="JP">Japão</option>
+                <option value="CN">China</option>
+                <option value="IN">Índia</option>
+                <option value="SG">Singapura</option>
+                <option value="AE">Emirados Árabes</option>
+              </optgroup>
+              <optgroup label="África">
+                <option value="ZA">África do Sul</option>
+                <option value="NG">Nigéria</option>
+                <option value="KE">Quênia</option>
+                <option value="EG">Egito</option>
+              </optgroup>
             </select>
             <p class="form-hint">
               Usado para selecionar automaticamente o gateway de pagamento.
@@ -180,9 +226,59 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, computed } from "vue";
 import { Link, useForm } from "@inertiajs/vue3";
 import AppLayout from "@/components/Layout/AppLayout.vue";
+
+const DOCUMENT_TYPES = {
+  // América Latina
+  BR: { label: "CPF / CNPJ",        placeholder: "000.000.000-00 ou 00.000.000/0001-00" },
+  AR: { label: "DNI / CUIT",        placeholder: "12345678 ou 20-12345678-9" },
+  BO: { label: "CI / NIT",          placeholder: "1234567 ou 1234567-1" },
+  CL: { label: "RUT",               placeholder: "12.345.678-9" },
+  CO: { label: "CC / NIT",          placeholder: "123456789 ou 900123456-1" },
+  CR: { label: "Cédula / RUC",      placeholder: "123456789" },
+  DO: { label: "Cédula / RNC",      placeholder: "000-0000000-0" },
+  EC: { label: "CI / RUC",          placeholder: "1234567890 ou 12345678901" },
+  SV: { label: "DUI / NIT",         placeholder: "00000000-0" },
+  GT: { label: "DPI / NIT",         placeholder: "0000 00000 0101" },
+  HN: { label: "DNI / RTN",         placeholder: "0000-0000-00000" },
+  MX: { label: "CURP / RFC",        placeholder: "AAAA000000AAAAAA00" },
+  NI: { label: "Cédula / RUC",      placeholder: "000-000000-0000A" },
+  PA: { label: "Cédula / RUC",      placeholder: "0-000-0000" },
+  PY: { label: "CI / RUC",          placeholder: "1234567 ou 80012345-0" },
+  PE: { label: "DNI / RUC",         placeholder: "12345678 ou 12345678901" },
+  UY: { label: "CI / RUT",          placeholder: "1234567-8" },
+  VE: { label: "CI / RIF",          placeholder: "V-12345678" },
+  // América do Norte
+  US: { label: "SSN / EIN",         placeholder: "000-00-0000 ou 00-0000000" },
+  CA: { label: "SIN / BN",          placeholder: "000 000 000" },
+  // Europa
+  PT: { label: "NIF / NIPC",        placeholder: "123456789" },
+  ES: { label: "NIF / CIF",         placeholder: "12345678A ou A12345678" },
+  FR: { label: "SIRET / NIF",       placeholder: "00000000000000" },
+  DE: { label: "Steuer-ID / USt",   placeholder: "00 000 000 000" },
+  IT: { label: "Codice Fiscale",    placeholder: "AAABBB00A00A000A" },
+  GB: { label: "UTR / NI",          placeholder: "1234567890 ou AA123456A" },
+  NL: { label: "BSN / BTW",         placeholder: "123456789" },
+  BE: { label: "Rijksregister / BTW", placeholder: "00.00.00-000.00" },
+  CH: { label: "AHV / MwSt",        placeholder: "756.0000.0000.00" },
+  PL: { label: "PESEL / NIP",       placeholder: "00000000000 ou 000-000-00-00" },
+  // Ásia / Oceania
+  AU: { label: "TFN / ABN",         placeholder: "000 000 000 ou 00 000 000 000" },
+  JP: { label: "My Number",         placeholder: "000000000000" },
+  CN: { label: "身份证 / 统一信用代码",  placeholder: "000000000000000000" },
+  IN: { label: "PAN / GSTIN",       placeholder: "AAAAA0000A ou 00AAAAA0000A0Z0" },
+  SG: { label: "NRIC / UEN",        placeholder: "S1234567A ou 12345678A" },
+  AE: { label: "Emirates ID / TRN", placeholder: "784-0000-0000000-0" },
+  // África
+  ZA: { label: "ID Number / VAT",   placeholder: "0000000000000" },
+  NG: { label: "NIN / TIN",         placeholder: "00000000000" },
+  KE: { label: "National ID / PIN", placeholder: "12345678" },
+  EG: { label: "National ID / TIN", placeholder: "00000000000000" },
+};
+
+const DEFAULT_DOCUMENT = { label: "Documento", placeholder: "Número do documento" };
 
 const props = defineProps({
   customer: Object,
@@ -204,6 +300,10 @@ const form = useForm({
   notes: props.customer.notes || "",
 });
 
+const documentType = computed(
+  () => DOCUMENT_TYPES[form.country] ?? DEFAULT_DOCUMENT,
+);
+
 const identities = reactive(
   Object.fromEntries(
     props.integrations.map((integration) => {
@@ -214,6 +314,19 @@ const identities = reactive(
     }),
   ),
 );
+
+const FIELD_LABELS = {
+  name:        "Nome",
+  email:       "E-mail",
+  document:    "Documento",
+  phone:       "Telefone",
+  status:      "Status",
+  country:     "País",
+  currency_id: "Moeda",
+  notes:       "Observações",
+};
+
+const fieldLabel = (field) => FIELD_LABELS[field] ?? field;
 
 const submit = () => {
   const url = props.customer.id

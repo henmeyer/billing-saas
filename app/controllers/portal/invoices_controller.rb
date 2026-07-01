@@ -26,13 +26,21 @@ class Portal::InvoicesController < Portal::BaseController
 
   def serialize(c)
     {
-      id:         c.id,
-      amount:     c.amount_cents / 100.0,
-      status:     c.status,
-      gateway:    c.gateway,
-      paid_at:    c.paid_at&.strftime("%d/%m/%Y"),
-      due_date:   c.due_date&.strftime("%d/%m/%Y"),
-      created_at: c.created_at.strftime("%d/%m/%Y")
+      id:          c.id,
+      amount:      c.amount_cents / 100.0,
+      status:      c.status,
+      gateway:     c.gateway,
+      paid_at:     c.paid_at&.strftime("%d/%m/%Y"),
+      due_date:    c.due_date&.strftime("%d/%m/%Y"),
+      created_at:  c.created_at.strftime("%d/%m/%Y"),
+      payment_url: payment_url_for(c)
     }
+  end
+
+  def payment_url_for(charge)
+    return nil unless charge.status == "pending"
+
+    charge.redirect_url.presence ||
+      portal_checkout_url(token: portal_token, charge_id: charge.id)
   end
 end

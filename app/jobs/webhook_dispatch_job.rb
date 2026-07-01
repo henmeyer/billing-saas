@@ -4,7 +4,7 @@ class WebhookDispatchJob < ApplicationJob
   RETRY_DELAYS = [1.minute, 5.minutes, 30.minutes, 2.hours, 8.hours].freeze
   TIMEOUT      = 10
 
-  def perform(customer, event_name, data, attempt: 1)
+  def perform(customer, event_name, data, attempt: 1, overrides: {})
     ActsAsTenant.current_tenant = customer.account
 
     integrations = customer.account
@@ -13,14 +13,14 @@ class WebhookDispatchJob < ApplicationJob
                            .select { |i| i.events_for(event_name) }
 
     integrations.each do |integration|
-      dispatch(integration, customer, event_name, data, attempt)
+      dispatch(integration, customer, event_name, data, attempt, overrides)
     end
   end
 
   private
 
-  def dispatch(integration, customer, event_name, data, attempt)
-    payload = build_payload(integration, customer, event_name, data)
+  def dispatch(integration, customer, event_name, data, attempt, overrides = {})
+    payload = build_payload(integration, customer, event_name, data, overrides)
     body    = payload.to_json
     sig     = sign_payload(integration.secret, body)
 
@@ -51,15 +51,15 @@ class WebhookDispatchJob < ApplicationJob
       if response.success?
         log.update!(status: "delivered")
       else
-        handle_failure(log, integration, customer, event_name, data, attempt,
+        handle_failure(log, integration, customer, event_name, data, attempt, overrides,
                        "HTTP #{response.code}: #{response.body.truncate(200)}")
       end
     rescue HTTParty::Error, Net::OpenTimeout, Net::ReadTimeout => e
-      handle_failure(log, integration, customer, event_name, data, attempt, e.message)
+      handle_failure(log, integration, customer, event_name, data, attempt, overrides, e.message)
     end
   end
 
-  def handle_failure(log, integration, customer, event_name, data, attempt, error_msg)
+  def handle_failure(log, integration, customer, event_name, data, attempt, overrides, error_msg)
     next_delay = RETRY_DELAYS[attempt - 1]
 
     if next_delay
@@ -69,7 +69,7 @@ class WebhookDispatchJob < ApplicationJob
 
       WebhookDispatchJob
         .set(wait_until: retry_at)
-        .perform_later(customer, event_name, data, attempt: attempt + 1)
+        .perform_later(customer, event_name, data, attempt: attempt + 1, overrides: overrides)
     else
       log.update!(status: "failed")
       Rails.logger.error(
@@ -79,7 +79,9 @@ class WebhookDispatchJob < ApplicationJob
     end
   end
 
-  def build_payload(integration, customer, event, data)
+  EVENTS_WITHOUT_EXTRAS = %w[subscription.renewed plan.changed].freeze
+
+  def build_payload(integration, customer, event, data, overrides = {})
     subscription = customer.subscriptions
                            .where(integration_id: integration.id)
                            .where(status: %w[active trialing pending past_due])
@@ -87,6 +89,14 @@ class WebhookDispatchJob < ApplicationJob
                            .first
 
     external_id = customer.external_id_for(integration) || customer.id.to_s
+
+    credits = if overrides.key?(:credits)
+                overrides[:credits]
+              elsif subscription
+                build_credits(subscription, base_only: EVENTS_WITHOUT_EXTRAS.include?(event))
+              else
+                {}
+              end
 
     {
       event:        event,
@@ -101,7 +111,7 @@ class WebhookDispatchJob < ApplicationJob
       },
       subscription: subscription ? build_subscription_data(subscription) : nil,
       features:     subscription ? build_features(subscription) : {},
-      credits:      subscription ? build_credits(subscription) : {},
+      credits:      credits,
       licenses:     subscription ? build_licenses(subscription) : {},
       data:         data
     }
@@ -130,7 +140,7 @@ class WebhookDispatchJob < ApplicationJob
     end
   end
 
-  def build_credits(subscription)
+  def build_credits(subscription, base_only: false)
     period = subscription.current_period
     return {} unless period
 
@@ -138,15 +148,18 @@ class WebhookDispatchJob < ApplicationJob
           .includes(:credit_type)
           .each_with_object({}) do |spc, hash|
       snapshot = period.credit_snapshots.find_by(credit_type: spc.credit_type)
-      hash[spc.credit_type.key] = {
-        limit:          spc.quantity,
-        base:           spc.base,
-        extras:         spc.extras,
-        extra_packages: spc.extra_packages,
-        used:           snapshot&.used || 0,
-        balance:        snapshot&.balance || spc.quantity,
-        usage_percent:  snapshot&.usage_percent || 0.0
+      entry = {
+        limit:         spc.quantity,
+        base:          spc.base,
+        used:          snapshot&.used || 0,
+        balance:       snapshot&.balance || spc.quantity,
+        usage_percent: snapshot&.usage_percent || 0.0
       }
+      unless base_only
+        entry[:extras]         = spc.extras
+        entry[:extra_packages] = spc.extra_packages
+      end
+      hash[spc.credit_type.key] = entry
     end
   end
 

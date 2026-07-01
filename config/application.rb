@@ -17,5 +17,7 @@ module BillingSaas
     config.autoload_lib(ignore: %w[assets tasks])
 
     config.active_job.queue_adapter = :sidekiq
+    config.i18n.default_locale = :"pt-BR"
+    config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.yml")]
   end
 end

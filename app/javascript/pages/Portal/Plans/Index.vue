@@ -6,6 +6,14 @@
   >
     <h1 class="text-xl font-semibold text-gray-900 mb-6">Escolha seu plano</h1>
 
+    <div v-if="planNotice" class="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+      {{ planNotice }}
+    </div>
+
+    <div v-if="planError" class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ planError }}
+    </div>
+
     <div
       v-if="scheduled"
       class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
@@ -118,6 +126,7 @@
               <ConfirmButton
                 :message="confirmMessage(plan)"
                 btn-class="w-full btn-primary justify-center"
+                :disabled="changingPlan === plan.id"
                 @confirm="changePlan(plan.id)"
               >
                 {{
@@ -135,6 +144,7 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { router, usePage } from "@inertiajs/vue3";
 import PortalLayout from "@/components/Portal/PortalLayout.vue";
 import ConfirmButton from "@/components/Shared/ConfirmButton.vue";
@@ -176,8 +186,40 @@ const confirmMessage = (plan) => {
   return `Trocar para ${plan.name}? A mudança será agendada para o fim do período atual.`;
 };
 
-const changePlan = (planId) =>
-  router.put(`/portal/${page.props.portal_token}/plans/${planId}`);
+const changingPlan = ref(null);
+const planError = ref(null);
+const planNotice = ref(null);
+
+const changePlan = async (planId) => {
+  changingPlan.value = planId;
+  planError.value = null;
+  planNotice.value = null;
+  try {
+    const res = await fetch(`/portal/${page.props.portal_token}/plans/${planId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
+        Accept: "application/json",
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      planError.value = data.error || "Erro ao trocar de plano.";
+      return;
+    }
+    if (data.payment_url) {
+      window.location.href = data.payment_url;
+    } else {
+      planNotice.value = data.notice;
+      router.reload();
+    }
+  } catch {
+    planError.value = "Erro ao trocar de plano.";
+  } finally {
+    changingPlan.value = null;
+  }
+};
 
 const fmt = (v) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(

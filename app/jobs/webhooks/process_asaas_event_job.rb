@@ -131,8 +131,19 @@ class Webhooks::ProcessAsaasEventJob < ApplicationJob
     WebhookDispatchJob.perform_later(
       charge.customer,
       "payment.received",
-      { amount_cents: charge.amount_cents, gateway: gateway, charge_id: charge.gateway_charge_id }
+      { amount_cents: charge.amount_cents, gateway: gateway, charge_id: charge.gateway_charge_id },
+      overrides: { credits: purchased_credits_for(charge) }
     )
+  end
+
+  def purchased_credits_for(charge)
+    purchase = charge.charge_data["product_purchase"] || {}
+    return {} unless purchase["credit_type_id"].present? && purchase["total_credits"].to_i > 0
+
+    credit_type = CreditType.find_by(id: purchase["credit_type_id"])
+    return {} unless credit_type
+
+    { credit_type.key => { extras: purchase["total_credits"].to_i } }
   end
 
   def process_billing_managed_payment(subscription, amount_cents, was_pending_or_trial)
@@ -254,10 +265,10 @@ class Webhooks::ProcessAsaasEventJob < ApplicationJob
 
     previous.subscription_period_credits.each do |spc|
       new_period.subscription_period_credits.create!(
-        credit_type:   spc.credit_type,
-        quantity:      spc.quantity,
-        base:          spc.base,
-        extras:        spc.extras,
+        credit_type:    spc.credit_type,
+        quantity:       spc.quantity,
+        base:           spc.base,
+        extras:         spc.extras,
         extra_packages: spc.extra_packages
       )
       new_period.credit_snapshots.create!(

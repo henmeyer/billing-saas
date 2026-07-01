@@ -3,9 +3,9 @@ module Gateways
     # Resolve o melhor gateway ativo para o cliente, baseado no país.
     #
     # Prioridade:
-    #   País BR          → Asaas > dLocal Go > Stripe
-    #   País LATAM (≠BR) → dLocal Go > Asaas > Stripe
-    #   Outros países    → Stripe > dLocal Go
+    #   País BR          → Asaas > Stripe > dLocal Go
+    #   País LATAM (≠BR) → Asaas > Stripe > dLocal Go
+    #   Outros países    → Stripe > Asaas > dLocal Go
     #
     # Retorna o provider string ("asaas", "dlocal_go", "stripe")
     # ou nil se nenhum gateway ativo disponível.
@@ -32,11 +32,11 @@ module Gateways
     # Retorna todos os candidatos ordenados por prioridade
     def ranked_candidates
       if brazil?
-        %w[asaas dlocal_go stripe]
+        %w[asaas stripe dlocal_go]
       elsif latam?
-        %w[dlocal_go asaas stripe]
+        %w[asaas stripe dlocal_go]
       else
-        %w[stripe dlocal_go]
+        %w[stripe asaas dlocal_go]
       end
     end
 

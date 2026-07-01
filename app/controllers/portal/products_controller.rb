@@ -30,14 +30,16 @@ class Portal::ProductsController < Portal::BaseController
       quantity:    quantity
     )
 
-    if charge.redirect_url.present?
-      redirect_to charge.redirect_url, allow_other_host: true
-    else
-      redirect_to portal_checkout_path(token: portal_token, charge_id: charge.id)
-    end
+    payment_url = if charge.redirect_url.present?
+                    charge.redirect_url
+                  else
+                    portal_checkout_url(token: portal_token, charge_id: charge.id)
+                  end
+
+    render json: { payment_url: }
   rescue Gateways::Base::GatewayError
-    redirect_to "/portal/#{portal_token}/products",
-                alert: "Não foi possível processar a compra. Tente novamente ou entre em contato com o suporte."
+    render json:   { error: "Não foi possível processar a compra. Tente novamente ou entre em contato com o suporte." },
+           status: :unprocessable_entity
   end
 
   private
@@ -71,8 +73,9 @@ class Portal::ProductsController < Portal::BaseController
       pricing_tiers:   product.product_pricing_tiers
                               .where(currency: currency)
                               .ordered
-                              .map { |t| { from_unit: t.from_unit, to_unit: t.to_unit,
-                                           unit_amount_cents: t.unit_amount_cents } }
+                              .map do |t|
+                                { from_unit: t.from_unit, to_unit: t.to_unit, unit_amount_cents: t.unit_amount_cents }
+                              end
     }
   end
 end

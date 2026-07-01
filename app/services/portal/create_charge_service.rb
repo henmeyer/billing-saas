@@ -35,7 +35,7 @@ class Portal::CreateChargeService
       gateway_charge_id: result["id"] || result[:id],
       amount_cents:      price_cents,
       status:            "pending",
-      redirect_url:      result["redirect_url"] || result[:redirect_url],
+      redirect_url:      result["invoiceUrl"] || result[:invoiceUrl],
       charge_data:       extract_charge_data(result),
       charge_type:       "product",
       due_date:          3.days.from_now
@@ -53,12 +53,12 @@ class Portal::CreateChargeService
   # for confirmado. total_credits = crédito por unidade × quantidade comprada.
   def product_purchase_payload
     {
-      "product_id"     => @product.id,
-      "product_type"   => @product.product_type,
-      "credit_type_id" => @product.credit_type_id,
+      "product_id"      => @product.id,
+      "product_type"    => @product.product_type,
+      "credit_type_id"  => @product.credit_type_id,
       "credit_per_unit" => @product.credit_quantity.to_i,
-      "quantity"       => @quantity,
-      "total_credits"  => @product.credit_quantity.to_i * @quantity
+      "quantity"        => @quantity,
+      "total_credits"   => @product.credit_quantity.to_i * @quantity
     }
   end
 

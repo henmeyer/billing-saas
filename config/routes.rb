@@ -106,12 +106,14 @@ Rails.application.routes.draw do
   # API externa (auth por API key)
   namespace :api do
     namespace :v1 do
-      get  "/customers/:external_id/credits",         to: "credits#show"
-      post "/customers/:external_id/credits/report",  to: "credits#report"
-      get  "/customers/:external_id/licenses",        to: "licenses#show"
-      post "/customers/:external_id/licenses/report", to: "licenses#report"
-      get  "/customers/:external_id/subscription",    to: "subscriptions#show"
-      post "/portal/sessions",                        to: "portal_sessions#create"
+      post "/customers",                                to: "customers#create"
+      get  "/customers/:external_id/credits",           to: "credits#show"
+      post "/customers/:external_id/credits/report",    to: "credits#report"
+      get  "/customers/:external_id/licenses",          to: "licenses#show"
+      post "/customers/:external_id/licenses/report",   to: "licenses#report"
+      get  "/customers/:external_id/subscription",      to: "subscriptions#show"
+      post "/customers/:external_id/subscription",      to: "subscriptions#create"
+      post "/portal/sessions",                          to: "portal_sessions#create"
     end
   end
 

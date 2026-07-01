@@ -36,12 +36,10 @@ class Portal::PlansController < Portal::BaseController
     when :upgrade, :upgrade_scheduled
       handle_upgrade(result, new_plan)
     else # :downgrade
-      redirect_to portal_dashboard_path(token: portal_token),
-                  notice: "Downgrade para #{new_plan.name} agendado para o fim do período atual."
+      render json: { notice: "Downgrade para #{new_plan.name} agendado para o fim do período atual." }
     end
   rescue StandardError => e
-    redirect_to portal_plans_path(token: portal_token),
-                alert: "Erro ao trocar de plano: #{e.message}"
+    render json: { error: "Erro ao trocar de plano: #{e.message}" }, status: :unprocessable_entity
   end
 
   private
@@ -77,13 +75,11 @@ class Portal::PlansController < Portal::BaseController
 
   def handle_upgrade(result, new_plan)
     if result.charge.nil?
-      # Upgrade sem cobrança imediata (sem dias restantes): agendado.
-      redirect_to portal_dashboard_path(token: portal_token),
-                  notice: "Upgrade para #{new_plan.name} agendado para o próximo ciclo."
+      render json: { notice: "Upgrade para #{new_plan.name} agendado para o próximo ciclo." }
     elsif result.charge.redirect_url.present?
-      redirect_to result.charge.redirect_url, allow_other_host: true
+      render json: { payment_url: result.charge.redirect_url }
     else
-      redirect_to portal_checkout_path(token: portal_token, charge_id: result.charge.id)
+      render json: { payment_url: portal_checkout_url(token: portal_token, charge_id: result.charge.id) }
     end
   end
 

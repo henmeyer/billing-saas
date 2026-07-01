@@ -1,0 +1,21 @@
+pt-BR:
+  activerecord:
+    models:
+      customer: "Cliente"
+    attributes:
+      customer:
+        name:     "Nome"
+        email:    "E-mail"
+        document: "Documento"
+        phone:    "Telefone"
+        status:   "Status"
+        country:  "País"
+        notes:    "Observações"
+    errors:
+      messages:
+        blank:      "não pode ficar em branco"
+        taken:      "já está em uso"
+        inclusion:  "não é válido"
+        invalid:    "é inválido"
+        too_short:  "é muito curto (mínimo de %{count} caracteres)"
+        too_long:   "é muito longo (máximo de %{count} caracteres)"

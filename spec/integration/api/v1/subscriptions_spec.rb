@@ -60,5 +60,74 @@ RSpec.describe "API de Assinatura", type: :request do
         run_test!
       end
     end
+
+    post "Criar assinatura (trial ou ativa)" do
+      tags        "Assinatura"
+      security    [{ BearerAuth: [] }]
+      consumes    "application/json"
+      produces    "application/json"
+      description <<~DESC
+        Cria uma assinatura para o cliente, gerenciada pelo billing (sem gateway de pagamento).
+
+        **Trial:** informe `trial_ends_at` para iniciar em período de teste.
+        A assinatura fica com status `trialing` até a data informada.
+        Após a data, use o portal do cliente ou o fluxo de conversão para ativar.
+
+        **Ativa imediatamente:** omita `trial_ends_at` para criar já com status `active`.
+
+        Um cliente pode ter apenas uma assinatura ativa por integração.
+      DESC
+
+      parameter name: :body, in: :body, required: true,
+                schema: { "$ref" => "#/components/schemas/SubscriptionCreateRequest" }
+
+      response "201", "Assinatura criada" do
+        schema "$ref" => "#/components/schemas/SubscriptionCreateResponse"
+
+        let(:external_id) { "EXT123" }
+        let(:body) do
+          { plan_id: plan.id, trial_ends_at: 14.days.from_now.iso8601 }
+        end
+
+        before { subscription.update!(status: "cancelled") }
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json["status"]).to eq("trialing")
+          expect(json["managed_by"]).to eq("billing")
+          expect(json["trial_ends_at"]).to be_present
+        end
+      end
+
+      response "401", "Token inválido" do
+        schema "$ref" => "#/components/schemas/Error"
+        let(:Authorization) { "Bearer invalido" }
+        let(:external_id)   { "EXT123" }
+        let(:body)          { { plan_id: 1 } }
+        run_test!
+      end
+
+      response "404", "Cliente ou plano não encontrado" do
+        schema "$ref" => "#/components/schemas/Error"
+        let(:external_id) { "INEXISTENTE" }
+        let(:body)        { { plan_id: plan.id } }
+        run_test!
+      end
+
+      response "422", "Já possui assinatura ativa" do
+        schema do
+          {
+            type:       "object",
+            properties: {
+              errors: { type: "object", description: "Mapa de campo → lista de erros" }
+            }
+          }
+        end
+
+        let(:external_id) { "EXT123" }
+        let(:body)        { { plan_id: plan.id } }
+        run_test!
+      end
+    end
   end
 end

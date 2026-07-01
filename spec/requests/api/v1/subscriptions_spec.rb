@@ -40,6 +40,71 @@ RSpec.describe "Api::V1::Subscriptions", type: :request do
 
   before { create(:plan_price, plan: plan, currency: currency, amount_cents: 9900) }
 
+  describe "POST /api/v1/customers/:external_id/subscription" do
+    before { subscription.update!(status: "cancelled") }
+
+    it "cria assinatura ativa sem trial" do
+      post "/api/v1/customers/EXT001/subscription",
+           params: { plan_id: plan.id },
+           headers: headers
+
+      expect(response).to have_http_status(:created)
+      json = JSON.parse(response.body)
+      expect(json["status"]).to eq("active")
+      expect(json["managed_by"]).to eq("billing")
+      expect(json["trial_ends_at"]).to be_nil
+      expect(json["external_id"]).to eq("EXT001")
+    end
+
+    it "cria assinatura trialing com trial_ends_at" do
+      trial_date = 14.days.from_now.iso8601
+
+      post "/api/v1/customers/EXT001/subscription",
+           params:  { plan_id: plan.id, trial_ends_at: trial_date },
+           headers: headers
+
+      expect(response).to have_http_status(:created)
+      json = JSON.parse(response.body)
+      expect(json["status"]).to eq("trialing")
+      expect(json["trial_ends_at"]).to be_present
+    end
+
+    it "cria o subscription_period junto com a assinatura" do
+      post "/api/v1/customers/EXT001/subscription",
+           params: { plan_id: plan.id },
+           headers: headers
+
+      sub = customer.subscriptions.find_by(status: "active", integration: integration)
+      expect(sub.subscription_periods.count).to eq(1)
+    end
+
+    it "retorna 404 para plano inexistente" do
+      post "/api/v1/customers/EXT001/subscription",
+           params:  { plan_id: 999_999 },
+           headers: headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "retorna 422 se já há assinatura ativa" do
+      subscription.update!(status: "active")
+
+      post "/api/v1/customers/EXT001/subscription",
+           params:  { plan_id: plan.id },
+           headers: headers
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "retorna 404 para external_id inexistente" do
+      post "/api/v1/customers/INEXISTENTE/subscription",
+           params:  { plan_id: plan.id },
+           headers: headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   let(:headers) { { "Authorization" => "Bearer #{raw_token}" } }
 
   describe "GET /api/v1/customers/:external_id/subscription" do
