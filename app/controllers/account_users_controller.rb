@@ -94,7 +94,7 @@ class AccountUsersController < ApplicationController
   def assignable_roles
     return AccountUser::ROLES if current_user.superadmin?
 
-    my_level = current_user.account_user_for(current_account)&.level || 0
+    my_level = current_account_user&.level || 0
     AccountUser::ROLES.select { |role| AccountUser::ROLE_LEVEL[role] < my_level }
   end
 

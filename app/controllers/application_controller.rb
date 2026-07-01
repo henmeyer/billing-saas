@@ -100,13 +100,13 @@ class ApplicationController < ActionController::Base
   end
 
   def user_accounts_list
+    au_by_account = current_user.account_users.index_by(&:account_id)
     current_user.accounts.map do |a|
-      au = current_user.account_users.find_by(account: a)
       {
         id:         a.id,
         name:       a.name,
         slug:       a.slug,
-        role:       au&.role,
+        role:       au_by_account[a.id]&.role,
         is_current: a.id == current_account&.id
       }
     end

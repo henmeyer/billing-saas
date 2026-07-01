@@ -29,7 +29,8 @@ class User < ApplicationRecord
   end
 
   def account_user_for(account)
-    account_users.find_by(account: account)
+    @account_user_cache ||= {}
+    @account_user_cache[account.id] ||= account_users.find_by(account: account)
   end
 
   def at_least?(role, account = ActsAsTenant.current_tenant)

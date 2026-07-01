@@ -171,14 +171,14 @@
                 <select
                   v-model="form.gateway"
                   class="form-input"
-                  :disabled="!!subscription.id"
+                  :disabled="!!subscription.id && !!subscription.gateway"
                 >
                   <option value="">Selecione o gateway</option>
                   <option v-for="g in gateways" :key="g.id" :value="g.provider">
                     {{ g.provider }}
                   </option>
                 </select>
-                <p v-if="subscription.id" class="form-hint">
+                <p v-if="subscription.id && subscription.gateway" class="form-hint">
                   Gateway não pode ser alterado após criação.
                 </p>
               </div>

@@ -95,10 +95,13 @@ class SubscriptionsController < ApplicationController
     extra_packages   = params[:extra_packages]&.to_unsafe_h || {}
     initial_quantity = params[:initial_quantity]&.to_i
 
-    @subscription.update!(
+    attrs = {
       status:   params[:status] || @subscription.status,
       metadata: @subscription.metadata.merge("extra_packages" => extra_packages)
-    )
+    }
+    attrs[:gateway] = params[:gateway] if @subscription.gateway.nil? && params[:gateway].present?
+
+    @subscription.update!(attrs)
 
     update_period_records(extra_packages, initial_quantity:)
 
@@ -189,7 +192,6 @@ class SubscriptionsController < ApplicationController
   def current_quantity_for(sub)
     plan = sub.plan
     case plan.pricing_model
-    when "flat" then 1
     when "per_unit"
       unit_price = plan.unit_price_for(sub.effective_currency)
       unit_price.zero? ? 1 : (sub.base_price_cents.to_f / unit_price).round

@@ -86,17 +86,10 @@ RSpec.describe "API de Clientes", type: :request do
       end
 
       response "422", "Dados inválidos" do
-        schema do
-          {
-            type:       "object",
-            properties: {
-              errors: {
-                type:        "object",
-                description: "Mapa de campo → lista de erros"
-              }
-            }
-          }
-        end
+        schema type:       "object",
+               properties: {
+                 errors: { type: "object", description: "Mapa de campo → lista de erros" }
+               }
 
         let(:body) { { external_id: "user_abc123", name: "", email: "invalido", document: "" } }
         run_test!

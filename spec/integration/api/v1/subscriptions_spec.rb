@@ -115,14 +115,10 @@ RSpec.describe "API de Assinatura", type: :request do
       end
 
       response "422", "Já possui assinatura ativa" do
-        schema do
-          {
-            type:       "object",
-            properties: {
-              errors: { type: "object", description: "Mapa de campo → lista de erros" }
-            }
-          }
-        end
+        schema type:       "object",
+               properties: {
+                 errors: { type: "object", description: "Mapa de campo → lista de erros" }
+               }
 
         let(:external_id) { "EXT123" }
         let(:body)        { { plan_id: plan.id } }
